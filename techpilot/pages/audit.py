@@ -4,8 +4,6 @@ from techpilot.db.database import load_db
 
 TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"
 
-ACTION_COLORS = {"CREATE": "green", "UPDATE": "amber", "DELETE": "red"}
-
 
 class AuditState(rx.State):
     logs: list[dict] = []
@@ -14,14 +12,21 @@ class AuditState(rx.State):
         self.logs = list(reversed(load_db().get("audit_log") or []))
 
 
+def _action_color(action) -> rx.Var:
+    return rx.cond(
+        action == "CREATE", "green",
+        rx.cond(action == "UPDATE", "amber",
+        rx.cond(action == "DELETE", "red", "gray"))
+    )
+
+
 def log_row(log: dict) -> rx.Component:
-    action = log.get("action", "")
     return rx.table.row(
-        rx.table.cell(rx.text((log.get("timestamp") or "")[:16].replace("T", " "), color=MUTED, font_size="0.78rem"), padding="8px 12px"),
-        rx.table.cell(rx.text(log.get("user_nom", ""), color=TEXT, font_size="0.82rem"), padding="8px 12px"),
-        rx.table.cell(rx.badge(action, color_scheme=ACTION_COLORS.get(action, "gray"), variant="soft", radius="full"), padding="8px 12px"),
-        rx.table.cell(rx.text(log.get("entity", ""), color=MUTED, font_size="0.78rem"), padding="8px 12px"),
-        rx.table.cell(rx.text(log.get("detail", ""), color=TEXT, font_size="0.82rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(log["timestamp"][:16], color=MUTED, font_size="0.78rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(log["user_nom"], color=TEXT, font_size="0.82rem"), padding="8px 12px"),
+        rx.table.cell(rx.badge(log["action"], color_scheme=_action_color(log["action"]), variant="soft", radius="full"), padding="8px 12px"),
+        rx.table.cell(rx.text(log["entity"], color=MUTED, font_size="0.78rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(log["detail"], color=TEXT, font_size="0.82rem"), padding="8px 12px"),
         _hover={"background": "rgba(255,255,255,0.02)"},
     )
 

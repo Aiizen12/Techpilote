@@ -8,19 +8,22 @@ from datetime import datetime
 TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
 TYPES = ["bug", "suggestion", "amélioration"]
 STATUTS = ["ouvert", "en_cours", "résolu", "fermé"]
-STATUT_COLORS = {"ouvert": "red", "en_cours": "amber", "résolu": "green", "fermé": "gray"}
 
 
 class FeedbacksState(rx.State):
     feedbacks: list[dict] = []
     filter_statut: str = ""
     show_form: bool = False
-    form: dict = {}
+    form: dict = {"titre": "", "description": "", "type": "bug", "priorite": "normale"}
 
     def load(self):
         db = load_db()
         items = sorted(db.get("feedbacks") or [], key=lambda f: f.get("date_creation") or "", reverse=True)
-        self.feedbacks = [f for f in items if not self.filter_statut or f.get("statut") == self.filter_statut]
+        filtered = [f for f in items if not self.filter_statut or f.get("statut") == self.filter_statut]
+        # Pré-calcul votes_count pour éviter len() sur Var
+        for item in filtered:
+            item["votes_count"] = len(item.get("votes") or [])
+        self.feedbacks = filtered
 
     def set_filter(self, v: str):
         self.filter_statut = v
@@ -78,30 +81,35 @@ class FeedbacksState(rx.State):
         self.load()
 
 
+def _statut_color(statut) -> rx.Var:
+    return rx.cond(
+        statut == "ouvert", "red",
+        rx.cond(statut == "en_cours", "amber",
+        rx.cond(statut == "résolu", "green", "gray"))
+    )
+
+
 def feedback_card(f: dict) -> rx.Component:
-    statut = f.get("statut", "ouvert")
-    color_scheme = STATUT_COLORS.get(statut, "gray")
-    nb_votes = len(f.get("votes") or [])
     return rx.box(
         rx.hstack(
             rx.vstack(
                 rx.hstack(
-                    rx.badge(f.get("type", ""), color_scheme="indigo", variant="soft", radius="full"),
-                    rx.badge(statut, color_scheme=color_scheme, variant="soft", radius="full"),
-                    rx.badge(f.get("priorite", ""), color_scheme="gray", variant="soft", radius="full"),
+                    rx.badge(f["type"], color_scheme="indigo", variant="soft", radius="full"),
+                    rx.badge(f["statut"], color_scheme=_statut_color(f["statut"]), variant="soft", radius="full"),
+                    rx.badge(f["priorite"], color_scheme="gray", variant="soft", radius="full"),
                     rx.spacer(),
-                    rx.text((f.get("date_creation") or "")[:10], color=MUTED, font_size="0.75rem"),
+                    rx.text(f["date_creation"][:10], color=MUTED, font_size="0.75rem"),
                     spacing="2", align="center", width="100%",
                 ),
-                rx.text(f.get("titre", ""), color=TEXT, font_weight="600", font_size="0.9rem"),
-                rx.text(f.get("description", ""), color=MUTED, font_size="0.82rem"),
-                rx.text(f"Par {f.get('auteur_nom', '')}", color=MUTED, font_size="0.72rem"),
+                rx.text(f["titre"], color=TEXT, font_weight="600", font_size="0.9rem"),
+                rx.text(f["description"], color=MUTED, font_size="0.82rem"),
+                rx.text("Par " + f["auteur_nom"], color=MUTED, font_size="0.72rem"),
                 spacing="2", align="start", width="100%",
             ),
             rx.vstack(
                 rx.button(
-                    rx.icon("thumbs-up", size=14), str(nb_votes),
-                    on_click=FeedbacksState.vote(f.get("id", "")),
+                    rx.icon("thumbs-up", size=14), f["votes_count"].to_string(),
+                    on_click=FeedbacksState.vote(f["id"]),
                     background="rgba(99,102,241,0.1)", color=PRIMARY,
                     border=f"1px solid rgba(99,102,241,0.3)", border_radius="8px",
                     padding="6px 10px", font_size="0.78rem", cursor="pointer", spacing="1",
@@ -109,8 +117,8 @@ def feedback_card(f: dict) -> rx.Component:
                 rx.cond(
                     AuthState.is_manager,
                     rx.select(
-                        STATUTS, value=statut,
-                        on_change=lambda v: FeedbacksState.update_statut(f.get("id", ""), v),
+                        STATUTS, value=f["statut"],
+                        on_change=lambda v: FeedbacksState.update_statut(f["id"], v),
                         background="#1e2035", color=TEXT, border=f"1px solid {BORDER}",
                         border_radius="6px", font_size="0.75rem", width="110px",
                     ),
@@ -136,11 +144,11 @@ def feedbacks_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouveau feedback", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Titre *", value=FeedbacksState.form.get("titre", ""), on_change=lambda v: FeedbacksState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.text_area(placeholder="Description", value=FeedbacksState.form.get("description", ""), on_change=lambda v: FeedbacksState.set_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Titre *", value=FeedbacksState.form["titre"], on_change=lambda v: FeedbacksState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.text_area(placeholder="Description", value=FeedbacksState.form["description"], on_change=lambda v: FeedbacksState.set_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.hstack(
-                        rx.select(TYPES, value=FeedbacksState.form.get("type", "bug"), on_change=lambda v: FeedbacksState.set_field("type", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-                        rx.select(["basse", "normale", "haute", "critique"], value=FeedbacksState.form.get("priorite", "normale"), on_change=lambda v: FeedbacksState.set_field("priorite", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                        rx.select(TYPES, value=FeedbacksState.form["type"], on_change=lambda v: FeedbacksState.set_field("type", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                        rx.select(["basse", "normale", "haute", "critique"], value=FeedbacksState.form["priorite"], on_change=lambda v: FeedbacksState.set_field("priorite", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
                         spacing="3", width="100%",
                     ),
                     rx.hstack(

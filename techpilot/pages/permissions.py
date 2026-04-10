@@ -22,9 +22,9 @@ class PermissionsState(rx.State):
         db = load_db()
         self.rows = [
             {
-                "id": t.get("id"),
+                "id": str(t.get("id")),
                 "nom": t.get("nom") or t.get("name") or "?",
-                "permissions": {**DEFAULT_PERMS, **(t.get("permissions") or {})},
+                **{k: ({**DEFAULT_PERMS, **(t.get("permissions") or {})}).get(k, False) for k in DEFAULT_PERMS.keys()},
             }
             for t in db["technicians"]
         ]
@@ -42,17 +42,16 @@ class PermissionsState(rx.State):
 
 
 def perm_row(row: dict) -> rx.Component:
-    perms = row.get("permissions") or {}
     return rx.table.row(
         rx.table.cell(
             rx.hstack(
                 rx.box(
-                    rx.text((row.get("nom") or "?")[:2].upper(), color="white", font_size="0.7rem", font_weight="700"),
+                    rx.text(row["nom"][:2].upper(), color="white", font_size="0.7rem", font_weight="700"),
                     background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
                     border_radius="50%", width="28px", height="28px",
                     display="flex", align_items="center", justify_content="center",
                 ),
-                rx.text(row.get("nom", ""), color=TEXT, font_size="0.875rem"),
+                rx.text(row["nom"], color=TEXT, font_size="0.875rem"),
                 spacing="2", align="center",
             ),
             padding="10px 14px", white_space="nowrap",
@@ -60,8 +59,8 @@ def perm_row(row: dict) -> rx.Component:
         *[
             rx.table.cell(
                 rx.switch(
-                    checked=perms.get(key, False),
-                    on_change=lambda v, t=str(row.get("id", "")), k=key: PermissionsState.toggle_perm(t, k),
+                    checked=row[key],
+                    on_change=PermissionsState.toggle_perm(row["id"], key),
                     color_scheme="indigo",
                 ),
                 padding="10px 14px", text_align="center",

@@ -10,6 +10,12 @@ BORDER = "#1e2235"
 PRIMARY = "#6366f1"
 
 
+def _hex_to_rgb(hex_color: str) -> str:
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"{r},{g},{b}"
+
+
 def kpi_card(label: str, value, icon: str, color: str) -> rx.Component:
     return rx.box(
         rx.hstack(
@@ -37,23 +43,14 @@ def kpi_card(label: str, value, icon: str, color: str) -> rx.Component:
     )
 
 
-def _hex_to_rgb(hex_color: str) -> str:
-    h = hex_color.lstrip("#")
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    return f"{r},{g},{b}"
-
-
 def planning_row(entry: dict) -> rx.Component:
-    name = entry.get("technician_name") or entry.get("technicien_nom") or "?"
-    horaire = entry.get("horaire") or "—"
-    tt = entry.get("telework_days") or ""
     return rx.tr(
-        rx.td(rx.text(name, color=TEXT, font_size="0.875rem"), padding="10px 14px"),
-        rx.td(rx.text(horaire, color=MUTED, font_size="0.875rem"), padding="10px 14px"),
+        rx.td(rx.text(entry["technician_name"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
+        rx.td(rx.text(entry["horaire"], color=MUTED, font_size="0.875rem"), padding="10px 14px"),
         rx.td(
             rx.cond(
-                tt != "",
-                rx.badge(tt, color_scheme="cyan", variant="soft", radius="full"),
+                entry["telework_days"],
+                rx.badge(entry["telework_days"], color_scheme="cyan", variant="soft", radius="full"),
                 rx.text("—", color=MUTED, font_size="0.875rem"),
             ),
             padding="10px 14px",
@@ -63,21 +60,14 @@ def planning_row(entry: dict) -> rx.Component:
 
 def astreinte_row(a: dict) -> rx.Component:
     return rx.tr(
-        rx.td(rx.text(a.get("period", ""), color=TEXT, font_size="0.875rem"), padding="10px 14px"),
-        rx.td(
-            rx.badge(a.get("slot_matin", ""), color_scheme="amber", variant="soft"),
-            padding="10px 14px",
-        ),
-        rx.td(
-            rx.badge(a.get("slot_soir", ""), color_scheme="indigo", variant="soft"),
-            padding="10px 14px",
-        ),
+        rx.td(rx.text(a["period"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
+        rx.td(rx.badge(a["slot_matin"], color_scheme="amber", variant="soft"), padding="10px 14px"),
+        rx.td(rx.badge(a["slot_soir"], color_scheme="indigo", variant="soft"), padding="10px 14px"),
     )
 
 
 def dashboard_content() -> rx.Component:
     return rx.vstack(
-        # KPI row
         rx.hstack(
             kpi_card("Techniciens actifs",  DashboardState.technicians_actifs, "users",       "#22c55e"),
             kpi_card("Tickets ouverts",     DashboardState.tickets_ouverts,    "ticket",       "#f59e0b"),
@@ -87,9 +77,7 @@ def dashboard_content() -> rx.Component:
             width="100%",
             wrap="wrap",
         ),
-        # Ligne du bas : planning + astreintes
         rx.hstack(
-            # Planning semaine courante
             rx.box(
                 rx.text("Planning — semaine en cours", color=TEXT, font_weight="600", font_size="0.9rem", margin_bottom="0.8rem"),
                 rx.table.root(
@@ -99,11 +87,9 @@ def dashboard_content() -> rx.Component:
                             rx.table.column_header_cell("Horaires",   color=MUTED, font_size="0.75rem"),
                             rx.table.column_header_cell("Télétravail",color=MUTED, font_size="0.75rem"),
                         ),
-                        background=f"{CARD_BG}",
+                        background=CARD_BG,
                     ),
-                    rx.table.body(
-                        rx.foreach(DashboardState.planning_semaine, planning_row),
-                    ),
+                    rx.table.body(rx.foreach(DashboardState.planning_semaine, planning_row)),
                     width="100%",
                 ),
                 background=CARD_BG,
@@ -112,7 +98,6 @@ def dashboard_content() -> rx.Component:
                 padding="1.2rem",
                 flex="1",
             ),
-            # Astreintes
             rx.box(
                 rx.text("Astreintes à venir", color=TEXT, font_weight="600", font_size="0.9rem", margin_bottom="0.8rem"),
                 rx.table.root(
@@ -124,9 +109,7 @@ def dashboard_content() -> rx.Component:
                         ),
                         background=CARD_BG,
                     ),
-                    rx.table.body(
-                        rx.foreach(DashboardState.astreintes, astreinte_row),
-                    ),
+                    rx.table.body(rx.foreach(DashboardState.astreintes, astreinte_row)),
                     width="100%",
                 ),
                 background=CARD_BG,
@@ -146,4 +129,4 @@ def dashboard_content() -> rx.Component:
 
 
 def dashboard_page() -> rx.Component:
-    return page_layout(dashboard_content(), f"Bonjour {AuthState.user_nom} 👋")
+    return page_layout(dashboard_content(), "Bonjour " + AuthState.user_nom + " 👋")

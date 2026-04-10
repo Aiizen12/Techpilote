@@ -50,9 +50,20 @@ class PlanningState(rx.State):
             if idx < len(self.semaines) - 1:
                 self.select_week(self.semaines[idx + 1])
 
-    def get_entry_for_tech(self, tech_name: str) -> dict | None:
-        return next(
-            (e for e in self.entries
-             if (e.get("technician_name") or e.get("technicien_nom") or "") == tech_name),
-            None
-        )
+    @rx.var
+    def entries_by_tech(self) -> list[dict]:
+        """Pre-grouped planning data keyed by tech, avoiding foreach-level filtering."""
+        result = []
+        for tech_name in self.tech_names:
+            entry = next(
+                (e for e in self.entries
+                 if (e.get("technician_name") or e.get("technicien_nom") or "") == tech_name),
+                {}
+            )
+            result.append({
+                "tech_name": tech_name,
+                "horaire": entry.get("horaire") or "",
+                "telework_days": entry.get("telework_days") or "",
+                "bendoc_pause": entry.get("bendoc_pause") or "",
+            })
+        return result

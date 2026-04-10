@@ -7,13 +7,12 @@ from datetime import datetime
 
 TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
 TYPES = ["info", "success", "warning", "alerte"]
-TYPE_COLORS = {"info": "indigo", "success": "green", "warning": "amber", "alerte": "red"}
 
 
 class ActualitesState(rx.State):
     actualites: list[dict] = []
     show_form: bool = False
-    form: dict = {}
+    form: dict = {"titre": "", "contenu": "", "type": "info", "epingle": False}
 
     def load(self):
         db = load_db()
@@ -63,25 +62,36 @@ class ActualitesState(rx.State):
         self.load()
 
 
-_BORDER_COLORS = {"indigo": PRIMARY, "green": "#22c55e", "amber": "#f59e0b", "red": "#ef4444"}
+def _type_color(type_val) -> rx.Var:
+    return rx.cond(
+        type_val == "success", "green",
+        rx.cond(type_val == "warning", "amber",
+        rx.cond(type_val == "alerte", "red", "indigo"))
+    )
+
+
+def _type_border(type_val) -> rx.Var:
+    return rx.cond(
+        type_val == "success", "#22c55e",
+        rx.cond(type_val == "warning", "#f59e0b",
+        rx.cond(type_val == "alerte", "#ef4444", PRIMARY))
+    )
 
 
 def actu_card(a: dict) -> rx.Component:
-    color_scheme = TYPE_COLORS.get(a.get("type", "info"), "indigo")
-    border_color = _BORDER_COLORS.get(color_scheme, PRIMARY)
     return rx.box(
         rx.hstack(
             rx.vstack(
                 rx.hstack(
-                    rx.badge(a.get("type", "info"), color_scheme=color_scheme, variant="soft", radius="full"),
-                    rx.cond(a.get("epingle", False), rx.badge("📌 Épinglé", color_scheme="amber", variant="soft", radius="full")),
+                    rx.badge(a["type"], color_scheme=_type_color(a["type"]), variant="soft", radius="full"),
+                    rx.cond(a["epingle"], rx.badge("📌 Épinglé", color_scheme="amber", variant="soft", radius="full")),
                     rx.spacer(),
-                    rx.text((a.get("date_creation") or "")[:10], color=MUTED, font_size="0.75rem"),
+                    rx.text(a["date_creation"][:10], color=MUTED, font_size="0.75rem"),
                     spacing="2", align="center", width="100%",
                 ),
-                rx.text(a.get("titre", ""), color=TEXT, font_weight="600", font_size="0.95rem"),
-                rx.text(a.get("contenu", ""), color=MUTED, font_size="0.85rem"),
-                rx.text(f"Par {a.get('auteur_nom', '')}", color=MUTED, font_size="0.75rem"),
+                rx.text(a["titre"], color=TEXT, font_weight="600", font_size="0.95rem"),
+                rx.text(a["contenu"], color=MUTED, font_size="0.85rem"),
+                rx.text("Par " + a["auteur_nom"], color=MUTED, font_size="0.75rem"),
                 spacing="2", align="start", width="100%",
             ),
             rx.vstack(
@@ -89,14 +99,14 @@ def actu_card(a: dict) -> rx.Component:
                     AuthState.is_manager,
                     rx.icon_button(
                         rx.icon("pin", size=14),
-                        on_click=ActualitesState.toggle_epingle(a.get("id", "")),
+                        on_click=ActualitesState.toggle_epingle(a["id"]),
                         background="rgba(251,191,36,0.1)", color="#fbbf24",
                         border_radius="6px", size="1", cursor="pointer",
                     ),
                 ),
                 rx.icon_button(
                     rx.icon("trash-2", size=14),
-                    on_click=ActualitesState.delete(a.get("id", "")),
+                    on_click=ActualitesState.delete(a["id"]),
                     background="rgba(239,68,68,0.1)", color="#ef4444",
                     border_radius="6px", size="1", cursor="pointer",
                 ),
@@ -106,7 +116,7 @@ def actu_card(a: dict) -> rx.Component:
         ),
         background=CARD_BG,
         border=f"1px solid {BORDER}",
-        border_left=f"3px solid {border_color}",
+        border_left="3px solid " + _type_border(a["type"]),
         border_radius="12px",
         padding="1rem 1.2rem",
     )
@@ -130,9 +140,9 @@ def actualites_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouvelle actualité", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Titre *", value=ActualitesState.form.get("titre", ""), on_change=lambda v: ActualitesState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.text_area(placeholder="Contenu", value=ActualitesState.form.get("contenu", ""), on_change=lambda v: ActualitesState.set_field("contenu", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.select(TYPES, value=ActualitesState.form.get("type", "info"), on_change=lambda v: ActualitesState.set_field("type", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                    rx.input(placeholder="Titre *", value=ActualitesState.form["titre"], on_change=lambda v: ActualitesState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.text_area(placeholder="Contenu", value=ActualitesState.form["contenu"], on_change=lambda v: ActualitesState.set_field("contenu", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.select(TYPES, value=ActualitesState.form["type"], on_change=lambda v: ActualitesState.set_field("type", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
                     rx.hstack(
                         rx.button("Annuler", on_click=ActualitesState.close_form, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button("Publier", on_click=ActualitesState.create, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),

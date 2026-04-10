@@ -9,6 +9,21 @@ BORDER = "#1e2235"
 PRIMARY = "#6366f1"
 
 
+def _info_block(label: str, value, color: str = "") -> rx.Component:
+    return rx.box(
+        rx.text(label, color=MUTED, font_size="0.72rem", font_weight="600", margin_bottom="3px"),
+        rx.text(
+            rx.cond(value, value, "—"),
+            color=color if color else TEXT,
+            font_size="0.85rem",
+            font_weight="500" if color else "400",
+        ),
+        background="#1e2035",
+        border_radius="8px",
+        padding="8px 12px",
+    )
+
+
 def entry_modal() -> rx.Component:
     e = EscaladeState.selected_entry
     return rx.dialog.root(
@@ -16,8 +31,8 @@ def entry_modal() -> rx.Component:
             rx.dialog.title(
                 rx.hstack(
                     rx.vstack(
-                        rx.text(e.get("perimetre", ""), color=TEXT, font_weight="700", font_size="1rem"),
-                        rx.text(e.get("typologie", ""), color=MUTED, font_size="0.85rem"),
+                        rx.text(e["perimetre"], color=TEXT, font_weight="700", font_size="1rem"),
+                        rx.text(e["typologie"], color=MUTED, font_size="0.85rem"),
                         spacing="1",
                         align="start",
                     ),
@@ -39,21 +54,21 @@ def entry_modal() -> rx.Component:
             ),
             rx.divider(border_color=BORDER, margin_y="0.8rem"),
             rx.grid(
-                _info_block("Catégorie FRESH", e.get("categorie_fresh", "")),
-                _info_block("Traitement N1",   e.get("traitement_n1", ""),   "#22c55e"),
-                _info_block("WP N1",           e.get("wp", "")),
-                _info_block("Interlocuteur",   e.get("interlocuteur", "")),
-                _info_block("Traitement N2/N3",e.get("traitement_n2n3", ""), "#f59e0b"),
-                _info_block("WP N2",           e.get("wp_n2", "")),
+                _info_block("Catégorie FRESH", e["categorie_fresh"]),
+                _info_block("Traitement N1",   e["traitement_n1"],   "#22c55e"),
+                _info_block("WP N1",           e["wp"]),
+                _info_block("Interlocuteur",   e["interlocuteur"]),
+                _info_block("Traitement N2/N3",e["traitement_n2n3"], "#f59e0b"),
+                _info_block("WP N2",           e["wp_n2"]),
                 columns="2",
                 spacing="3",
                 width="100%",
             ),
             rx.cond(
-                e.get("conditions_escalade", "") != "",
+                e["conditions_escalade"] != "",
                 rx.box(
                     rx.text("Conditions d'escalade", color=MUTED, font_size="0.75rem", font_weight="600", margin_bottom="4px"),
-                    rx.text(e.get("conditions_escalade", ""), color=TEXT, font_size="0.85rem"),
+                    rx.text(e["conditions_escalade"], color=TEXT, font_size="0.85rem"),
                     background="#1a1a2a",
                     border=f"1px solid {BORDER}",
                     border_radius="8px",
@@ -62,10 +77,10 @@ def entry_modal() -> rx.Component:
                 ),
             ),
             rx.cond(
-                e.get("referents", "") != "",
+                e["referents"] != "",
                 rx.box(
                     rx.text("Référents", color=MUTED, font_size="0.75rem", font_weight="600", margin_bottom="4px"),
-                    rx.text(e.get("referents", ""), color=TEXT, font_size="0.85rem"),
+                    rx.text(e["referents"], color=TEXT, font_size="0.85rem"),
                     background="#1a1a2a",
                     border=f"1px solid {BORDER}",
                     border_radius="8px",
@@ -84,37 +99,22 @@ def entry_modal() -> rx.Component:
     )
 
 
-def _info_block(label: str, value: str, color: str = "") -> rx.Component:
-    return rx.box(
-        rx.text(label, color=MUTED, font_size="0.72rem", font_weight="600", margin_bottom="3px"),
-        rx.text(
-            value or "—",
-            color=color if color else TEXT,
-            font_size="0.85rem",
-            font_weight="500" if color else "400",
-        ),
-        background="#1e2035",
-        border_radius="8px",
-        padding="8px 12px",
-    )
-
-
 def entry_row(entry: dict) -> rx.Component:
     return rx.table.row(
         rx.table.cell(
-            rx.badge(entry.get("perimetre", ""), color_scheme="indigo", variant="soft", radius="full"),
+            rx.badge(entry["perimetre"], color_scheme="indigo", variant="soft", radius="full"),
             padding="8px 12px",
         ),
         rx.table.cell(
-            rx.text(entry.get("typologie", ""), color=TEXT, font_size="0.85rem"),
+            rx.text(entry["typologie"], color=TEXT, font_size="0.85rem"),
             padding="8px 12px",
         ),
         rx.table.cell(
-            rx.text(entry.get("categorie_fresh", ""), color=MUTED, font_size="0.82rem"),
+            rx.text(entry["categorie_fresh"], color=MUTED, font_size="0.82rem"),
             padding="8px 12px",
         ),
         rx.table.cell(
-            rx.text(entry.get("traitement_n1", ""), color="#86efac", font_size="0.82rem"),
+            rx.text(entry["traitement_n1"], color="#86efac", font_size="0.82rem"),
             padding="8px 12px",
         ),
         rx.table.cell(
@@ -140,7 +140,6 @@ def entry_row(entry: dict) -> rx.Component:
 
 def escalade_content() -> rx.Component:
     return rx.vstack(
-        # Barre de recherche
         rx.hstack(
             rx.box(
                 rx.icon("search", size=16, color=MUTED, position="absolute", left="12px", top="50%", transform="translateY(-50%)"),
@@ -163,7 +162,7 @@ def escalade_content() -> rx.Component:
                 flex="1",
             ),
             rx.cond(
-                EscaladeState.search != "" or EscaladeState.selected_perimetres.length() > 0,
+                (EscaladeState.search != "") | (EscaladeState.selected_perimetres.length() > 0),
                 rx.button(
                     rx.icon("x", size=14),
                     "Effacer",
@@ -189,7 +188,6 @@ def escalade_content() -> rx.Component:
             width="100%",
             align="center",
         ),
-        # Filtres périmètres
         rx.box(
             rx.hstack(
                 rx.text("Périmètre :", color=MUTED, font_size="0.8rem", white_space="nowrap"),
@@ -200,14 +198,8 @@ def escalade_content() -> rx.Component:
                             p,
                             on_click=EscaladeState.toggle_perimetre(p),
                             cursor="pointer",
-                            color_scheme=rx.cond(
-                                EscaladeState.selected_perimetres.contains(p),
-                                "indigo", "gray"
-                            ),
-                            variant=rx.cond(
-                                EscaladeState.selected_perimetres.contains(p),
-                                "solid", "soft"
-                            ),
+                            color_scheme=rx.cond(EscaladeState.selected_perimetres.contains(p), "indigo", "gray"),
+                            variant=rx.cond(EscaladeState.selected_perimetres.contains(p), "solid", "soft"),
                             radius="full",
                             font_size="0.72rem",
                         ),
@@ -225,7 +217,6 @@ def escalade_content() -> rx.Component:
             padding="0.7rem 1rem",
             width="100%",
         ),
-        # Tableau
         rx.box(
             rx.table.root(
                 rx.table.header(
@@ -238,9 +229,7 @@ def escalade_content() -> rx.Component:
                     ),
                     background="#10121f",
                 ),
-                rx.table.body(
-                    rx.foreach(EscaladeState.entries, entry_row),
-                ),
+                rx.table.body(rx.foreach(EscaladeState.entries, entry_row)),
                 width="100%",
             ),
             background=CARD_BG,
@@ -249,7 +238,6 @@ def escalade_content() -> rx.Component:
             overflow="hidden",
             width="100%",
         ),
-        # Pagination
         rx.hstack(
             rx.icon_button(
                 rx.icon("chevron-left", size=14),

@@ -14,7 +14,7 @@ class TicketsState(rx.State):
     tickets: list[dict] = []
     filter_etat: str = ""
     show_form: bool = False
-    form: dict = {}
+    form: dict = {"titre": "", "description": "", "impact": "normale", "perimetre": "", "notes": ""}
 
     def load(self):
         db = load_db()
@@ -70,21 +70,36 @@ class TicketsState(rx.State):
         self.load()
 
 
-def _etat_badge(etat: str) -> rx.Component:
-    scheme = {"en_cours": "amber", "resolu": "green", "ferme": "gray"}.get(etat, "gray")
-    return rx.badge(etat.replace("_", " "), color_scheme=scheme, variant="soft", radius="full")
+def _etat_badge(etat) -> rx.Component:
+    return rx.match(
+        etat,
+        ("en_cours", rx.badge("en cours", color_scheme="amber", variant="soft", radius="full")),
+        ("resolu",   rx.badge("résolu",   color_scheme="green", variant="soft", radius="full")),
+        ("ferme",    rx.badge("fermé",    color_scheme="gray",  variant="soft", radius="full")),
+        rx.badge(etat, color_scheme="gray", variant="soft", radius="full"),
+    )
 
 
 def ticket_row(t: dict) -> rx.Component:
     return rx.table.row(
-        rx.table.cell(rx.text(t.get("titre", ""), color=TEXT, font_size="0.85rem"), padding="10px 12px"),
-        rx.table.cell(rx.badge(t.get("impact", ""), color_scheme="amber" if t.get("impact") in ["critique","haute"] else "gray", variant="soft", radius="full"), padding="10px 12px"),
-        rx.table.cell(_etat_badge(t.get("etat", "")), padding="10px 12px"),
-        rx.table.cell(rx.text((t.get("date_creation") or "")[:10], color=MUTED, font_size="0.8rem"), padding="10px 12px"),
+        rx.table.cell(rx.text(t["titre"], color=TEXT, font_size="0.85rem"), padding="10px 12px"),
+        rx.table.cell(
+            rx.badge(
+                t["impact"],
+                color_scheme=rx.cond((t["impact"] == "critique") | (t["impact"] == "haute"), "amber", "gray"),
+                variant="soft", radius="full",
+            ),
+            padding="10px 12px",
+        ),
+        rx.table.cell(_etat_badge(t["etat"]), padding="10px 12px"),
+        rx.table.cell(rx.text(t["date_creation"][:10], color=MUTED, font_size="0.8rem"), padding="10px 12px"),
         rx.table.cell(
             rx.hstack(
-                rx.cond(t.get("etat") == "en_cours", rx.icon_button(rx.icon("check", size=14), on_click=TicketsState.resolve(t.get("id","")), background="rgba(34,197,94,0.1)", color="#22c55e", border_radius="6px", size="1", cursor="pointer")),
-                rx.icon_button(rx.icon("trash-2", size=14), on_click=TicketsState.delete(t.get("id","")), background="rgba(239,68,68,0.1)", color="#ef4444", border_radius="6px", size="1", cursor="pointer"),
+                rx.cond(
+                    t["etat"] == "en_cours",
+                    rx.icon_button(rx.icon("check", size=14), on_click=TicketsState.resolve(t["id"]), background="rgba(34,197,94,0.1)", color="#22c55e", border_radius="6px", size="1", cursor="pointer"),
+                ),
+                rx.icon_button(rx.icon("trash-2", size=14), on_click=TicketsState.delete(t["id"]), background="rgba(239,68,68,0.1)", color="#ef4444", border_radius="6px", size="1", cursor="pointer"),
                 spacing="2",
             ),
             padding="10px 12px",
@@ -115,14 +130,13 @@ def tickets_content() -> rx.Component:
             ),
             background=CARD_BG, border=f"1px solid {BORDER}", border_radius="14px", overflow="hidden", width="100%",
         ),
-        # Formulaire modal
         rx.dialog.root(
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouveau ticket", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Titre *", value=TicketsState.form.get("titre",""), on_change=lambda v: TicketsState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.text_area(placeholder="Description", value=TicketsState.form.get("description",""), on_change=lambda v: TicketsState.set_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.select(IMPACTS, value=TicketsState.form.get("impact","normale"), on_change=lambda v: TicketsState.set_field("impact", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                    rx.input(placeholder="Titre *", value=TicketsState.form["titre"], on_change=lambda v: TicketsState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.text_area(placeholder="Description", value=TicketsState.form["description"], on_change=lambda v: TicketsState.set_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.select(IMPACTS, value=TicketsState.form["impact"], on_change=lambda v: TicketsState.set_field("impact", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
                     rx.hstack(
                         rx.button("Annuler", on_click=TicketsState.close_form, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button("Créer", on_click=TicketsState.create, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
