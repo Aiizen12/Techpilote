@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
+from techpilot.state.models import FeedbackItem
 import uuid
 from datetime import datetime
 
@@ -11,7 +12,7 @@ STATUTS = ["ouvert", "en_cours", "résolu", "fermé"]
 
 
 class FeedbacksState(rx.State):
-    feedbacks: list[dict] = []
+    feedbacks: list[FeedbackItem] = []
     filter_statut: str = ""
     show_form: bool = False
     form: dict = {"titre": "", "description": "", "type": "bug", "priorite": "normale"}
@@ -20,10 +21,20 @@ class FeedbacksState(rx.State):
         db = load_db()
         items = sorted(db.get("feedbacks") or [], key=lambda f: f.get("date_creation") or "", reverse=True)
         filtered = [f for f in items if not self.filter_statut or f.get("statut") == self.filter_statut]
-        # Pré-calcul votes_count pour éviter len() sur Var
-        for item in filtered:
-            item["votes_count"] = len(item.get("votes") or [])
-        self.feedbacks = filtered
+        self.feedbacks = [
+            FeedbackItem(
+                id=str(item.get("id") or ""),
+                titre=item.get("titre") or "",
+                description=item.get("description") or "",
+                type=item.get("type") or "",
+                statut=item.get("statut") or "",
+                priorite=item.get("priorite") or "",
+                auteur_nom=item.get("auteur_nom") or "",
+                date_creation=item.get("date_creation") or "",
+                votes_count=len(item.get("votes") or []),
+            )
+            for item in filtered
+        ]
 
     def set_filter(self, v: str):
         self.filter_statut = v
@@ -89,7 +100,7 @@ def _statut_color(statut) -> rx.Var:
     )
 
 
-def feedback_card(f: dict) -> rx.Component:
+def feedback_card(f: FeedbackItem) -> rx.Component:
     return rx.box(
         rx.hstack(
             rx.vstack(

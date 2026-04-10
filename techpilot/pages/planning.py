@@ -1,6 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.planning import PlanningState
+from techpilot.state.models import PlanningEntry, AstreinteEntry
 
 TEXT = "#e2e8f0"
 MUTED = "#64748b"
@@ -20,7 +21,7 @@ COLOR_REPOS = "#1a1a2a"
 COLOR_REPOS_BORDER = "#334155"
 
 
-def tech_row(item: dict) -> rx.Component:
+def tech_row(item: PlanningEntry) -> rx.Component:
     tech_name = item["tech_name"]
     horaire = item["horaire"]
     tt = item["telework_days"]
@@ -91,7 +92,7 @@ def tech_row(item: dict) -> rx.Component:
     )
 
 
-def astreinte_card(a: dict) -> rx.Component:
+def astreinte_card(a: AstreinteEntry) -> rx.Component:
     return rx.box(
         rx.text(a["period"], color=TEXT, font_size="0.8rem", font_weight="600"),
         rx.hstack(

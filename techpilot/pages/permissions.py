@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState, DEFAULT_PERMS
+from techpilot.state.models import PermRow
 
 TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
 
@@ -16,16 +17,16 @@ PERM_LABELS = {
 
 
 class PermissionsState(rx.State):
-    rows: list[dict] = []
+    rows: list[PermRow] = []
 
     def load(self):
         db = load_db()
         self.rows = [
-            {
-                "id": str(t.get("id")),
-                "nom": t.get("nom") or t.get("name") or "?",
+            PermRow(
+                id=str(t.get("id") or ""),
+                nom=t.get("nom") or t.get("name") or "?",
                 **{k: ({**DEFAULT_PERMS, **(t.get("permissions") or {})}).get(k, False) for k in DEFAULT_PERMS.keys()},
-            }
+            )
             for t in db["technicians"]
         ]
 
@@ -41,7 +42,7 @@ class PermissionsState(rx.State):
         self.load()
 
 
-def perm_row(row: dict) -> rx.Component:
+def perm_row(row: PermRow) -> rx.Component:
     return rx.table.row(
         rx.table.cell(
             rx.hstack(

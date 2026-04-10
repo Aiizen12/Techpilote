@@ -1,15 +1,26 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db
+from techpilot.state.models import LogEntry
 
 TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"
 
 
 class AuditState(rx.State):
-    logs: list[dict] = []
+    logs: list[LogEntry] = []
 
     def load(self):
-        self.logs = list(reversed(load_db().get("audit_log") or []))
+        raw = list(reversed(load_db().get("audit_log") or []))
+        self.logs = [
+            LogEntry(
+                timestamp=item.get("timestamp") or "",
+                user_nom=item.get("user_nom") or "",
+                action=item.get("action") or "",
+                entity=item.get("entity") or "",
+                detail=item.get("detail") or "",
+            )
+            for item in raw
+        ]
 
 
 def _action_color(action) -> rx.Var:
@@ -20,7 +31,7 @@ def _action_color(action) -> rx.Var:
     )
 
 
-def log_row(log: dict) -> rx.Component:
+def log_row(log: LogEntry) -> rx.Component:
     return rx.table.row(
         rx.table.cell(rx.text(log["timestamp"][:16], color=MUTED, font_size="0.78rem"), padding="8px 12px"),
         rx.table.cell(rx.text(log["user_nom"], color=TEXT, font_size="0.82rem"), padding="8px 12px"),

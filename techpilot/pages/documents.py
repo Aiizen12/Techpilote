@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
+from techpilot.state.models import DocumentItem
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +19,7 @@ SOUS_CATEGORIES = [
 
 
 class DocumentsState(rx.State):
-    documents: list[dict] = []
+    documents: list[DocumentItem] = []
     filter_cat: str = ""
     filter_sous_cat: str = ""
     show_link_form: bool = False
@@ -31,7 +32,18 @@ class DocumentsState(rx.State):
             docs = [d for d in docs if d.get("categorie") == self.filter_cat]
         if self.filter_sous_cat:
             docs = [d for d in docs if d.get("sous_categorie") == self.filter_sous_cat]
-        self.documents = docs
+        self.documents = [
+            DocumentItem(
+                id=str(d.get("id") or ""),
+                type=d.get("type") or "",
+                nom_original=d.get("nom_original") or "",
+                url=d.get("url") or "",
+                categorie=d.get("categorie") or "",
+                sous_categorie=d.get("sous_categorie") or "",
+                description=d.get("description") or "",
+            )
+            for d in docs
+        ]
 
     def set_cat(self, v: str):
         self.filter_cat = v
@@ -87,7 +99,7 @@ class DocumentsState(rx.State):
         self.load()
 
 
-def doc_card(doc: dict) -> rx.Component:
+def doc_card(doc: DocumentItem) -> rx.Component:
     is_link = doc["type"] == "lien"
     return rx.box(
         rx.hstack(

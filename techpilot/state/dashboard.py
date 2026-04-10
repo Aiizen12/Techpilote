@@ -1,5 +1,6 @@
 import reflex as rx
 from techpilot.db.database import load_db
+from techpilot.state.models import AstreinteEntry, PlanningRow
 
 
 class DashboardState(rx.State):
@@ -7,9 +8,8 @@ class DashboardState(rx.State):
     tickets_ouverts: int = 0
     entrees_matrice: int = 0
     semaines_planning: int = 0
-    tickets_par_tech: list[dict] = []
-    astreintes: list[dict] = []
-    planning_semaine: list[dict] = []
+    astreintes: list[AstreinteEntry] = []
+    planning_semaine: list[PlanningRow] = []
 
     def load_data(self):
         db = load_db()
@@ -21,17 +21,15 @@ class DashboardState(rx.State):
         semaines = sorted(set(p.get("week") for p in db["planning"] if p.get("week")))
         self.semaines_planning = len(semaines)
 
-        # Tickets par tech
-        by_tech: dict = {}
-        for t in incidents:
-            nom = t.get("technicien_nom")
-            if nom:
-                by_tech[nom] = by_tech.get(nom, 0) + 1
-        tech_names = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Alistair"]
-        self.tickets_par_tech = [{"nom": n, "count": by_tech.get(n, 0)} for n in tech_names]
-
         # Astreintes
-        self.astreintes = db.get("astreintes") or []
+        self.astreintes = [
+            AstreinteEntry(
+                period=a.get("period") or "",
+                slot_matin=a.get("slot_matin") or "",
+                slot_soir=a.get("slot_soir") or "",
+            )
+            for a in (db.get("astreintes") or [])
+        ]
 
         # Planning semaine courante
         latest = semaines[-1] if semaines else None
@@ -45,5 +43,9 @@ class DashboardState(rx.State):
                 if not name or name in seen:
                     continue
                 seen.add(name)
-                result.append(p)
+                result.append(PlanningRow(
+                    technician_name=name,
+                    horaire=p.get("horaire") or "",
+                    telework_days=p.get("telework_days") or "",
+                ))
         self.planning_semaine = result

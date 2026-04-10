@@ -1,6 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
+from techpilot.state.models import TicketItem
 import uuid
 from datetime import datetime
 
@@ -11,15 +12,26 @@ IMPACTS = ["critique", "haute", "normale", "basse"]
 
 
 class TicketsState(rx.State):
-    tickets: list[dict] = []
+    tickets: list[TicketItem] = []
     filter_etat: str = ""
     show_form: bool = False
     form: dict = {"titre": "", "description": "", "impact": "normale", "perimetre": "", "notes": ""}
 
     def load(self):
         db = load_db()
-        t = sorted(db.get("tickets") or [], key=lambda x: x.get("date_creation") or "", reverse=True)
-        self.tickets = [x for x in t if not self.filter_etat or x.get("etat") == self.filter_etat]
+        raw = sorted(db.get("tickets") or [], key=lambda x: x.get("date_creation") or "", reverse=True)
+        filtered = [x for x in raw if not self.filter_etat or x.get("etat") == self.filter_etat]
+        self.tickets = [
+            TicketItem(
+                id=str(x.get("id") or ""),
+                titre=x.get("titre") or "",
+                description=x.get("description") or "",
+                impact=x.get("impact") or "",
+                etat=x.get("etat") or "",
+                date_creation=x.get("date_creation") or "",
+            )
+            for x in filtered
+        ]
 
     def set_filter(self, val: str):
         self.filter_etat = val
@@ -80,7 +92,7 @@ def _etat_badge(etat) -> rx.Component:
     )
 
 
-def ticket_row(t: dict) -> rx.Component:
+def ticket_row(t: TicketItem) -> rx.Component:
     return rx.table.row(
         rx.table.cell(rx.text(t["titre"], color=TEXT, font_size="0.85rem"), padding="10px 12px"),
         rx.table.cell(

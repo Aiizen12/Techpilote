@@ -1,16 +1,17 @@
 import reflex as rx
 from techpilot.db.database import load_db
+from techpilot.state.models import EscaladeEntry
 
 
 class EscaladeState(rx.State):
-    entries: list[dict] = []
+    entries: list[EscaladeEntry] = []
     perimetres: list[str] = []
     selected_perimetres: list[str] = []
     search: str = ""
     page: int = 1
     total: int = 0
     limit: int = 25
-    selected_entry: dict = {}
+    selected_entry: EscaladeEntry = EscaladeEntry()
     show_modal: bool = False
 
     def load_data(self):
@@ -42,7 +43,21 @@ class EscaladeState(rx.State):
 
         self.total = len(results)
         offset = (self.page - 1) * self.limit
-        self.entries = results[offset: offset + self.limit]
+        self.entries = [
+            EscaladeEntry(
+                perimetre=r.get("perimetre") or "",
+                typologie=r.get("typologie") or "",
+                categorie_fresh=r.get("categorie_fresh") or "",
+                traitement_n1=r.get("traitement_n1") or "",
+                wp=r.get("wp") or "",
+                interlocuteur=r.get("interlocuteur") or "",
+                traitement_n2n3=r.get("traitement_n2n3") or "",
+                wp_n2=r.get("wp_n2") or "",
+                referents=r.get("referents") or "",
+                conditions_escalade=r.get("conditions_escalade") or "",
+            )
+            for r in results[offset: offset + self.limit]
+        ]
 
     def set_search(self, val: str):
         self.search = val
@@ -67,7 +82,7 @@ class EscaladeState(rx.State):
         self.page = p
         self._filter()
 
-    def open_entry(self, entry: dict):
+    def open_entry(self, entry: EscaladeEntry):
         self.selected_entry = entry
         self.show_modal = True
 

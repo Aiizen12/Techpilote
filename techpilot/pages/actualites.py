@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
+from techpilot.state.models import ActualiteItem
 import uuid
 from datetime import datetime
 
@@ -10,7 +11,7 @@ TYPES = ["info", "success", "warning", "alerte"]
 
 
 class ActualitesState(rx.State):
-    actualites: list[dict] = []
+    actualites: list[ActualiteItem] = []
     show_form: bool = False
     form: dict = {"titre": "", "contenu": "", "type": "info", "epingle": False}
 
@@ -18,7 +19,18 @@ class ActualitesState(rx.State):
         db = load_db()
         items = db.get("actualites") or []
         items.sort(key=lambda a: (not a.get("epingle", False), -(datetime.fromisoformat(a["date_creation"]).timestamp() if a.get("date_creation") else 0)))
-        self.actualites = items
+        self.actualites = [
+            ActualiteItem(
+                id=str(a.get("id") or ""),
+                titre=a.get("titre") or "",
+                contenu=a.get("contenu") or "",
+                type=a.get("type") or "",
+                epingle=bool(a.get("epingle", False)),
+                auteur_nom=a.get("auteur_nom") or "",
+                date_creation=a.get("date_creation") or "",
+            )
+            for a in items
+        ]
 
     def open_form(self):
         self.form = {"titre": "", "contenu": "", "type": "info", "epingle": False}
@@ -78,7 +90,7 @@ def _type_border(type_val) -> rx.Var:
     )
 
 
-def actu_card(a: dict) -> rx.Component:
+def actu_card(a: ActualiteItem) -> rx.Component:
     return rx.box(
         rx.hstack(
             rx.vstack(

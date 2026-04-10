@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.auth import AuthState
 from techpilot.state.dashboard import DashboardState
+from techpilot.state.models import PlanningRow, AstreinteEntry
 
 TEXT = "#e2e8f0"
 MUTED = "#64748b"
@@ -43,7 +44,7 @@ def kpi_card(label: str, value, icon: str, color: str) -> rx.Component:
     )
 
 
-def planning_row(entry: dict) -> rx.Component:
+def planning_row(entry: PlanningRow) -> rx.Component:
     return rx.table.row(
         rx.table.cell(rx.text(entry["technician_name"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
         rx.table.cell(rx.text(entry["horaire"], color=MUTED, font_size="0.875rem"), padding="10px 14px"),
@@ -58,7 +59,7 @@ def planning_row(entry: dict) -> rx.Component:
     )
 
 
-def astreinte_row(a: dict) -> rx.Component:
+def astreinte_row(a: AstreinteEntry) -> rx.Component:
     return rx.table.row(
         rx.table.cell(rx.text(a["period"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
         rx.table.cell(rx.badge(a["slot_matin"], color_scheme="amber", variant="soft"), padding="10px 14px"),

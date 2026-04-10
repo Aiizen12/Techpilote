@@ -1,6 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
+from techpilot.state.models import TechnicienItem
 import uuid
 
 TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
@@ -9,13 +10,23 @@ COLORS = ["#6366f1","#22c55e","#f59e0b","#ef4444","#06b6d4","#8b5cf6","#ec4899"]
 
 
 class TechniciensState(rx.State):
-    technicians: list[dict] = []
+    technicians: list[TechnicienItem] = []
     show_form: bool = False
     edit_id: str = ""
     form: dict = {"nom": "", "matricule": "", "email": "", "color": "#6366f1"}
 
     def load(self):
-        self.technicians = load_db()["technicians"]
+        self.technicians = [
+            TechnicienItem(
+                id=str(t.get("id") or ""),
+                nom=t.get("nom") or "",
+                matricule=str(t.get("matricule") or ""),
+                email=t.get("email") or "",
+                color=t.get("color") or "",
+                active=bool(t.get("active", True)),
+            )
+            for t in load_db()["technicians"]
+        ]
 
     def open_create(self):
         self.edit_id = ""
@@ -62,7 +73,7 @@ class TechniciensState(rx.State):
         self.load()
 
 
-def tech_card(tech: dict) -> rx.Component:
+def tech_card(tech: TechnicienItem) -> rx.Component:
     return rx.box(
         rx.vstack(
             rx.hstack(

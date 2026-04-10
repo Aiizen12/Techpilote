@@ -1,6 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.escalade import EscaladeState
+from techpilot.state.models import EscaladeEntry
 
 TEXT = "#e2e8f0"
 MUTED = "#64748b"
@@ -99,7 +100,7 @@ def entry_modal() -> rx.Component:
     )
 
 
-def entry_row(entry: dict) -> rx.Component:
+def entry_row(entry: EscaladeEntry) -> rx.Component:
     return rx.table.row(
         rx.table.cell(
             rx.badge(entry["perimetre"], color_scheme="indigo", variant="soft", radius="full"),
