@@ -31,12 +31,7 @@ class EscaladeState(rx.State):
             q = self.search.lower()
             results = [
                 r for r in results
-                if q in (r.get("perimetre") or "").lower()
-                or q in (r.get("typologie") or "").lower()
-                or q in (r.get("categorie_fresh") or "").lower()
-                or q in (r.get("traitement_n1") or "").lower()
-                or q in (r.get("interlocuteur") or "").lower()
-                or q in (r.get("traitement_n2n3") or "").lower()
+                if q in (r.get("typologie") or "").lower()
             ]
 
         if self.selected_perimetres:
