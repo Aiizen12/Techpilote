@@ -11,10 +11,20 @@ TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PR
 
 CATEGORIES = ["Procédures", "Général", "Formation", "Référentiel", "Compte-rendu"]
 SOUS_CATEGORIES = [
-    "SI - Messagerie & Collaboration", "SI - Poste de Travail", "SI - Réseau & Accès",
-    "SI - Applications Métier", "SI - Sécurité", "SI - Infrastructure",
-    "SI - Téléphonie", "SI - Impression", "RH - Onboarding", "RH - Offboarding",
-    "RH - Gestion des accès", "RH - Matériel", "Gouvernance", "Autre",
+    "SI - Téléphonie",
+    "SI - Sécurité",
+    "SI - Réseau et internet",
+    "SI - Poste de travail et périphériques",
+    "SI - Outils collaboratifs",
+    "SI - CRM",
+    "SI - AUTRES APPLICATIONS",
+    "SI - AE",
+    "RH PERMANENTS",
+    "Ressources",
+    "Procédures en attente de validation",
+    "Généralités",
+    "Fiches Applications pour le N1",
+    "Arbres & process N1",
 ]
 
 
