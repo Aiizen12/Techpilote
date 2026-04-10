@@ -44,10 +44,10 @@ def kpi_card(label: str, value, icon: str, color: str) -> rx.Component:
 
 
 def planning_row(entry: dict) -> rx.Component:
-    return rx.tr(
-        rx.td(rx.text(entry["technician_name"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
-        rx.td(rx.text(entry["horaire"], color=MUTED, font_size="0.875rem"), padding="10px 14px"),
-        rx.td(
+    return rx.table.row(
+        rx.table.cell(rx.text(entry["technician_name"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
+        rx.table.cell(rx.text(entry["horaire"], color=MUTED, font_size="0.875rem"), padding="10px 14px"),
+        rx.table.cell(
             rx.cond(
                 entry["telework_days"],
                 rx.badge(entry["telework_days"], color_scheme="cyan", variant="soft", radius="full"),
@@ -59,10 +59,10 @@ def planning_row(entry: dict) -> rx.Component:
 
 
 def astreinte_row(a: dict) -> rx.Component:
-    return rx.tr(
-        rx.td(rx.text(a["period"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
-        rx.td(rx.badge(a["slot_matin"], color_scheme="amber", variant="soft"), padding="10px 14px"),
-        rx.td(rx.badge(a["slot_soir"], color_scheme="indigo", variant="soft"), padding="10px 14px"),
+    return rx.table.row(
+        rx.table.cell(rx.text(a["period"], color=TEXT, font_size="0.875rem"), padding="10px 14px"),
+        rx.table.cell(rx.badge(a["slot_matin"], color_scheme="amber", variant="soft"), padding="10px 14px"),
+        rx.table.cell(rx.badge(a["slot_soir"], color_scheme="indigo", variant="soft"), padding="10px 14px"),
     )
 
 
