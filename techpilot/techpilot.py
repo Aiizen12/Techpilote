@@ -12,6 +12,7 @@ from techpilot.pages.actualites import actualites_page
 from techpilot.pages.feedbacks import feedbacks_page
 from techpilot.pages.permissions import permissions_page
 from techpilot.pages.audit import audit_page
+from techpilot.pages.import_excel import import_excel_page
 
 # Initialisation DB au démarrage
 init_db()
@@ -45,3 +46,4 @@ app.add_page(actualites_page,  route="/actualites")
 app.add_page(feedbacks_page,   route="/feedbacks")
 app.add_page(permissions_page, route="/permissions")
 app.add_page(audit_page,       route="/audit")
+app.add_page(import_excel_page, route="/import-excel")

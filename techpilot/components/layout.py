@@ -85,8 +85,9 @@ def sidebar() -> rx.Component:
                 rx.vstack(
                     rx.divider(border_color=BORDER, margin_y="0.5rem"),
                     rx.text("ADMIN", font_size="0.65rem", font_weight="700", color=MUTED, padding_left="12px", padding_top="4px"),
-                    nav_item("Permissions", "shield",   "/permissions", "/permissions"),
-                    nav_item("Audit",       "file-text","/audit",       "/audit"),
+                    nav_item("Permissions",   "shield",       "/permissions",   "/permissions"),
+                    nav_item("Audit",         "file-text",    "/audit",         "/audit"),
+                    nav_item("Import Excel",  "file-up",      "/import-excel",  "/import-excel"),
                     spacing="1",
                     width="100%",
                 ),

@@ -144,10 +144,10 @@ def doc_card(doc: DocumentItem) -> rx.Component:
 def documents_content() -> rx.Component:
     return rx.vstack(
         rx.hstack(
-            rx.select(["", *CATEGORIES], placeholder="Toutes catégories", value=DocumentsState.filter_cat, on_change=DocumentsState.set_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.select(CATEGORIES, placeholder="Toutes catégories", value=DocumentsState.filter_cat, on_change=DocumentsState.set_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
             rx.cond(
                 DocumentsState.filter_cat == "Procédures",
-                rx.select(["", *SOUS_CATEGORIES], placeholder="Tous les dossiers", value=DocumentsState.filter_sous_cat, on_change=DocumentsState.set_sous_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                rx.select(SOUS_CATEGORIES, placeholder="Tous les dossiers", value=DocumentsState.filter_sous_cat, on_change=DocumentsState.set_sous_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
             ),
             rx.spacer(),
             rx.button(rx.icon("link-2", size=16), "Ajouter un lien", on_click=DocumentsState.open_link_form, background="rgba(139,92,246,0.15)", color="#a78bfa", border=f"1px solid rgba(139,92,246,0.3)", border_radius="8px", padding="8px 14px", font_size="0.85rem", cursor="pointer", spacing="2"),
@@ -161,7 +161,7 @@ def documents_content() -> rx.Component:
                     rx.input(placeholder="Nom *", value=DocumentsState.link_form["nom"], on_change=lambda v: DocumentsState.set_link_field("nom", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.input(placeholder="URL *", value=DocumentsState.link_form["url"], on_change=lambda v: DocumentsState.set_link_field("url", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.select(CATEGORIES, value=DocumentsState.link_form["categorie"], on_change=lambda v: DocumentsState.set_link_field("categorie", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-                    rx.select(["", *SOUS_CATEGORIES], placeholder="Dossier (optionnel)", value=DocumentsState.link_form["sous_categorie"], on_change=lambda v: DocumentsState.set_link_field("sous_categorie", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                    rx.select(SOUS_CATEGORIES, placeholder="Dossier (optionnel)", value=DocumentsState.link_form["sous_categorie"], on_change=lambda v: DocumentsState.set_link_field("sous_categorie", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
                     rx.text_area(placeholder="Description (optionnel)", value=DocumentsState.link_form["description"], on_change=lambda v: DocumentsState.set_link_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.hstack(
                         rx.button("Annuler", on_click=DocumentsState.close_link_form, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
