@@ -1,7 +1,5 @@
 import os
 import reflex as rx
-from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse
 
 from techpilot.db.database import init_db
 
@@ -56,8 +54,11 @@ app.add_page(quetes_page,      route="/quetes")
 
 
 @app.api.post("/sync-matrix")
-async def sync_matrix(request: Request):
+async def sync_matrix(request):
     """Endpoint appelé par Apps Script pour pousser la matrice d'escalade."""
+    from fastapi import HTTPException
+    from fastapi.responses import JSONResponse
+
     secret = os.getenv("SYNC_SECRET", "")
     body = await request.json()
 
