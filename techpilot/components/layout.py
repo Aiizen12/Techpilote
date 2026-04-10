@@ -157,7 +157,7 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
             # Header
             rx.box(
                 rx.hstack(
-                    rx.heading(title, size="5", color=TEXT, font_weight="700") if title else rx.box(),
+                    rx.heading(title, size="5", color=TEXT, font_weight="700"),
                     rx.spacer(),
                     rx.box(
                         rx.icon("bell", size=18, color=MUTED),
