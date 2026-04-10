@@ -1,0 +1,58 @@
+import reflex as rx
+from techpilot.db.database import load_db, save_db
+
+
+def _normalize_week(w: str) -> str:
+    return (w or "").split("\n")[0].split("\r")[0].strip()
+
+
+class PlanningState(rx.State):
+    semaines: list[str] = []
+    selected_week: str = ""
+    entries: list[dict] = []
+    astreintes: list[dict] = []
+    tech_names: list[str] = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Alistair"]
+
+    def load_data(self):
+        db = load_db()
+        semaines = list(dict.fromkeys(
+            _normalize_week(p.get("week", ""))
+            for p in db["planning"] if p.get("week")
+        ))
+        self.semaines = semaines
+        self.selected_week = semaines[-1] if semaines else ""
+        self.astreintes = db.get("astreintes") or []
+        self._load_entries(db)
+
+    def _load_entries(self, db: dict):
+        if not self.selected_week:
+            self.entries = []
+            return
+        self.entries = [
+            p for p in db["planning"]
+            if _normalize_week(p.get("week", "")) == self.selected_week
+        ]
+
+    def select_week(self, week: str):
+        self.selected_week = week
+        db = load_db()
+        self._load_entries(db)
+
+    def prev_week(self):
+        if self.selected_week in self.semaines:
+            idx = self.semaines.index(self.selected_week)
+            if idx > 0:
+                self.select_week(self.semaines[idx - 1])
+
+    def next_week(self):
+        if self.selected_week in self.semaines:
+            idx = self.semaines.index(self.selected_week)
+            if idx < len(self.semaines) - 1:
+                self.select_week(self.semaines[idx + 1])
+
+    def get_entry_for_tech(self, tech_name: str) -> dict | None:
+        return next(
+            (e for e in self.entries
+             if (e.get("technician_name") or e.get("technicien_nom") or "") == tech_name),
+            None
+        )
