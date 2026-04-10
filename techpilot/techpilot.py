@@ -18,7 +18,7 @@ init_db()
 
 
 def index() -> rx.Component:
-    return rx.redirect("/login")
+    return rx.box(on_mount=rx.redirect("/login"))
 
 
 app = rx.App(
