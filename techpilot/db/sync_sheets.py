@@ -15,18 +15,23 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-API_KEY  = os.getenv("GOOGLE_API_KEY", "")
-SHEET_ID = os.getenv("GOOGLE_SHEET_MATRIX_ID", "1MYwvPhtkuQVYSABD2-xJFv2uMQVPglcj2tZKjSqA2Yw")
-INTERVAL = int(os.getenv("GOOGLE_SYNC_INTERVAL_MINUTES", "60"))
-
 BASE = "https://sheets.googleapis.com/v4/spreadsheets"
 
 _scheduler_started = False
 
 
-def _find_matrix_sheet() -> str:
+def _cfg():
+    """Lit les variables d'env au moment de l'appel (pas à l'import)."""
+    return {
+        "api_key":  os.getenv("GOOGLE_API_KEY", ""),
+        "sheet_id": os.getenv("GOOGLE_SHEET_MATRIX_ID", "1MYwvPhtkuQVYSABD2-xJFv2uMQVPglcj2tZKjSqA2Yw"),
+        "interval": int(os.getenv("GOOGLE_SYNC_INTERVAL_MINUTES", "60")),
+    }
+
+
+def _find_matrix_sheet(api_key: str, sheet_id: str) -> str:
     """Retourne le nom de l'onglet contenant la matrice."""
-    url = f"{BASE}/{SHEET_ID}?key={API_KEY}&fields=sheets.properties"
+    url = f"{BASE}/{sheet_id}?key={api_key}&fields=sheets.properties"
     resp = httpx.get(url, timeout=15)
     resp.raise_for_status()
     sheets = resp.json().get("sheets", [])
@@ -38,11 +43,11 @@ def _find_matrix_sheet() -> str:
     return titles[0] if titles else ""
 
 
-def _fetch_rows(sheet_name: str) -> list[list]:
+def _fetch_rows(sheet_name: str, api_key: str, sheet_id: str) -> list[list]:
     """Récupère toutes les lignes de l'onglet."""
     import urllib.parse
     encoded = urllib.parse.quote(sheet_name)
-    url = f"{BASE}/{SHEET_ID}/values/{encoded}?key={API_KEY}"
+    url = f"{BASE}/{sheet_id}/values/{encoded}?key={api_key}"
     resp = httpx.get(url, timeout=15)
     resp.raise_for_status()
     data = resp.json()
@@ -112,16 +117,19 @@ def sync_from_sheets() -> tuple[bool, str]:
     """Synchronise la matrice depuis Google Sheets. Retourne (succès, message)."""
     from techpilot.db.database import load_db, save_db
 
-    if not API_KEY or not SHEET_ID:
+    cfg = _cfg()
+    api_key, sheet_id = cfg["api_key"], cfg["sheet_id"]
+
+    if not api_key or not sheet_id:
         msg = "GOOGLE_API_KEY ou GOOGLE_SHEET_MATRIX_ID manquant"
         logger.warning(f"[GoogleSync] {msg}")
         return False, msg
 
     try:
-        sheet_name = _find_matrix_sheet()
+        sheet_name = _find_matrix_sheet(api_key, sheet_id)
         logger.info(f"[GoogleSync] Onglet trouvé : \"{sheet_name}\"")
 
-        rows = _fetch_rows(sheet_name)
+        rows = _fetch_rows(sheet_name, api_key, sheet_id)
         if len(rows) < 2:
             return False, "Feuille vide ou sans données"
 
@@ -152,7 +160,8 @@ def start_scheduler():
     global _scheduler_started
     if _scheduler_started:
         return
-    if not API_KEY or not SHEET_ID:
+    cfg = _cfg()
+    if not cfg["api_key"] or not cfg["sheet_id"]:
         logger.warning("[GoogleSync] Désactivé — GOOGLE_API_KEY ou GOOGLE_SHEET_MATRIX_ID non configuré")
         return
     try:
@@ -161,13 +170,13 @@ def start_scheduler():
         scheduler.add_job(
             sync_from_sheets,
             trigger="interval",
-            minutes=INTERVAL,
+            minutes=cfg["interval"],
             id="sheets_sync",
             replace_existing=True,
         )
         scheduler.start()
         _scheduler_started = True
-        logger.info(f"[GoogleSync] Scheduler démarré — toutes les {INTERVAL} min")
+        logger.info(f"[GoogleSync] Scheduler démarré — toutes les {cfg['interval']} min")
         ok, msg = sync_from_sheets()
         logger.info(f"[GoogleSync] Sync initiale: {msg}")
     except Exception as e:
