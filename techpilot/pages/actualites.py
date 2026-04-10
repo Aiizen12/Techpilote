@@ -63,8 +63,12 @@ class ActualitesState(rx.State):
         self.load()
 
 
+_BORDER_COLORS = {"indigo": PRIMARY, "green": "#22c55e", "amber": "#f59e0b", "red": "#ef4444"}
+
+
 def actu_card(a: dict) -> rx.Component:
     color_scheme = TYPE_COLORS.get(a.get("type", "info"), "indigo")
+    border_color = _BORDER_COLORS.get(color_scheme, PRIMARY)
     return rx.box(
         rx.hstack(
             rx.vstack(
@@ -102,7 +106,7 @@ def actu_card(a: dict) -> rx.Component:
         ),
         background=CARD_BG,
         border=f"1px solid {BORDER}",
-        border_left=f"3px solid {{'indigo': PRIMARY, 'green': '#22c55e', 'amber': '#f59e0b', 'red': '#ef4444'}.get(color_scheme, PRIMARY)}",
+        border_left=f"3px solid {border_color}",
         border_radius="12px",
         padding="1rem 1.2rem",
     )
