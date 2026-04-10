@@ -22,9 +22,15 @@ _scheduler_started = False
 
 def _cfg():
     """Lit les variables d'env au moment de l'appel (pas à l'import)."""
+    api_key  = os.getenv("GOOGLE_API_KEY", "")
+    sheet_id = os.getenv("GOOGLE_SHEET_MATRIX_ID", "")
+    # Debug: log les clés disponibles qui contiennent "GOOGLE"
+    google_keys = [k for k in os.environ if "GOOGLE" in k]
+    logger.info(f"[GoogleSync] ENV keys with GOOGLE: {google_keys}")
+    logger.info(f"[GoogleSync] api_key={'SET' if api_key else 'EMPTY'}, sheet_id={'SET' if sheet_id else 'EMPTY'}")
     return {
-        "api_key":  os.getenv("GOOGLE_API_KEY", ""),
-        "sheet_id": os.getenv("GOOGLE_SHEET_MATRIX_ID", "1MYwvPhtkuQVYSABD2-xJFv2uMQVPglcj2tZKjSqA2Yw"),
+        "api_key":  api_key,
+        "sheet_id": sheet_id or "1MYwvPhtkuQVYSABD2-xJFv2uMQVPglcj2tZKjSqA2Yw",
         "interval": int(os.getenv("GOOGLE_SYNC_INTERVAL_MINUTES", "60")),
     }
 
