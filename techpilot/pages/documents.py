@@ -146,8 +146,31 @@ def documents_content() -> rx.Component:
         rx.hstack(
             rx.select(CATEGORIES, placeholder="Toutes catégories", value=DocumentsState.filter_cat, on_change=DocumentsState.set_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
             rx.cond(
+                DocumentsState.filter_cat != "",
+                rx.icon_button(
+                    rx.icon("x", size=14),
+                    on_click=DocumentsState.set_cat(""),
+                    background="transparent", color=MUTED,
+                    border=f"1px solid {BORDER}", border_radius="6px", size="2",
+                    cursor="pointer", _hover={"color": TEXT},
+                ),
+            ),
+            rx.cond(
                 DocumentsState.filter_cat == "Procédures",
-                rx.select(SOUS_CATEGORIES, placeholder="Tous les dossiers", value=DocumentsState.filter_sous_cat, on_change=DocumentsState.set_sous_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                rx.hstack(
+                    rx.select(SOUS_CATEGORIES, placeholder="Tous les dossiers", value=DocumentsState.filter_sous_cat, on_change=DocumentsState.set_sous_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                    rx.cond(
+                        DocumentsState.filter_sous_cat != "",
+                        rx.icon_button(
+                            rx.icon("x", size=14),
+                            on_click=DocumentsState.set_sous_cat(""),
+                            background="transparent", color=MUTED,
+                            border=f"1px solid {BORDER}", border_radius="6px", size="2",
+                            cursor="pointer", _hover={"color": TEXT},
+                        ),
+                    ),
+                    spacing="2", align="center",
+                ),
             ),
             rx.spacer(),
             rx.button(rx.icon("link-2", size=16), "Ajouter un lien", on_click=DocumentsState.open_link_form, background="rgba(139,92,246,0.15)", color="#a78bfa", border=f"1px solid rgba(139,92,246,0.3)", border_radius="8px", padding="8px 14px", font_size="0.85rem", cursor="pointer", spacing="2"),
