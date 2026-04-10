@@ -1,5 +1,6 @@
 import reflex as rx
 from techpilot.db.database import init_db
+from techpilot.db.sync_sheets import start_scheduler
 
 from techpilot.pages.login import login_page
 from techpilot.pages.dashboard import dashboard_page
@@ -15,8 +16,9 @@ from techpilot.pages.audit import audit_page
 from techpilot.pages.import_excel import import_excel_page
 from techpilot.pages.quetes import quetes_page
 
-# Initialisation DB au démarrage
+# Initialisation DB + scheduler Google Sheets
 init_db()
+start_scheduler()
 
 
 def index() -> rx.Component:

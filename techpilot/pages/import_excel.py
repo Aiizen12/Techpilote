@@ -152,6 +152,18 @@ class ImportExcelState(rx.State):
     planning_msg: str = ""
     planning_count: int = 0
 
+    sheets_status: str = ""
+    sheets_msg: str = ""
+
+    def sync_google_sheets(self):
+        from techpilot.db.sync_sheets import sync_from_sheets
+        self.sheets_status = "loading"
+        self.sheets_msg = "Synchronisation en cours..."
+        yield
+        ok, msg = sync_from_sheets()
+        self.sheets_status = "success" if ok else "error"
+        self.sheets_msg = msg
+
     async def handle_matrix_upload(self, files: list[rx.UploadFile]):
         if not files:
             self.matrix_status = "error"
@@ -317,8 +329,55 @@ def _upload_card(
     )
 
 
+def _sheets_sync_card() -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            rx.box(
+                rx.icon("table-2", size=20, color="#34d399"),
+                background="rgba(52,211,153,0.12)",
+                border_radius="8px",
+                padding="8px",
+            ),
+            rx.vstack(
+                rx.hstack(
+                    rx.text("Google Sheets", color=TEXT, font_weight="700", font_size="0.95rem"),
+                    rx.badge("Auto · 60 min", color_scheme="green", variant="soft", radius="full", font_size="0.65rem"),
+                    spacing="2", align="center",
+                ),
+                rx.text("Matrice d'escalade — synchronisation automatique", color=MUTED, font_size="0.75rem"),
+                spacing="0", align="start",
+            ),
+            rx.spacer(),
+            rx.button(
+                rx.icon("refresh-cw", size=15),
+                "Sync maintenant",
+                on_click=ImportExcelState.sync_google_sheets,
+                background="rgba(52,211,153,0.12)",
+                color="#34d399",
+                border="1px solid rgba(52,211,153,0.3)",
+                border_radius="8px",
+                font_size="0.82rem",
+                font_weight="600",
+                padding="7px 14px",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(52,211,153,0.22)"},
+            ),
+            spacing="3", align="center", width="100%",
+        ),
+        _status_box(ImportExcelState.sheets_status, ImportExcelState.sheets_msg),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_top="3px solid #34d399",
+        border_radius="14px",
+        padding="1.25rem",
+        width="100%",
+    )
+
+
 def import_excel_content() -> rx.Component:
     return rx.vstack(
+        _sheets_sync_card(),
         rx.text(
             "Importez vos fichiers Excel pour mettre à jour la matrice d'escalade ou le planning.",
             color=MUTED, font_size="0.875rem",
