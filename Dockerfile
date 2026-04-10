@@ -29,8 +29,8 @@ RUN reflex export --frontend-only --no-zip || echo "Export warning: continuing"
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Make startup script executable
-RUN chmod +x /start.sh
+RUN chmod +x /app/start.sh
 
 EXPOSE 8080
 
-CMD ["/start.sh"]
+CMD ["/app/start.sh"]
