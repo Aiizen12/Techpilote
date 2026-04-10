@@ -38,24 +38,62 @@ def entry_modal() -> rx.Component:
                         align="start",
                     ),
                     rx.spacer(),
+                    rx.icon_button(
+                        rx.icon("star", size=16),
+                        on_click=EscaladeState.toggle_favori,
+                        background=rx.cond(EscaladeState.is_selected_favori, "rgba(245,158,11,0.15)", "rgba(255,255,255,0.07)"),
+                        color=rx.cond(EscaladeState.is_selected_favori, "#fcd34d", MUTED),
+                        border="none",
+                        border_radius="8px",
+                        cursor="pointer",
+                        size="2",
+                        _hover={"background": "rgba(245,158,11,0.1)", "color": "#fcd34d"},
+                    ),
                     rx.dialog.close(
                         rx.icon_button(
                             rx.icon("x", size=16),
-                            background="transparent",
+                            background="rgba(255,255,255,0.07)",
                             color=MUTED,
+                            border="none",
                             cursor="pointer",
-                            _hover={"color": TEXT},
+                            _hover={"background": "rgba(239,68,68,0.15)", "color": "#f87171"},
                             size="2",
                         ),
                         on_click=EscaladeState.close_modal,
                     ),
                     width="100%",
                     align="center",
+                    spacing="2",
                 ),
             ),
             rx.divider(border_color=BORDER, margin_y="0.8rem"),
+            rx.box(
+                rx.text("Catégorie FRESH", color=MUTED, font_size="0.72rem", font_weight="600", margin_bottom="3px"),
+                rx.hstack(
+                    rx.text(rx.cond(e["categorie_fresh"], e["categorie_fresh"], "—"), color=TEXT, font_size="0.85rem", flex="1"),
+                    rx.button(
+                        rx.icon("copy", size=11),
+                        "Copier",
+                        on_click=EscaladeState.copy_fresh_cat,
+                        background="rgba(255,255,255,0.07)",
+                        color=MUTED,
+                        border="none",
+                        border_radius="6px",
+                        font_size="0.7rem",
+                        font_weight="600",
+                        padding="2px 8px",
+                        cursor="pointer",
+                        spacing="1",
+                        _hover={"background": "rgba(16,185,129,0.2)", "color": "#6ee7b7"},
+                    ),
+                    align="center", spacing="2",
+                ),
+                background="#1e2035",
+                border_radius="8px",
+                padding="8px 12px",
+                margin_bottom="0.75rem",
+            ),
             rx.grid(
-                _info_block("Catégorie FRESH", e["categorie_fresh"]),
                 _info_block("Traitement N1",   e["traitement_n1"],   "#22c55e"),
                 _info_block("WP N1",           e["wp"]),
                 _info_block("Interlocuteur",   e["interlocuteur"]),
@@ -100,6 +138,18 @@ def entry_modal() -> rx.Component:
     )
 
 
+def favori_chip(e: EscaladeEntry) -> rx.Component:
+    return rx.badge(
+        e["perimetre"] + " — " + e["typologie"],
+        on_click=EscaladeState.open_favori(e),
+        cursor="pointer",
+        color_scheme="amber",
+        variant="soft",
+        radius="full",
+        font_size="0.72rem",
+    )
+
+
 def entry_row(entry: EscaladeEntry) -> rx.Component:
     return rx.table.row(
         rx.table.cell(
@@ -141,6 +191,25 @@ def entry_row(entry: EscaladeEntry) -> rx.Component:
 
 def escalade_content() -> rx.Component:
     return rx.vstack(
+        rx.cond(
+            EscaladeState.favoris.length() > 0,
+            rx.box(
+                rx.hstack(
+                    rx.icon("star", size=13, color="#fcd34d"),
+                    rx.text("Favoris", color="#fcd34d", font_size="0.7rem", font_weight="700", text_transform="uppercase", letter_spacing="0.08em"),
+                    spacing="2", align="center",
+                ),
+                rx.flex(
+                    rx.foreach(EscaladeState.favoris, favori_chip),
+                    wrap="wrap", gap="6px", margin_top="0.5rem",
+                ),
+                background=CARD_BG,
+                border=f"1px solid rgba(245,158,11,0.25)",
+                border_radius="12px",
+                padding="0.75rem 1rem",
+                width="100%",
+            ),
+        ),
         rx.hstack(
             rx.box(
                 rx.icon("search", size=16, color=MUTED, position="absolute", left="12px", top="50%", transform="translateY(-50%)"),

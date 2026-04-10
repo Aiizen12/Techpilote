@@ -71,6 +71,11 @@ class DocumentItem(rx.Base):
     description: str = ""
 
 
+class DocGroup(rx.Base):
+    name: str = ""
+    docs: list[DocumentItem] = []
+
+
 class TicketItem(rx.Base):
     id: str = ""
     titre: str = ""

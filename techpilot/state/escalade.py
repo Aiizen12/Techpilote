@@ -13,6 +13,7 @@ class EscaladeState(rx.State):
     limit: int = 25
     selected_entry: EscaladeEntry = EscaladeEntry()
     show_modal: bool = False
+    favoris: list[EscaladeEntry] = []
 
     def load_data(self):
         db = load_db()
@@ -88,6 +89,25 @@ class EscaladeState(rx.State):
 
     def close_modal(self):
         self.show_modal = False
+
+    def toggle_favori(self):
+        key = self.selected_entry.perimetre + "|" + self.selected_entry.typologie
+        if any(f.perimetre + "|" + f.typologie == key for f in self.favoris):
+            self.favoris = [f for f in self.favoris if f.perimetre + "|" + f.typologie != key]
+        else:
+            self.favoris = [*self.favoris, self.selected_entry]
+
+    def open_favori(self, entry: EscaladeEntry):
+        self.selected_entry = entry
+        self.show_modal = True
+
+    def copy_fresh_cat(self):
+        yield rx.set_clipboard(self.selected_entry.categorie_fresh)
+
+    @rx.var
+    def is_selected_favori(self) -> bool:
+        key = self.selected_entry.perimetre + "|" + self.selected_entry.typologie
+        return any(f.perimetre + "|" + f.typologie == key for f in self.favoris)
 
     @rx.var
     def total_pages(self) -> int:

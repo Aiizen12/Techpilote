@@ -2,14 +2,18 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
-from techpilot.state.models import DocumentItem
+from techpilot.state.models import DocumentItem, DocGroup
 import uuid
 from datetime import datetime
 from pathlib import Path
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#e2e8f0"
+MUTED = "#64748b"
+CARD_BG = "#0d1117"
+BORDER = "rgba(255,255,255,0.07)"
+PRIMARY = "#6366f1"
 
-CATEGORIES = ["Procédures", "Général", "Formation", "Référentiel", "Compte-rendu"]
+CATEGORIES = ["Général", "Procédures", "Groupes de droits", "Formations", "Référentiels", "Autre"]
 SOUS_CATEGORIES = [
     "SI - Téléphonie",
     "SI - Sécurité",
@@ -29,7 +33,8 @@ SOUS_CATEGORIES = [
 
 
 class DocumentsState(rx.State):
-    documents: list[DocumentItem] = []
+    doc_groups: list[DocGroup] = []
+    total_count: int = 0
     filter_cat: str = ""
     filter_sous_cat: str = ""
     show_link_form: bool = False
@@ -42,17 +47,35 @@ class DocumentsState(rx.State):
             docs = [d for d in docs if d.get("categorie") == self.filter_cat]
         if self.filter_sous_cat:
             docs = [d for d in docs if d.get("sous_categorie") == self.filter_sous_cat]
-        self.documents = [
-            DocumentItem(
-                id=str(d.get("id") or ""),
-                type=d.get("type") or "",
-                nom_original=d.get("nom_original") or "",
-                url=d.get("url") or "",
-                categorie=d.get("categorie") or "",
-                sous_categorie=d.get("sous_categorie") or "",
-                description=d.get("description") or "",
+        self.total_count = len(docs)
+
+        groups: dict[str, list] = {}
+        for d in docs:
+            if self.filter_cat == "Procédures" and d.get("sous_categorie"):
+                key = d["sous_categorie"]
+            else:
+                key = d.get("categorie") or "Sans catégorie"
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(d)
+
+        self.doc_groups = [
+            DocGroup(
+                name=key,
+                docs=[
+                    DocumentItem(
+                        id=str(d.get("id") or ""),
+                        type=d.get("type") or "",
+                        nom_original=d.get("nom_original") or "",
+                        url=d.get("url") or "",
+                        categorie=d.get("categorie") or "",
+                        sous_categorie=d.get("sous_categorie") or "",
+                        description=d.get("description") or "",
+                    )
+                    for d in grp_docs
+                ],
             )
-            for d in docs
+            for key, grp_docs in groups.items()
         ]
 
     def set_cat(self, v: str):
@@ -109,105 +132,331 @@ class DocumentsState(rx.State):
         self.load()
 
 
-def doc_card(doc: DocumentItem) -> rx.Component:
+def doc_row(doc: DocumentItem) -> rx.Component:
     is_link = doc["type"] == "lien"
-    return rx.box(
-        rx.hstack(
-            rx.box(
-                rx.cond(
-                    is_link,
-                    rx.icon("link-2", size=20, color=PRIMARY),
-                    rx.icon("file", size=20, color=MUTED),
-                ),
-                background=rx.cond(is_link, "rgba(99,102,241,0.1)", "#1e2035"),
-                border_radius="8px", padding="8px",
+    return rx.hstack(
+        rx.box(
+            rx.cond(
+                is_link,
+                rx.icon("link-2", size=16, color="#a5b4fc"),
+                rx.icon("file", size=16, color=MUTED),
             ),
-            rx.vstack(
-                rx.hstack(
-                    rx.cond(
-                        is_link,
-                        rx.link(doc["nom_original"], href=doc["url"], color=TEXT, font_weight="600", font_size="0.875rem", target="_blank", _hover={"color": PRIMARY}),
-                        rx.text(doc["nom_original"], color=TEXT, font_weight="600", font_size="0.875rem"),
-                    ),
-                    rx.cond(is_link, rx.badge("Lien", color_scheme="violet", variant="soft", radius="full", font_size="0.65rem")),
-                    spacing="2", align="center",
-                ),
-                rx.hstack(
-                    rx.badge(doc["categorie"], color_scheme="gray", variant="soft", radius="full", font_size="0.65rem"),
-                    rx.cond(
-                        doc["sous_categorie"] != "",
-                        rx.badge(doc["sous_categorie"], color_scheme="indigo", variant="soft", radius="full", font_size="0.65rem"),
-                    ),
-                    spacing="2",
-                ),
-                rx.text(doc["description"], color=MUTED, font_size="0.78rem"),
-                spacing="1", align="start",
-            ),
-            rx.spacer(),
-            rx.icon_button(rx.icon("trash-2", size=14), on_click=DocumentsState.delete_doc(doc["id"]), background="rgba(239,68,68,0.1)", color="#ef4444", border_radius="6px", size="1", cursor="pointer"),
-            spacing="3", align="start", width="100%",
+            flex_shrink="0",
+            width="2.25rem",
+            height="2.25rem",
+            background=rx.cond(is_link, "rgba(99,102,241,0.15)", "rgba(255,255,255,0.05)"),
+            border_radius="8px",
+            display="flex",
+            align_items="center",
+            justify_content="center",
         ),
-        background=CARD_BG, border=f"1px solid {BORDER}", border_radius="12px", padding="1rem",
+        rx.box(
+            rx.cond(
+                is_link,
+                rx.link(
+                    doc["nom_original"],
+                    href=doc["url"],
+                    color="#a5b4fc",
+                    font_weight="600",
+                    font_size="0.875rem",
+                    target="_blank",
+                    display="block",
+                    white_space="nowrap",
+                    overflow="hidden",
+                    text_overflow="ellipsis",
+                    _hover={"text_decoration": "underline"},
+                ),
+                rx.text(
+                    doc["nom_original"],
+                    color=TEXT,
+                    font_weight="600",
+                    font_size="0.875rem",
+                    white_space="nowrap",
+                    overflow="hidden",
+                    text_overflow="ellipsis",
+                ),
+            ),
+            rx.cond(
+                doc["description"] != "",
+                rx.text(doc["description"], color=MUTED, font_size="0.75rem", white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
+            ),
+            rx.cond(
+                is_link & (doc["url"] != ""),
+                rx.text(doc["url"], color="#334155", font_size="0.7rem", white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
+            ),
+            flex="1",
+            min_width="0",
+        ),
+        rx.spacer(),
+        rx.cond(
+            is_link,
+            rx.badge("Lien", color_scheme="violet", variant="soft", radius="full", font_size="0.65rem"),
+        ),
+        rx.icon_button(
+            rx.icon("trash-2", size=14),
+            on_click=DocumentsState.delete_doc(doc["id"]),
+            background="transparent",
+            color=MUTED,
+            border="none",
+            border_radius="6px",
+            size="1",
+            cursor="pointer",
+            _hover={"background": "rgba(239,68,68,0.15)", "color": "#ef4444"},
+        ),
+        spacing="3",
+        align="center",
+        width="100%",
+        padding="0.75rem 1.25rem",
+        border_bottom=f"1px solid {BORDER}",
+        _hover={"background": "rgba(255,255,255,0.025)"},
+        transition="background 0.1s",
+    )
+
+
+def group_section(group: DocGroup) -> rx.Component:
+    return rx.vstack(
+        rx.text(
+            group["name"],
+            color=MUTED,
+            font_size="0.7rem",
+            font_weight="700",
+            text_transform="uppercase",
+            letter_spacing="0.07em",
+            padding_left="0.25rem",
+        ),
+        rx.box(
+            rx.foreach(group["docs"], doc_row),
+            background=CARD_BG,
+            border=f"1px solid {BORDER}",
+            border_radius="14px",
+            overflow="hidden",
+            width="100%",
+        ),
+        spacing="2",
+        width="100%",
+        align="start",
+    )
+
+
+def internal_sources_section() -> rx.Component:
+    return rx.vstack(
+        rx.text("Données internes", color=MUTED, font_size="0.7rem", font_weight="700", text_transform="uppercase", letter_spacing="0.07em", padding_left="0.25rem"),
+        rx.box(
+            rx.hstack(
+                rx.box(
+                    rx.icon("git-branch", size=18, color="#a5b4fc"),
+                    flex_shrink="0", width="2.25rem", height="2.25rem",
+                    background="rgba(99,102,241,0.15)", border_radius="8px",
+                    display="flex", align_items="center", justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Matrice d'escalade", color=TEXT, font_weight="600", font_size="0.875rem"),
+                    rx.text("401 règles de routage N1/N2/N3", color=MUTED, font_size="0.75rem"),
+                    spacing="0", align="start",
+                ),
+                rx.spacer(),
+                rx.badge("Interne", color_scheme="indigo", variant="soft", font_size="0.72rem"),
+                rx.icon("external-link", size=14, color=MUTED),
+                spacing="3", align="center", width="100%",
+                padding="0.875rem 1.25rem",
+                border_bottom=f"1px solid {BORDER}",
+                cursor="pointer",
+                _hover={"background": "rgba(255,255,255,0.03)"},
+                on_click=rx.redirect("/escalade"),
+            ),
+            rx.hstack(
+                rx.box(
+                    rx.icon("calendar", size=18, color="#7dd3fc"),
+                    flex_shrink="0", width="2.25rem", height="2.25rem",
+                    background="rgba(14,165,233,0.15)", border_radius="8px",
+                    display="flex", align_items="center", justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Planning", color=TEXT, font_weight="600", font_size="0.875rem"),
+                    rx.text("Planning hebdomadaire de l'équipe", color=MUTED, font_size="0.75rem"),
+                    spacing="0", align="start",
+                ),
+                rx.spacer(),
+                rx.badge("Interne", color_scheme="cyan", variant="soft", font_size="0.72rem"),
+                rx.icon("external-link", size=14, color=MUTED),
+                spacing="3", align="center", width="100%",
+                padding="0.875rem 1.25rem",
+                cursor="pointer",
+                _hover={"background": "rgba(255,255,255,0.03)"},
+                on_click=rx.redirect("/planning"),
+            ),
+            background=CARD_BG,
+            border=f"1px solid {BORDER}",
+            border_radius="14px",
+            overflow="hidden",
+            width="100%",
+        ),
+        spacing="2", width="100%", align="start",
     )
 
 
 def documents_content() -> rx.Component:
     return rx.vstack(
+        # Header
         rx.hstack(
-            rx.select(CATEGORIES, placeholder="Toutes catégories", value=DocumentsState.filter_cat, on_change=DocumentsState.set_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-            rx.cond(
-                DocumentsState.filter_cat != "",
-                rx.icon_button(
-                    rx.icon("x", size=14),
-                    on_click=DocumentsState.set_cat(""),
-                    background="transparent", color=MUTED,
-                    border=f"1px solid {BORDER}", border_radius="6px", size="2",
-                    cursor="pointer", _hover={"color": TEXT},
-                ),
-            ),
-            rx.cond(
-                DocumentsState.filter_cat == "Procédures",
+            rx.vstack(
                 rx.hstack(
-                    rx.select(SOUS_CATEGORIES, placeholder="Tous les dossiers", value=DocumentsState.filter_sous_cat, on_change=DocumentsState.set_sous_cat, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-                    rx.cond(
-                        DocumentsState.filter_sous_cat != "",
-                        rx.icon_button(
-                            rx.icon("x", size=14),
-                            on_click=DocumentsState.set_sous_cat(""),
-                            background="transparent", color=MUTED,
-                            border=f"1px solid {BORDER}", border_radius="6px", size="2",
-                            cursor="pointer", _hover={"color": TEXT},
-                        ),
-                    ),
+                    rx.icon("folder-open", size=22, color="#7dd3fc"),
+                    rx.heading("Documents partagés", size="5", color=TEXT, font_weight="800"),
                     spacing="2", align="center",
                 ),
+                rx.text(
+                    DocumentsState.total_count.to_string() + " document(s) disponible(s)",
+                    color=MUTED, font_size="0.875rem",
+                ),
+                spacing="1", align="start",
             ),
             rx.spacer(),
-            rx.button(rx.icon("link-2", size=16), "Ajouter un lien", on_click=DocumentsState.open_link_form, background="rgba(139,92,246,0.15)", color="#a78bfa", border=f"1px solid rgba(139,92,246,0.3)", border_radius="8px", padding="8px 14px", font_size="0.85rem", cursor="pointer", spacing="2"),
+            rx.button(
+                rx.icon("link-2", size=16),
+                "Ajouter un lien",
+                on_click=DocumentsState.open_link_form,
+                background="rgba(99,102,241,0.15)",
+                color="#a5b4fc",
+                border="1.5px solid rgba(99,102,241,0.3)",
+                border_radius="10px",
+                font_size="0.875rem",
+                font_weight="600",
+                padding="0.6rem 1.25rem",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(99,102,241,0.25)", "border_color": "rgba(99,102,241,0.5)"},
+            ),
             width="100%", align="center",
         ),
-        rx.vstack(rx.foreach(DocumentsState.documents, doc_card), spacing="3", width="100%"),
+        # Filtres catégorie (pills)
+        rx.box(
+            rx.vstack(
+                rx.hstack(
+                    rx.text("Catégorie", color=MUTED, font_size="0.72rem", font_weight="700", text_transform="uppercase", letter_spacing="0.05em"),
+                    *[
+                        rx.button(
+                            cat or "Tous",
+                            on_click=DocumentsState.set_cat(cat),
+                            background=rx.cond(DocumentsState.filter_cat == cat, "#2563eb", "rgba(255,255,255,0.05)"),
+                            color=rx.cond(DocumentsState.filter_cat == cat, "white", MUTED),
+                            border="none",
+                            border_radius="999px",
+                            font_size="0.8rem",
+                            font_weight="600",
+                            padding="0.3rem 0.875rem",
+                            cursor="pointer",
+                            _hover={"background": rx.cond(DocumentsState.filter_cat == cat, "#1d4ed8", "rgba(255,255,255,0.1)")},
+                        )
+                        for cat in ["", *CATEGORIES]
+                    ],
+                    spacing="2",
+                    align="center",
+                    wrap="wrap",
+                ),
+                rx.cond(
+                    DocumentsState.filter_cat == "Procédures",
+                    rx.hstack(
+                        rx.text("Dossier", color="#334155", font_size="0.7rem", font_weight="700", text_transform="uppercase", letter_spacing="0.05em"),
+                        *[
+                            rx.button(
+                                sc or "Tous",
+                                on_click=DocumentsState.set_sous_cat(sc),
+                                background=rx.cond(DocumentsState.filter_sous_cat == sc, "rgba(99,102,241,0.8)", "rgba(255,255,255,0.04)"),
+                                color=rx.cond(DocumentsState.filter_sous_cat == sc, "white", MUTED),
+                                border="none",
+                                border_radius="999px",
+                                font_size="0.75rem",
+                                font_weight="600",
+                                padding="0.2rem 0.7rem",
+                                cursor="pointer",
+                                white_space="nowrap",
+                                _hover={"background": rx.cond(DocumentsState.filter_sous_cat == sc, "rgba(99,102,241,0.9)", "rgba(255,255,255,0.08)")},
+                            )
+                            for sc in ["", *SOUS_CATEGORIES]
+                        ],
+                        spacing="2",
+                        align="center",
+                        wrap="wrap",
+                        padding_top="0.5rem",
+                        border_top=f"1px solid {BORDER}",
+                    ),
+                ),
+                spacing="3", align="start",
+            ),
+            background=CARD_BG,
+            border=f"1px solid {BORDER}",
+            border_radius="12px",
+            padding="0.75rem 1rem",
+            width="100%",
+        ),
+        # Données internes (seulement sans filtre catégorie)
+        rx.cond(
+            DocumentsState.filter_cat == "",
+            internal_sources_section(),
+        ),
+        # Documents groupés
+        rx.cond(
+            DocumentsState.doc_groups.length() == 0,
+            rx.box(
+                rx.vstack(
+                    rx.icon("folder-open", size=48, color=MUTED),
+                    rx.text("Aucun document disponible", color=MUTED, font_size="0.875rem"),
+                    spacing="3", align="center",
+                ),
+                background=CARD_BG,
+                border=f"1px solid {BORDER}",
+                border_radius="14px",
+                padding="5rem",
+                display="flex",
+                justify_content="center",
+                width="100%",
+            ),
+            rx.vstack(
+                rx.foreach(DocumentsState.doc_groups, group_section),
+                spacing="4",
+                width="100%",
+            ),
+        ),
+        # Dialog ajout lien
         rx.dialog.root(
             rx.dialog.content(
                 rx.dialog.title(rx.text("Ajouter un lien", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Nom *", value=DocumentsState.link_form["nom"], on_change=lambda v: DocumentsState.set_link_field("nom", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.input(placeholder="URL *", value=DocumentsState.link_form["url"], on_change=lambda v: DocumentsState.set_link_field("url", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.select(CATEGORIES, value=DocumentsState.link_form["categorie"], on_change=lambda v: DocumentsState.set_link_field("categorie", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-                    rx.select(SOUS_CATEGORIES, placeholder="Dossier (optionnel)", value=DocumentsState.link_form["sous_categorie"], on_change=lambda v: DocumentsState.set_link_field("sous_categorie", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-                    rx.text_area(placeholder="Description (optionnel)", value=DocumentsState.link_form["description"], on_change=lambda v: DocumentsState.set_link_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Nom *", value=DocumentsState.link_form["nom"], on_change=lambda v: DocumentsState.set_link_field("nom", v), background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%"),
+                    rx.input(placeholder="URL *", value=DocumentsState.link_form["url"], on_change=lambda v: DocumentsState.set_link_field("url", v), background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%"),
+                    rx.select(
+                        CATEGORIES,
+                        value=DocumentsState.link_form["categorie"],
+                        on_change=lambda v: DocumentsState.set_link_field("categorie", v),
+                        background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
+                    ),
+                    rx.select(
+                        SOUS_CATEGORIES,
+                        placeholder="Dossier (optionnel)",
+                        value=DocumentsState.link_form["sous_categorie"],
+                        on_change=lambda v: DocumentsState.set_link_field("sous_categorie", v),
+                        background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
+                    ),
+                    rx.text_area(placeholder="Description (optionnel)", value=DocumentsState.link_form["description"], on_change=lambda v: DocumentsState.set_link_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%"),
                     rx.hstack(
-                        rx.button("Annuler", on_click=DocumentsState.close_link_form, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
+                        rx.button("Annuler", on_click=DocumentsState.close_link_form, background="transparent", color=MUTED, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", cursor="pointer"),
                         rx.button("Ajouter", on_click=DocumentsState.create_link, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
                         spacing="3", justify="end", width="100%",
                     ),
                     spacing="3", width="100%",
                 ),
-                background="#151728", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="480px",
+                background="#151728",
+                border=f"1px solid rgba(255,255,255,0.1)",
+                border_radius="16px",
+                padding="1.5rem",
+                max_width="480px",
             ),
             open=DocumentsState.show_link_form,
         ),
-        spacing="4", width="100%", on_mount=DocumentsState.load,
+        spacing="5",
+        width="100%",
+        on_mount=DocumentsState.load,
     )
 
 
