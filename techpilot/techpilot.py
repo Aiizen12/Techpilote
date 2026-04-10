@@ -1,6 +1,4 @@
-import os
 import reflex as rx
-
 from techpilot.db.database import init_db
 
 from techpilot.pages.login import login_page
@@ -51,33 +49,3 @@ app.add_page(permissions_page, route="/permissions")
 app.add_page(audit_page,       route="/audit")
 app.add_page(import_excel_page, route="/import-excel")
 app.add_page(quetes_page,      route="/quetes")
-
-
-@app.api.post("/sync-matrix")
-async def sync_matrix(request):
-    """Endpoint appelé par Apps Script pour pousser la matrice d'escalade."""
-    from fastapi import HTTPException
-    from fastapi.responses import JSONResponse
-
-    secret = os.getenv("SYNC_SECRET", "")
-    body = await request.json()
-
-    if not secret or body.get("token") != secret:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    rows = body.get("values", [])
-    if len(rows) < 2:
-        return JSONResponse({"ok": False, "msg": "No data"})
-
-    from techpilot.db.sync_sheets import _parse_rows
-    from techpilot.db.database import load_db, save_db
-
-    entries = _parse_rows(rows)
-    if not entries:
-        return JSONResponse({"ok": False, "msg": "No entries parsed"})
-
-    db = load_db()
-    db["escalation_matrix"] = entries
-    save_db(db)
-
-    return JSONResponse({"ok": True, "msg": f"{len(entries)} entrees synchronisees"})
