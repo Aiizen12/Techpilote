@@ -48,7 +48,7 @@ def init_db():
         _cache = copy.deepcopy(DEFAULT_DB)
         return
     _client = MongoClient(uri)
-    _collection = _client["techpilot"]["techpilot_db"]
+    _collection = _client["techpilot"]["techpilot_dbs"]
     doc = _collection.find_one({"_id": "main"})
     if not doc:
         _collection.insert_one({"_id": "main", **DEFAULT_DB})
