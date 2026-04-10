@@ -100,3 +100,40 @@ class EscaladeEntry(rx.Base):
     wp_n2: str = ""
     referents: str = ""
     conditions_escalade: str = ""
+
+
+class QueteItem(rx.Base):
+    id: str = ""
+    titre: str = ""
+    description: str = ""
+    type: str = ""
+    categorie: str = ""
+    xp: int = 0
+    objectif: int = 1
+    unite: str = ""
+    difficulte: str = "E"
+    icone: str = "🎯"
+    # Progression aplatie
+    prog_progres: int = 0
+    prog_statut: str = "en_cours"
+    has_prog: bool = False
+
+
+class LeaderboardEntry(rx.Base):
+    user_id: str = ""
+    nom: str = ""
+    color: str = ""
+    total_xp: int = 0
+    level: int = 1
+    rank: str = "E"
+    quetes_validees: int = 0
+    position: int = 1
+
+
+class PendingValidation(rx.Base):
+    quete_id: str = ""
+    quete_titre: str = ""
+    quete_icone: str = ""
+    xp: int = 0
+    user_id: str = ""
+    user_nom: str = ""
