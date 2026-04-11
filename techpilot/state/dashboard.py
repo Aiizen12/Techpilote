@@ -70,8 +70,12 @@ class DashboardState(rx.State):
             for a in (db.get("astreintes") or [])
         ]
 
-        # Planning semaine la plus récente
-        latest = semaines[-1] if semaines else None
+        # Planning — semaine sauvegardée ou la plus récente
+        saved_week = db.get("planning_selected_week", "")
+        if saved_week and saved_week in semaines:
+            latest = saved_week
+        else:
+            latest = semaines[-1] if semaines else None
         seen: set = set()
         plan_rows = []
         if latest:
