@@ -145,7 +145,7 @@ def feedback_card(f: FeedbackItem) -> rx.Component:
 def feedbacks_content() -> rx.Component:
     return rx.vstack(
         rx.hstack(
-            rx.select(["", *STATUTS], placeholder="Tous les statuts", value=FeedbacksState.filter_statut, on_change=FeedbacksState.set_filter, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.select(STATUTS, placeholder="Tous les statuts", value=FeedbacksState.filter_statut, on_change=FeedbacksState.set_filter, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
             rx.spacer(),
             rx.button(rx.icon("plus", size=16), "Nouveau feedback", on_click=FeedbacksState.open_form, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", padding="8px 16px", font_size="0.85rem", cursor="pointer", spacing="2"),
             width="100%", align="center",
