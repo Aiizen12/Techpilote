@@ -6,7 +6,7 @@ import reflex as rx
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import (
     AstreinteEntry, PlanningRow,
-    TechPresence, TicketTrend, QuickLink,
+    TechPresence, QuickLink,
 )
 
 DEFAULT_TECH_COLORS = [
@@ -29,7 +29,7 @@ class DashboardState(rx.State):
     astreintes: list[AstreinteEntry] = []
     planning_semaine: list[PlanningRow] = []
     presence_today: list[TechPresence] = []
-    ticket_trends: list[TicketTrend] = []
+    ticket_trends: list[dict] = []
 
     # Notes & liens
     quick_notes: str = ""
@@ -142,7 +142,7 @@ class DashboardState(rx.State):
 
             crees   = sum(1 for t in tickets if t.get("date_creation") and _week(t["date_creation"]) == (wnum, yr))
             resolus = sum(1 for t in tickets if t.get("date_resolution") and _week(t["date_resolution"]) == (wnum, yr))
-            trends.append(TicketTrend(week=label, crees=crees, resolus=resolus))
+            trends.append({"week": label, "crees": crees, "resolus": resolus})
         self.ticket_trends = trends
 
         # Notes rapides & liens rapides
