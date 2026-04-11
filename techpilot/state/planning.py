@@ -22,7 +22,11 @@ class PlanningState(rx.State):
             for p in db["planning"] if p.get("week")
         ))
         self.semaines = semaines
-        self.selected_week = semaines[-1] if semaines else ""
+        saved = db.get("planning_selected_week", "")
+        if saved and saved in semaines:
+            self.selected_week = saved
+        else:
+            self.selected_week = semaines[-1] if semaines else ""
         self.astreintes = [
             AstreinteEntry(
                 period=a.get("period") or "",
@@ -63,6 +67,8 @@ class PlanningState(rx.State):
     def select_week(self, week: str):
         self.selected_week = week
         db = load_db()
+        db["planning_selected_week"] = week
+        save_db(db)
         self._load_entries(db)
 
     def prev_week(self):
