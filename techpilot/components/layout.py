@@ -1,5 +1,6 @@
 import reflex as rx
 from techpilot.state.auth import AuthState
+from techpilot.state.escalade import EscaladeState
 
 # ── V2 Design tokens ──────────────────────────────────────────────────────────
 BG          = "#080b14"
@@ -20,6 +21,10 @@ class LayoutState(rx.State):
 
     def toggle(self):
         self.collapsed = not self.collapsed
+
+    def search_key(self, key: str):
+        if key == "Enter":
+            return rx.redirect("/escalade")
 
 
 # ── Nav item ──────────────────────────────────────────────────────────────────
@@ -306,6 +311,28 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
                 rx.hstack(
                     rx.heading(title, size="5", color=TEXT, font_weight="700"),
                     rx.spacer(),
+                    # Barre de recherche matrice
+                    rx.box(
+                        rx.icon("search", size=14, color=MUTED,
+                                position="absolute", left="10px", top="50%", transform="translateY(-50%)"),
+                        rx.input(
+                            placeholder="Recherche dans la matrice…",
+                            on_change=EscaladeState.set_search,
+                            on_key_down=LayoutState.search_key,
+                            background="rgba(255,255,255,0.05)",
+                            border=f"1px solid {BORDER}",
+                            color=TEXT,
+                            border_radius="8px",
+                            padding_left="32px",
+                            padding_right="10px",
+                            padding_y="7px",
+                            font_size="0.82rem",
+                            width="240px",
+                            _focus={"border_color": PRIMARY, "outline": "none", "background": "rgba(99,102,241,0.07)"},
+                            _placeholder={"color": MUTED},
+                        ),
+                        position="relative",
+                    ),
                     rx.box(
                         rx.icon("bell", size=17, color=MUTED),
                         background="transparent",
@@ -317,7 +344,7 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
                     ),
                     spacing="3",
                     align="center",
-                    padding="0.85rem 1.5rem",
+                    padding="0.75rem 1.5rem",
                 ),
                 background=SIDEBAR_BG,
                 border_bottom=f"1px solid {BORDER}",
@@ -329,7 +356,7 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
             rx.box(
                 content,
                 padding="1.5rem",
-                min_height="calc(100vh - 57px)",
+                min_height="calc(100vh - 53px)",
             ),
             margin_left=rx.cond(LayoutState.collapsed, SIDEBAR_COLLAPSED, SIDEBAR_FULL),
             background=BG,

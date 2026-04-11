@@ -18,6 +18,26 @@ class PlanningRow(rx.Base):
     technician_name: str = ""
     horaire: str = ""
     telework_days: str = ""
+    bendoc_pause: str = ""
+
+
+class TechPresence(rx.Base):
+    nom: str = ""
+    initials: str = ""
+    color: str = ""
+    status: str = ""  # "present" | "tt" | "absent" | "repos"
+
+
+class TicketTrend(rx.Base):
+    week: str = ""
+    crees: int = 0
+    resolus: int = 0
+
+
+class QuickLink(rx.Base):
+    id: str = ""
+    nom: str = ""
+    url: str = ""
 
 
 class LogEntry(rx.Base):

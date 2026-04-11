@@ -33,6 +33,8 @@ DEFAULT_DB = {
     "notifications": [],
     "audit_log": [],
     "manager_auth": {},
+    "quick_notes": {},
+    "quick_links": [],
 }
 
 _client = None
