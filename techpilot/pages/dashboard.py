@@ -4,10 +4,10 @@ from techpilot.state.auth import AuthState
 from techpilot.state.dashboard import DashboardState
 from techpilot.state.models import PlanningRow, AstreinteEntry
 
-TEXT = "#e2e8f0"
-MUTED = "#64748b"
-CARD_BG = "#151728"
-BORDER = "#1e2235"
+TEXT = "#f1f5f9"
+MUTED = "#94a3b8"
+CARD_BG = "#111524"
+BORDER = "#1c2138"
 PRIMARY = "#6366f1"
 
 

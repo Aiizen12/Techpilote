@@ -3,10 +3,10 @@ from techpilot.components.layout import page_layout
 from techpilot.state.planning import PlanningState
 from techpilot.state.models import PlanningEntry, AstreinteEntry
 
-TEXT = "#e2e8f0"
-MUTED = "#64748b"
-CARD_BG = "#151728"
-BORDER = "#1e2235"
+TEXT = "#f1f5f9"
+MUTED = "#94a3b8"
+CARD_BG = "#111524"
+BORDER = "#1c2138"
 PRIMARY = "#6366f1"
 
 COLOR_CDS = "#1a3a2a"
@@ -129,18 +129,18 @@ def planning_content() -> rx.Component:
                 rx.icon_button(
                     rx.icon("chevron-left", size=16),
                     on_click=PlanningState.prev_week,
-                    background="#1e2235",
+                    background="#1c2138",
                     color=TEXT,
                     border=f"1px solid {BORDER}",
                     border_radius="8px",
                     size="2",
-                    _hover={"background": "#2a2d4a"},
+                    _hover={"background": "#1c2138"},
                 ),
                 rx.select(
                     PlanningState.semaines,
                     value=PlanningState.selected_week,
                     on_change=PlanningState.select_week,
-                    background="#1e2235",
+                    background="#1c2138",
                     color=TEXT,
                     border=f"1px solid {BORDER}",
                     border_radius="8px",
@@ -149,12 +149,12 @@ def planning_content() -> rx.Component:
                 rx.icon_button(
                     rx.icon("chevron-right", size=16),
                     on_click=PlanningState.next_week,
-                    background="#1e2235",
+                    background="#1c2138",
                     color=TEXT,
                     border=f"1px solid {BORDER}",
                     border_radius="8px",
                     size="2",
-                    _hover={"background": "#2a2d4a"},
+                    _hover={"background": "#1c2138"},
                 ),
                 rx.spacer(),
                 rx.hstack(
@@ -193,7 +193,7 @@ def planning_content() -> rx.Component:
                             padding="10px 14px",
                         ),
                     ),
-                    background="#10121f",
+                    background="#0d1021",
                 ),
                 rx.table.body(
                     rx.foreach(PlanningState.entries_by_tech, tech_row),

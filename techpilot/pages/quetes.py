@@ -5,7 +5,7 @@ from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
 from techpilot.state.models import QueteItem, LeaderboardEntry, PendingValidation
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 
 DEFAULT_QUETES = [
     {"titre": "Veilleur de l'Aube",    "description": "Connecte-toi avant 9h",                             "type": "quotidienne",  "categorie": "general",       "xp": 20,   "objectif": 1,  "unite": "connexion",  "difficulte": "E",  "icone": "🌅"},
@@ -383,7 +383,7 @@ def quete_card(q: QueteItem) -> rx.Component:
                     q["id"] == QuetesState.prog_quete_id,
                     rx.hstack(
                         rx.input(value=QuetesState.prog_input, on_change=QuetesState.set_prog_input, type="number",
-                            width="54px", font_size="0.78rem", background="#1e2035", color=TEXT,
+                            width="54px", font_size="0.78rem", background="#1c2138", color=TEXT,
                             border=f"1px solid {BORDER}", border_radius="6px", padding="3px 6px", text_align="center"),
                         rx.icon_button(rx.icon("check",size=12), on_click=QuetesState.update_progress,
                             background="rgba(99,102,241,0.15)", color=PRIMARY, border_radius="6px", size="1", cursor="pointer"),
@@ -430,7 +430,7 @@ def pending_card(p: PendingValidation) -> rx.Component:
             background="rgba(239,68,68,0.1)",color="#ef4444",border="1px solid rgba(239,68,68,0.3)",
             border_radius="6px",font_size="0.72rem",padding="4px 8px",cursor="pointer"),
         spacing="2", align="center", width="100%",
-        background="#10121f", border="1px solid rgba(245,158,11,0.2)",
+        background="#0d1021", border="1px solid rgba(245,158,11,0.2)",
         border_radius="8px", padding="0.6rem 0.8rem",
     )
 
@@ -554,18 +554,18 @@ def quetes_content() -> rx.Component:
                 rx.dialog.content(
                     rx.dialog.title(rx.text("Nouvelle quête", color=TEXT, font_weight="700")),
                     rx.vstack(
-                        rx.input(placeholder="Titre *", value=QuetesState.create_form["titre"], on_change=lambda v: QuetesState.set_create_field("titre",v), background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px",width="100%"),
-                        rx.text_area(placeholder="Description", value=QuetesState.create_form["description"], on_change=lambda v: QuetesState.set_create_field("description",v), background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px",width="100%"),
+                        rx.input(placeholder="Titre *", value=QuetesState.create_form["titre"], on_change=lambda v: QuetesState.set_create_field("titre",v), background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px",width="100%"),
+                        rx.text_area(placeholder="Description", value=QuetesState.create_form["description"], on_change=lambda v: QuetesState.set_create_field("description",v), background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px",width="100%"),
                         rx.hstack(
-                            rx.vstack(rx.text("Type",color=MUTED,font_size="0.75rem"), rx.select(["quotidienne","hebdomadaire","achievement"],value=QuetesState.create_form["type"],on_change=lambda v:QuetesState.set_create_field("type",v),background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
-                            rx.vstack(rx.text("Difficulté",color=MUTED,font_size="0.75rem"), rx.select(["E","D","C","B","A","S","SS"],value=QuetesState.create_form["difficulte"],on_change=lambda v:QuetesState.set_create_field("difficulte",v),background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
+                            rx.vstack(rx.text("Type",color=MUTED,font_size="0.75rem"), rx.select(["quotidienne","hebdomadaire","achievement"],value=QuetesState.create_form["type"],on_change=lambda v:QuetesState.set_create_field("type",v),background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
+                            rx.vstack(rx.text("Difficulté",color=MUTED,font_size="0.75rem"), rx.select(["E","D","C","B","A","S","SS"],value=QuetesState.create_form["difficulte"],on_change=lambda v:QuetesState.set_create_field("difficulte",v),background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
                             spacing="3",width="100%",
                         ),
                         rx.hstack(
-                            rx.vstack(rx.text("XP",color=MUTED,font_size="0.75rem"), rx.input(placeholder="50",value=QuetesState.create_form["xp"],on_change=lambda v:QuetesState.set_create_field("xp",v),type="number",background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
-                            rx.vstack(rx.text("Objectif",color=MUTED,font_size="0.75rem"), rx.input(placeholder="1",value=QuetesState.create_form["objectif"],on_change=lambda v:QuetesState.set_create_field("objectif",v),type="number",background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
-                            rx.vstack(rx.text("Unité",color=MUTED,font_size="0.75rem"), rx.input(placeholder="action",value=QuetesState.create_form["unite"],on_change=lambda v:QuetesState.set_create_field("unite",v),background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
-                            rx.vstack(rx.text("Icône",color=MUTED,font_size="0.75rem"), rx.input(placeholder="🎯",value=QuetesState.create_form["icone"],on_change=lambda v:QuetesState.set_create_field("icone",v),background="#1e2035",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px",width="70px"),spacing="1"),
+                            rx.vstack(rx.text("XP",color=MUTED,font_size="0.75rem"), rx.input(placeholder="50",value=QuetesState.create_form["xp"],on_change=lambda v:QuetesState.set_create_field("xp",v),type="number",background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
+                            rx.vstack(rx.text("Objectif",color=MUTED,font_size="0.75rem"), rx.input(placeholder="1",value=QuetesState.create_form["objectif"],on_change=lambda v:QuetesState.set_create_field("objectif",v),type="number",background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
+                            rx.vstack(rx.text("Unité",color=MUTED,font_size="0.75rem"), rx.input(placeholder="action",value=QuetesState.create_form["unite"],on_change=lambda v:QuetesState.set_create_field("unite",v),background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px"),spacing="1"),
+                            rx.vstack(rx.text("Icône",color=MUTED,font_size="0.75rem"), rx.input(placeholder="🎯",value=QuetesState.create_form["icone"],on_change=lambda v:QuetesState.set_create_field("icone",v),background="#1c2138",color=TEXT,border=f"1px solid {BORDER}",border_radius="8px",width="70px"),spacing="1"),
                             spacing="3",width="100%",
                         ),
                         rx.hstack(
@@ -575,7 +575,7 @@ def quetes_content() -> rx.Component:
                         ),
                         spacing="3",width="100%",
                     ),
-                    background="#151728",border=f"1px solid {BORDER}",border_radius="16px",padding="1.5rem",max_width="520px",
+                    background="#111524",border=f"1px solid {BORDER}",border_radius="16px",padding="1.5rem",max_width="520px",
                 ),
                 open=QuetesState.show_create,
             ),

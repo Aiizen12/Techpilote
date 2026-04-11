@@ -5,7 +5,7 @@ from techpilot.state.models import TicketItem
 import uuid
 from datetime import datetime
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 
 ETATS = ["en_cours", "resolu", "ferme"]
 IMPACTS = ["critique", "haute", "normale", "basse"]
@@ -35,6 +35,10 @@ class TicketsState(rx.State):
 
     def set_filter(self, val: str):
         self.filter_etat = val
+        self.load()
+
+    def clear_filter(self):
+        self.filter_etat = ""
         self.load()
 
     def open_form(self):
@@ -123,7 +127,11 @@ def ticket_row(t: TicketItem) -> rx.Component:
 def tickets_content() -> rx.Component:
     return rx.vstack(
         rx.hstack(
-            rx.select(ETATS, placeholder="Tous les états", value=TicketsState.filter_etat, on_change=TicketsState.set_filter, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.select(ETATS, placeholder="Tous les états", value=TicketsState.filter_etat, on_change=TicketsState.set_filter, background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.cond(
+                TicketsState.filter_etat != "",
+                rx.icon_button(rx.icon("x", size=14), on_click=TicketsState.clear_filter, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", size="2", cursor="pointer", _hover={"color": TEXT}),
+            ),
             rx.spacer(),
             rx.button(rx.icon("plus", size=16), "Nouveau ticket", on_click=TicketsState.open_form, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", padding="8px 16px", font_size="0.85rem", cursor="pointer", spacing="2"),
             width="100%", align="center",
@@ -136,7 +144,7 @@ def tickets_content() -> rx.Component:
                     rx.table.column_header_cell("État",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
                     rx.table.column_header_cell("Date",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
                     rx.table.column_header_cell("",         padding="10px 12px"),
-                ), background="#10121f"),
+                ), background="#0d1021"),
                 rx.table.body(rx.foreach(TicketsState.tickets, ticket_row)),
                 width="100%",
             ),
@@ -146,9 +154,9 @@ def tickets_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouveau ticket", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Titre *", value=TicketsState.form["titre"], on_change=lambda v: TicketsState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.text_area(placeholder="Description", value=TicketsState.form["description"], on_change=lambda v: TicketsState.set_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.select(IMPACTS, value=TicketsState.form["impact"], on_change=lambda v: TicketsState.set_field("impact", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                    rx.input(placeholder="Titre *", value=TicketsState.form["titre"], on_change=lambda v: TicketsState.set_field("titre", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.text_area(placeholder="Description", value=TicketsState.form["description"], on_change=lambda v: TicketsState.set_field("description", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.select(IMPACTS, value=TicketsState.form["impact"], on_change=lambda v: TicketsState.set_field("impact", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
                     rx.hstack(
                         rx.button("Annuler", on_click=TicketsState.close_form, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button("Créer", on_click=TicketsState.create, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
@@ -156,7 +164,7 @@ def tickets_content() -> rx.Component:
                     ),
                     spacing="3", width="100%",
                 ),
-                background="#151728", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="480px",
+                background="#111524", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="480px",
             ),
             open=TicketsState.show_form,
         ),

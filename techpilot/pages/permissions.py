@@ -4,7 +4,7 @@ from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState, DEFAULT_PERMS
 from techpilot.state.models import PermRow
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 
 PERM_LABELS = {
     "planning_edit": "Modifier le planning",
@@ -82,7 +82,7 @@ def permissions_content() -> rx.Component:
                         for label in PERM_LABELS.values()
                     ],
                 ),
-                background="#10121f",
+                background="#0d1021",
             ),
             rx.table.body(rx.foreach(PermissionsState.rows, perm_row)),
             width="100%",

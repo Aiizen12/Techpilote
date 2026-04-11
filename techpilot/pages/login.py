@@ -2,12 +2,12 @@ import reflex as rx
 from techpilot.state.auth import AuthState
 
 # Palette dark
-BG = "#0d0f1a"
-CARD_BG = "#151728"
-BORDER = "#2a2d4a"
+BG = "#080b14"
+CARD_BG = "#111524"
+BORDER = "#1c2138"
 PRIMARY = "#6366f1"
-TEXT = "#e2e8f0"
-MUTED = "#64748b"
+TEXT = "#f1f5f9"
+MUTED = "#94a3b8"
 
 
 def login_page() -> rx.Component:
@@ -72,7 +72,7 @@ def login_page() -> rx.Component:
                             placeholder="manager ou numéro matricule",
                             value=AuthState.login_user_id,
                             on_change=AuthState.set_login_user_id,
-                            background="#1e2035",
+                            background="#1c2138",
                             border=f"1px solid {BORDER}",
                             color=TEXT,
                             border_radius="10px",
@@ -90,7 +90,7 @@ def login_page() -> rx.Component:
                             placeholder="••••••••",
                             value=AuthState.login_password,
                             on_change=AuthState.set_login_password,
-                            background="#1e2035",
+                            background="#1c2138",
                             border=f"1px solid {BORDER}",
                             color=TEXT,
                             border_radius="10px",

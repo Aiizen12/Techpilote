@@ -6,7 +6,7 @@ from techpilot.state.models import ActualiteItem
 import uuid
 from datetime import datetime
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 TYPES = ["info", "success", "warning", "alerte"]
 
 
@@ -152,9 +152,9 @@ def actualites_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouvelle actualité", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Titre *", value=ActualitesState.form["titre"], on_change=lambda v: ActualitesState.set_field("titre", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.text_area(placeholder="Contenu", value=ActualitesState.form["contenu"], on_change=lambda v: ActualitesState.set_field("contenu", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.select(TYPES, value=ActualitesState.form["type"], on_change=lambda v: ActualitesState.set_field("type", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                    rx.input(placeholder="Titre *", value=ActualitesState.form["titre"], on_change=lambda v: ActualitesState.set_field("titre", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.text_area(placeholder="Contenu", value=ActualitesState.form["contenu"], on_change=lambda v: ActualitesState.set_field("contenu", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.select(TYPES, value=ActualitesState.form["type"], on_change=lambda v: ActualitesState.set_field("type", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
                     rx.hstack(
                         rx.button("Annuler", on_click=ActualitesState.close_form, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button("Publier", on_click=ActualitesState.create, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
@@ -162,7 +162,7 @@ def actualites_content() -> rx.Component:
                     ),
                     spacing="3", width="100%",
                 ),
-                background="#151728", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="480px",
+                background="#111524", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="480px",
             ),
             open=ActualitesState.show_form,
         ),

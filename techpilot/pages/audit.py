@@ -3,7 +3,7 @@ from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db
 from techpilot.state.models import LogEntry
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"
 
 
 class AuditState(rx.State):
@@ -53,7 +53,7 @@ def audit_content() -> rx.Component:
                     rx.table.column_header_cell("Entité", color=MUTED, font_size="0.75rem", padding="10px 12px"),
                     rx.table.column_header_cell("Détail", color=MUTED, font_size="0.75rem", padding="10px 12px"),
                 ),
-                background="#10121f",
+                background="#0d1021",
             ),
             rx.table.body(rx.foreach(AuditState.logs, log_row)),
             width="100%",

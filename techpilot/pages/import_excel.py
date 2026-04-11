@@ -4,7 +4,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 
 TECH_NAMES = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Alistair"]
 
@@ -413,7 +413,7 @@ def import_excel_content() -> rx.Component:
                 rx.hstack(rx.icon("calendar-days", size=14, color="#6ee7b7"), rx.text("Planning : fichier avec un onglet 'planning (TEST)' — colonnes Semaine, noms des techniciens en lignes.", color=MUTED, font_size="0.78rem"), spacing="2", align="center"),
                 spacing="2",
             ),
-            background="#10121f",
+            background="#0d1021",
             border=f"1px solid {BORDER}",
             border_radius="10px",
             padding="1rem",

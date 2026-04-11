@@ -4,7 +4,7 @@ from techpilot.db.database import load_db, save_db
 from techpilot.state.models import TechnicienItem
 import uuid
 
-TEXT = "#e2e8f0"; MUTED = "#64748b"; CARD_BG = "#151728"; BORDER = "#1e2235"; PRIMARY = "#6366f1"
+TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 
 COLORS = ["#6366f1","#22c55e","#f59e0b","#ef4444","#06b6d4","#8b5cf6","#ec4899"]
 
@@ -134,9 +134,9 @@ def techniciens_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text(rx.cond(TechniciensState.edit_id != "", "Modifier le technicien", "Nouveau technicien"), color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Nom *", value=TechniciensState.form["nom"], on_change=lambda v: TechniciensState.set_field("nom", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.input(placeholder="Matricule", value=TechniciensState.form["matricule"], on_change=lambda v: TechniciensState.set_field("matricule", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.input(placeholder="Email", value=TechniciensState.form["email"], on_change=lambda v: TechniciensState.set_field("email", v), background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Nom *", value=TechniciensState.form["nom"], on_change=lambda v: TechniciensState.set_field("nom", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Matricule", value=TechniciensState.form["matricule"], on_change=lambda v: TechniciensState.set_field("matricule", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Email", value=TechniciensState.form["email"], on_change=lambda v: TechniciensState.set_field("email", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.hstack(
                         rx.button("Annuler", on_click=TechniciensState.close, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button("Enregistrer", on_click=TechniciensState.save, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
@@ -144,7 +144,7 @@ def techniciens_content() -> rx.Component:
                     ),
                     spacing="3", width="100%",
                 ),
-                background="#151728", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="400px",
+                background="#111524", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="400px",
             ),
             open=TechniciensState.show_form,
         ),

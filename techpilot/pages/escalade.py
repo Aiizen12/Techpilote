@@ -3,10 +3,10 @@ from techpilot.components.layout import page_layout
 from techpilot.state.escalade import EscaladeState
 from techpilot.state.models import EscaladeEntry
 
-TEXT = "#e2e8f0"
-MUTED = "#64748b"
-CARD_BG = "#151728"
-BORDER = "#1e2235"
+TEXT = "#f1f5f9"
+MUTED = "#94a3b8"
+CARD_BG = "#111524"
+BORDER = "#1c2138"
 PRIMARY = "#6366f1"
 
 
@@ -19,7 +19,7 @@ def _info_block(label: str, value, color: str = "") -> rx.Component:
             font_size="0.85rem",
             font_weight="500" if color else "400",
         ),
-        background="#1e2035",
+        background="#1c2138",
         border_radius="8px",
         padding="8px 12px",
     )
@@ -88,7 +88,7 @@ def entry_modal() -> rx.Component:
                     ),
                     align="center", spacing="2",
                 ),
-                background="#1e2035",
+                background="#1c2138",
                 border_radius="8px",
                 padding="8px 12px",
                 margin_bottom="0.75rem",
@@ -127,7 +127,7 @@ def entry_modal() -> rx.Component:
                     margin_top="0.5rem",
                 ),
             ),
-            background="#151728",
+            background="#111524",
             border=f"1px solid {BORDER}",
             border_radius="16px",
             max_width="600px",
@@ -217,7 +217,7 @@ def escalade_content() -> rx.Component:
                     placeholder="Rechercher dans la matrice...",
                     value=EscaladeState.search,
                     on_change=EscaladeState.set_search,
-                    background="#1e2035",
+                    background="#1c2138",
                     border=f"1px solid {BORDER}",
                     color=TEXT,
                     border_radius="10px",
@@ -297,7 +297,7 @@ def escalade_content() -> rx.Component:
                         rx.table.column_header_cell("Traitement N1",color=MUTED, font_size="0.75rem", padding="10px 12px"),
                         rx.table.column_header_cell("",             padding="10px 12px"),
                     ),
-                    background="#10121f",
+                    background="#0d1021",
                 ),
                 rx.table.body(rx.foreach(EscaladeState.entries, entry_row)),
                 width="100%",
@@ -313,7 +313,7 @@ def escalade_content() -> rx.Component:
                 rx.icon("chevron-left", size=14),
                 on_click=EscaladeState.go_page(EscaladeState.page - 1),
                 disabled=EscaladeState.page <= 1,
-                background="#1e2235",
+                background="#1c2138",
                 color=TEXT,
                 border=f"1px solid {BORDER}",
                 border_radius="8px",
@@ -328,7 +328,7 @@ def escalade_content() -> rx.Component:
                 rx.icon("chevron-right", size=14),
                 on_click=EscaladeState.go_page(EscaladeState.page + 1),
                 disabled=EscaladeState.page >= EscaladeState.total_pages,
-                background="#1e2235",
+                background="#1c2138",
                 color=TEXT,
                 border=f"1px solid {BORDER}",
                 border_radius="8px",
