@@ -3,12 +3,84 @@ from techpilot.components.layout import page_layout
 from techpilot.state.escalade import EscaladeState
 from techpilot.state.models import EscaladeEntry
 
-TEXT = "#f1f5f9"
-MUTED = "#94a3b8"
+TEXT    = "#f1f5f9"
+MUTED   = "#94a3b8"
 CARD_BG = "#111524"
-BORDER = "#1c2138"
+BORDER  = "#1c2138"
 PRIMARY = "#6366f1"
 
+
+# ── Tab button ────────────────────────────────────────────────────────────────
+
+def _tab_btn(label: str, icon_name: str, val: str) -> rx.Component:
+    is_active = EscaladeState.mode == val
+    return rx.box(
+        rx.hstack(
+            rx.icon(icon_name, size=14, color=rx.cond(is_active, "white", MUTED)),
+            rx.text(
+                label,
+                color=rx.cond(is_active, "white", MUTED),
+                font_size="0.82rem",
+                font_weight=rx.cond(is_active, "600", "400"),
+            ),
+            spacing="2",
+            align="center",
+        ),
+        padding="7px 14px",
+        border_radius="8px",
+        background=rx.cond(is_active, PRIMARY, "transparent"),
+        cursor="pointer",
+        on_click=EscaladeState.set_mode(val),
+        transition="all 0.15s",
+        white_space="nowrap",
+        _hover={"background": rx.cond(is_active, PRIMARY, "rgba(255,255,255,0.06)")},
+    )
+
+
+# ── Header banner ─────────────────────────────────────────────────────────────
+
+def header_banner() -> rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.text("Matrice d'escalade", color=TEXT, font_size="1.6rem", font_weight="800"),
+            rx.text(
+                EscaladeState.total_count.to_string() + " procédures de routage N1 → N2/N3",
+                color="rgba(241,245,249,0.6)",
+                font_size="0.875rem",
+            ),
+            spacing="1",
+            align="start",
+        ),
+        background="linear-gradient(135deg, rgba(99,102,241,0.28) 0%, rgba(139,92,246,0.18) 50%, transparent 100%)",
+        border=f"1px solid rgba(99,102,241,0.3)",
+        border_radius="16px",
+        padding="1.5rem 2rem",
+        width="100%",
+    )
+
+
+# ── Mode tabs ─────────────────────────────────────────────────────────────────
+
+def mode_tabs() -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            _tab_btn("Recherche",            "search",     "recherche"),
+            _tab_btn("Assistant guidé",      "sparkles",   "assistant"),
+            _tab_btn("Arbre",                "git-branch", "arbre"),
+            _tab_btn("Par interlocuteur N2", "users",      "interlocuteur"),
+            _tab_btn("Recherche libre",      "filter",     "libre"),
+            spacing="1",
+            wrap="wrap",
+        ),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_radius="12px",
+        padding="5px",
+        width="100%",
+    )
+
+
+# ── Modale détail ─────────────────────────────────────────────────────────────
 
 def _info_block(label: str, value, color: str = "") -> rx.Component:
     return rx.box(
@@ -34,8 +106,7 @@ def entry_modal() -> rx.Component:
                     rx.vstack(
                         rx.text(e["perimetre"], color=TEXT, font_weight="700", font_size="1rem"),
                         rx.text(e["typologie"], color=MUTED, font_size="0.85rem"),
-                        spacing="1",
-                        align="start",
+                        spacing="1", align="start",
                     ),
                     rx.spacer(),
                     rx.icon_button(
@@ -43,27 +114,19 @@ def entry_modal() -> rx.Component:
                         on_click=EscaladeState.toggle_favori,
                         background=rx.cond(EscaladeState.is_selected_favori, "rgba(245,158,11,0.15)", "rgba(255,255,255,0.07)"),
                         color=rx.cond(EscaladeState.is_selected_favori, "#fcd34d", MUTED),
-                        border="none",
-                        border_radius="8px",
-                        cursor="pointer",
-                        size="2",
+                        border="none", border_radius="8px", cursor="pointer", size="2",
                         _hover={"background": "rgba(245,158,11,0.1)", "color": "#fcd34d"},
                     ),
                     rx.dialog.close(
                         rx.icon_button(
                             rx.icon("x", size=16),
-                            background="rgba(255,255,255,0.07)",
-                            color=MUTED,
-                            border="none",
-                            cursor="pointer",
+                            background="rgba(255,255,255,0.07)", color=MUTED,
+                            border="none", cursor="pointer", size="2",
                             _hover={"background": "rgba(239,68,68,0.15)", "color": "#f87171"},
-                            size="2",
                         ),
                         on_click=EscaladeState.close_modal,
                     ),
-                    width="100%",
-                    align="center",
-                    spacing="2",
+                    width="100%", align="center", spacing="2",
                 ),
             ),
             rx.divider(border_color=BORDER, margin_y="0.8rem"),
@@ -72,47 +135,33 @@ def entry_modal() -> rx.Component:
                 rx.hstack(
                     rx.text(rx.cond(e["categorie_fresh"], e["categorie_fresh"], "—"), color=TEXT, font_size="0.85rem", flex="1"),
                     rx.button(
-                        rx.icon("copy", size=11),
-                        "Copier",
+                        rx.icon("copy", size=11), "Copier",
                         on_click=EscaladeState.copy_fresh_cat,
-                        background="rgba(255,255,255,0.07)",
-                        color=MUTED,
-                        border="none",
-                        border_radius="6px",
-                        font_size="0.7rem",
-                        font_weight="600",
-                        padding="2px 8px",
-                        cursor="pointer",
-                        spacing="1",
+                        background="rgba(255,255,255,0.07)", color=MUTED,
+                        border="none", border_radius="6px",
+                        font_size="0.7rem", font_weight="600", padding="2px 8px",
+                        cursor="pointer", spacing="1",
                         _hover={"background": "rgba(16,185,129,0.2)", "color": "#6ee7b7"},
                     ),
                     align="center", spacing="2",
                 ),
-                background="#1c2138",
-                border_radius="8px",
-                padding="8px 12px",
-                margin_bottom="0.75rem",
+                background="#1c2138", border_radius="8px", padding="8px 12px", margin_bottom="0.75rem",
             ),
             rx.grid(
-                _info_block("Traitement N1",   e["traitement_n1"],   "#22c55e"),
-                _info_block("WP N1",           e["wp"]),
-                _info_block("Interlocuteur",   e["interlocuteur"]),
-                _info_block("Traitement N2/N3",e["traitement_n2n3"], "#f59e0b"),
-                _info_block("WP N2",           e["wp_n2"]),
-                columns="2",
-                spacing="3",
-                width="100%",
+                _info_block("Traitement N1",    e["traitement_n1"],    "#22c55e"),
+                _info_block("WP N1",            e["wp"]),
+                _info_block("Interlocuteur",    e["interlocuteur"]),
+                _info_block("Traitement N2/N3", e["traitement_n2n3"],  "#f59e0b"),
+                _info_block("WP N2",            e["wp_n2"]),
+                columns="2", spacing="3", width="100%",
             ),
             rx.cond(
                 e["conditions_escalade"] != "",
                 rx.box(
                     rx.text("Conditions d'escalade", color=MUTED, font_size="0.75rem", font_weight="600", margin_bottom="4px"),
                     rx.text(e["conditions_escalade"], color=TEXT, font_size="0.85rem"),
-                    background="#1a1a2a",
-                    border=f"1px solid {BORDER}",
-                    border_radius="8px",
-                    padding="10px 14px",
-                    margin_top="0.5rem",
+                    background="#1a1a2a", border=f"1px solid {BORDER}",
+                    border_radius="8px", padding="10px 14px", margin_top="0.5rem",
                 ),
             ),
             rx.cond(
@@ -120,35 +169,20 @@ def entry_modal() -> rx.Component:
                 rx.box(
                     rx.text("Référents", color=MUTED, font_size="0.75rem", font_weight="600", margin_bottom="4px"),
                     rx.text(e["referents"], color=TEXT, font_size="0.85rem"),
-                    background="#1a1a2a",
-                    border=f"1px solid {BORDER}",
-                    border_radius="8px",
-                    padding="10px 14px",
-                    margin_top="0.5rem",
+                    background="#1a1a2a", border=f"1px solid {BORDER}",
+                    border_radius="8px", padding="10px 14px", margin_top="0.5rem",
                 ),
             ),
-            background="#111524",
-            border=f"1px solid {BORDER}",
-            border_radius="16px",
-            max_width="600px",
-            width="90vw",
-            padding="1.5rem",
+            background="#111524", border=f"1px solid {BORDER}",
+            border_radius="16px", max_width="600px", width="90vw", padding="1.5rem",
         ),
         open=EscaladeState.show_modal,
     )
 
 
-def favori_chip(e: EscaladeEntry) -> rx.Component:
-    return rx.badge(
-        e["perimetre"] + " — " + e["typologie"],
-        on_click=EscaladeState.open_favori(e),
-        cursor="pointer",
-        color_scheme="amber",
-        variant="soft",
-        radius="full",
-        font_size="0.72rem",
-    )
-
+# ══════════════════════════════════════════════════════════════════════════════
+# Mode RECHERCHE
+# ══════════════════════════════════════════════════════════════════════════════
 
 def entry_row(entry: EscaladeEntry) -> rx.Component:
     return rx.table.row(
@@ -156,32 +190,20 @@ def entry_row(entry: EscaladeEntry) -> rx.Component:
             rx.badge(entry["perimetre"], color_scheme="indigo", variant="soft", radius="full"),
             padding="8px 12px",
         ),
-        rx.table.cell(
-            rx.text(entry["typologie"], color=TEXT, font_size="0.85rem"),
-            padding="8px 12px",
-        ),
-        rx.table.cell(
-            rx.text(entry["categorie_fresh"], color=MUTED, font_size="0.82rem"),
-            padding="8px 12px",
-        ),
-        rx.table.cell(
-            rx.text(entry["traitement_n1"], color="#86efac", font_size="0.82rem"),
-            padding="8px 12px",
-        ),
+        rx.table.cell(rx.text(entry["typologie"], color=TEXT, font_size="0.85rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(entry["categorie_fresh"], color=MUTED, font_size="0.82rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(entry["traitement_n1"], color="#86efac", font_size="0.82rem"), padding="8px 12px"),
         rx.table.cell(
             rx.icon_button(
                 rx.icon("eye", size=14),
                 on_click=EscaladeState.open_entry(entry),
-                background="rgba(99,102,241,0.1)",
-                color=PRIMARY,
+                background="rgba(99,102,241,0.1)", color=PRIMARY,
                 border=f"1px solid rgba(99,102,241,0.3)",
-                border_radius="6px",
-                size="1",
+                border_radius="6px", size="1",
                 _hover={"background": "rgba(99,102,241,0.2)"},
                 cursor="pointer",
             ),
-            padding="8px 12px",
-            text_align="center",
+            padding="8px 12px", text_align="center",
         ),
         _hover={"background": "rgba(255,255,255,0.02)"},
         cursor="pointer",
@@ -189,74 +211,62 @@ def entry_row(entry: EscaladeEntry) -> rx.Component:
     )
 
 
-def escalade_content() -> rx.Component:
+def recherche_mode() -> rx.Component:
     return rx.vstack(
         rx.cond(
             EscaladeState.favoris.length() > 0,
             rx.box(
                 rx.hstack(
                     rx.icon("star", size=13, color="#fcd34d"),
-                    rx.text("Favoris", color="#fcd34d", font_size="0.7rem", font_weight="700", text_transform="uppercase", letter_spacing="0.08em"),
+                    rx.text("Favoris", color="#fcd34d", font_size="0.7rem", font_weight="700", letter_spacing="0.08em"),
                     spacing="2", align="center",
                 ),
                 rx.flex(
-                    rx.foreach(EscaladeState.favoris, favori_chip),
+                    rx.foreach(
+                        EscaladeState.favoris,
+                        lambda e: rx.badge(
+                            e["perimetre"] + " — " + e["typologie"],
+                            on_click=EscaladeState.open_favori(e),
+                            cursor="pointer", color_scheme="amber", variant="soft",
+                            radius="full", font_size="0.72rem",
+                        ),
+                    ),
                     wrap="wrap", gap="6px", margin_top="0.5rem",
                 ),
-                background=CARD_BG,
-                border=f"1px solid rgba(245,158,11,0.25)",
-                border_radius="12px",
-                padding="0.75rem 1rem",
-                width="100%",
+                background=CARD_BG, border=f"1px solid rgba(245,158,11,0.25)",
+                border_radius="12px", padding="0.75rem 1rem", width="100%",
             ),
         ),
         rx.hstack(
             rx.box(
-                rx.icon("search", size=16, color=MUTED, position="absolute", left="12px", top="50%", transform="translateY(-50%)"),
+                rx.icon("search", size=16, color=MUTED,
+                        position="absolute", left="12px", top="50%", transform="translateY(-50%)"),
                 rx.input(
-                    placeholder="Rechercher dans la matrice...",
+                    placeholder="Rechercher (périmètre, typologie, traitement, interlocuteur…)",
                     value=EscaladeState.search,
                     on_change=EscaladeState.set_search,
-                    background="#1c2138",
-                    border=f"1px solid {BORDER}",
-                    color=TEXT,
-                    border_radius="10px",
-                    padding_left="36px",
-                    padding_right="12px",
-                    padding_y="9px",
+                    background="#1c2138", border=f"1px solid {BORDER}",
+                    color=TEXT, border_radius="10px",
+                    padding_left="36px", padding_right="12px", padding_y="9px",
                     width="100%",
                     _focus={"border_color": PRIMARY, "outline": "none"},
                     _placeholder={"color": MUTED},
                 ),
-                position="relative",
-                flex="1",
+                position="relative", flex="1",
             ),
             rx.cond(
                 (EscaladeState.search != "") | (EscaladeState.selected_perimetres.length() > 0),
                 rx.button(
-                    rx.icon("x", size=14),
-                    "Effacer",
+                    rx.icon("x", size=14), "Effacer",
                     on_click=EscaladeState.clear_filters,
-                    background="transparent",
-                    color=MUTED,
-                    border=f"1px solid {BORDER}",
-                    border_radius="8px",
-                    padding="8px 12px",
-                    font_size="0.8rem",
-                    cursor="pointer",
-                    spacing="1",
-                    _hover={"color": TEXT},
+                    background="transparent", color=MUTED,
+                    border=f"1px solid {BORDER}", border_radius="8px",
+                    padding="8px 12px", font_size="0.8rem",
+                    cursor="pointer", spacing="1", _hover={"color": TEXT},
                 ),
             ),
-            rx.text(
-                EscaladeState.total.to_string() + " résultats",
-                color=MUTED,
-                font_size="0.82rem",
-                white_space="nowrap",
-            ),
-            spacing="3",
-            width="100%",
-            align="center",
+            rx.text(EscaladeState.total.to_string() + " résultats", color=MUTED, font_size="0.82rem", white_space="nowrap"),
+            spacing="3", width="100%", align="center",
         ),
         rx.box(
             rx.hstack(
@@ -270,72 +280,471 @@ def escalade_content() -> rx.Component:
                             cursor="pointer",
                             color_scheme=rx.cond(EscaladeState.selected_perimetres.contains(p), "indigo", "gray"),
                             variant=rx.cond(EscaladeState.selected_perimetres.contains(p), "solid", "soft"),
-                            radius="full",
-                            font_size="0.72rem",
+                            radius="full", font_size="0.72rem",
                         ),
                     ),
-                    wrap="wrap",
-                    gap="6px",
+                    wrap="wrap", gap="6px",
                 ),
-                spacing="3",
-                align="center",
-                wrap="wrap",
+                spacing="3", align="center", wrap="wrap",
             ),
-            background=CARD_BG,
-            border=f"1px solid {BORDER}",
-            border_radius="10px",
-            padding="0.7rem 1rem",
-            width="100%",
+            background=CARD_BG, border=f"1px solid {BORDER}",
+            border_radius="10px", padding="0.7rem 1rem", width="100%",
         ),
         rx.box(
             rx.table.root(
                 rx.table.header(
                     rx.table.row(
-                        rx.table.column_header_cell("Périmètre",    color=MUTED, font_size="0.75rem", padding="10px 12px"),
-                        rx.table.column_header_cell("Typologie",    color=MUTED, font_size="0.75rem", padding="10px 12px"),
-                        rx.table.column_header_cell("Catégorie",    color=MUTED, font_size="0.75rem", padding="10px 12px"),
-                        rx.table.column_header_cell("Traitement N1",color=MUTED, font_size="0.75rem", padding="10px 12px"),
-                        rx.table.column_header_cell("",             padding="10px 12px"),
+                        rx.table.column_header_cell("Périmètre",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                        rx.table.column_header_cell("Typologie",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                        rx.table.column_header_cell("Catégorie",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                        rx.table.column_header_cell("Traitement N1", color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                        rx.table.column_header_cell("",              padding="10px 12px"),
                     ),
                     background="#0d1021",
                 ),
                 rx.table.body(rx.foreach(EscaladeState.entries, entry_row)),
                 width="100%",
             ),
-            background=CARD_BG,
-            border=f"1px solid {BORDER}",
-            border_radius="14px",
-            overflow="hidden",
-            width="100%",
+            background=CARD_BG, border=f"1px solid {BORDER}",
+            border_radius="14px", overflow="hidden", width="100%",
         ),
         rx.hstack(
             rx.icon_button(
                 rx.icon("chevron-left", size=14),
                 on_click=EscaladeState.go_page(EscaladeState.page - 1),
                 disabled=EscaladeState.page <= 1,
-                background="#1c2138",
-                color=TEXT,
-                border=f"1px solid {BORDER}",
-                border_radius="8px",
-                size="2",
+                background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
+                border_radius="8px", size="2",
             ),
             rx.text(
                 "Page " + EscaladeState.page.to_string() + " / " + EscaladeState.total_pages.to_string(),
-                color=MUTED,
-                font_size="0.82rem",
+                color=MUTED, font_size="0.82rem",
             ),
             rx.icon_button(
                 rx.icon("chevron-right", size=14),
                 on_click=EscaladeState.go_page(EscaladeState.page + 1),
                 disabled=EscaladeState.page >= EscaladeState.total_pages,
-                background="#1c2138",
-                color=TEXT,
-                border=f"1px solid {BORDER}",
-                border_radius="8px",
-                size="2",
+                background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
+                border_radius="8px", size="2",
             ),
-            spacing="3",
-            align="center",
+            spacing="3", align="center",
+        ),
+        spacing="4", width="100%",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Mode ASSISTANT GUIDÉ
+# ══════════════════════════════════════════════════════════════════════════════
+
+def perimetre_card(p: dict) -> rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.text(p["name"], color=TEXT, font_size="0.88rem", font_weight="600", line_height="1.3"),
+            rx.text(p["count_str"], font_size="0.75rem", color=p["color"]),
+            spacing="2", align="start",
+        ),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_top="3px solid " + p["color"],
+        border_radius="10px",
+        padding="1rem",
+        cursor="pointer",
+        min_height="80px",
+        on_click=EscaladeState.assistant_select_perimetre(p["name"]),
+        transition="all 0.15s",
+        _hover={"box_shadow": "0 4px 20px rgba(0,0,0,0.4)", "transform": "translateY(-2px)"},
+    )
+
+
+def assistant_entry_row(entry: EscaladeEntry) -> rx.Component:
+    return rx.table.row(
+        rx.table.cell(rx.text(entry["typologie"], color=TEXT, font_size="0.85rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(entry["categorie_fresh"], color=MUTED, font_size="0.82rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(entry["traitement_n1"], color="#86efac", font_size="0.82rem"), padding="8px 12px"),
+        rx.table.cell(rx.text(entry["interlocuteur"], color=MUTED, font_size="0.82rem"), padding="8px 12px"),
+        rx.table.cell(
+            rx.icon_button(
+                rx.icon("eye", size=14),
+                on_click=EscaladeState.open_entry(entry),
+                background="rgba(99,102,241,0.1)", color=PRIMARY,
+                border=f"1px solid rgba(99,102,241,0.3)",
+                border_radius="6px", size="1",
+                _hover={"background": "rgba(99,102,241,0.2)"},
+                cursor="pointer",
+            ),
+            padding="8px 12px",
+        ),
+        _hover={"background": "rgba(255,255,255,0.02)"},
+        cursor="pointer",
+        on_click=EscaladeState.open_entry(entry),
+    )
+
+
+def assistant_mode() -> rx.Component:
+    return rx.cond(
+        EscaladeState.assistant_step == 1,
+        # Step 1 : cartes périmètre
+        rx.vstack(
+            rx.box(
+                rx.vstack(
+                    rx.hstack(
+                        rx.badge("Étape 1 sur 2", color_scheme="violet", variant="soft", radius="full"),
+                        justify="center", width="100%",
+                    ),
+                    rx.text(
+                        "Quel est le périmètre concerné ?",
+                        color=TEXT, font_size="1.2rem", font_weight="700", text_align="center",
+                    ),
+                    rx.text(
+                        "Sélectionne le domaine applicatif du ticket",
+                        color=MUTED, font_size="0.85rem", text_align="center",
+                    ),
+                    spacing="2", width="100%",
+                ),
+                background=CARD_BG, border=f"1px solid {BORDER}",
+                border_radius="14px", padding="1.5rem", width="100%",
+            ),
+            rx.grid(
+                rx.foreach(EscaladeState.perimetre_counts, perimetre_card),
+                columns="5",
+                spacing="3",
+                width="100%",
+            ),
+            spacing="4", width="100%",
+        ),
+        # Step 2 : typologies du périmètre sélectionné
+        rx.vstack(
+            rx.hstack(
+                rx.button(
+                    rx.icon("arrow-left", size=14), "Retour",
+                    on_click=EscaladeState.assistant_back,
+                    background="transparent", color=MUTED,
+                    border=f"1px solid {BORDER}", border_radius="8px",
+                    padding="6px 12px", font_size="0.82rem",
+                    cursor="pointer", spacing="2",
+                ),
+                rx.badge("Étape 2 sur 2", color_scheme="violet", variant="soft", radius="full"),
+                rx.text("Périmètre :", color=MUTED, font_size="0.85rem"),
+                rx.text(EscaladeState.assistant_perimetre, color=PRIMARY, font_size="0.85rem", font_weight="600"),
+                spacing="3", align="center",
+            ),
+            rx.box(
+                rx.table.root(
+                    rx.table.header(
+                        rx.table.row(
+                            rx.table.column_header_cell("Typologie",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                            rx.table.column_header_cell("Catégorie",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                            rx.table.column_header_cell("Traitement N1", color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                            rx.table.column_header_cell("Interlocuteur", color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                            rx.table.column_header_cell("",              padding="10px 12px"),
+                        ),
+                        background="#0d1021",
+                    ),
+                    rx.table.body(rx.foreach(EscaladeState.assistant_entries, assistant_entry_row)),
+                    width="100%",
+                ),
+                background=CARD_BG, border=f"1px solid {BORDER}",
+                border_radius="14px", overflow="hidden", width="100%",
+            ),
+            spacing="4", width="100%",
+        ),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Mode ARBRE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def arbre_entry_row(entry: EscaladeEntry) -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            rx.text(entry["typologie"], color=TEXT, font_size="0.82rem", flex="1"),
+            rx.text(entry["traitement_n1"], color="#86efac", font_size="0.75rem", max_width="260px"),
+            rx.icon_button(
+                rx.icon("eye", size=13),
+                on_click=EscaladeState.open_entry(entry),
+                background="rgba(99,102,241,0.1)", color=PRIMARY,
+                border=f"1px solid rgba(99,102,241,0.3)",
+                border_radius="6px", size="1", cursor="pointer",
+                _hover={"background": "rgba(99,102,241,0.2)"},
+            ),
+            spacing="3", align="center", width="100%",
+        ),
+        background="#0a0d1a",
+        border_left=f"2px solid rgba(99,102,241,0.3)",
+        padding="7px 12px",
+        margin_left="16px",
+        border_radius="6px",
+    )
+
+
+def arbre_perimetre_item(p: dict) -> rx.Component:
+    is_open = EscaladeState.arbre_expanded == p["name"]
+    return rx.box(
+        rx.hstack(
+            rx.icon(
+                rx.cond(is_open, "folder-open", "folder"),
+                size=16, color=p["color"],
+            ),
+            rx.text(p["name"], color=TEXT, font_size="0.9rem", font_weight="600", flex="1"),
+            rx.badge(p["count_str"], color_scheme="gray", variant="soft", radius="full", font_size="0.7rem"),
+            rx.icon(rx.cond(is_open, "chevron-up", "chevron-down"), size=14, color=MUTED),
+            spacing="3", align="center", padding="10px 14px", width="100%",
+        ),
+        rx.cond(
+            is_open,
+            rx.vstack(
+                rx.foreach(EscaladeState.arbre_entries, arbre_entry_row),
+                spacing="1",
+                padding="0 12px 12px 12px",
+                width="100%",
+            ),
+        ),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_left="3px solid " + p["color"],
+        border_radius="10px",
+        overflow="hidden",
+        cursor="pointer",
+        width="100%",
+        on_click=EscaladeState.toggle_arbre_perimetre(p["name"]),
+        transition="all 0.15s",
+        _hover={"opacity": "0.9"},
+    )
+
+
+def arbre_mode() -> rx.Component:
+    return rx.vstack(
+        rx.foreach(EscaladeState.perimetre_counts, arbre_perimetre_item),
+        spacing="2",
+        width="100%",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Mode PAR INTERLOCUTEUR N2
+# ══════════════════════════════════════════════════════════════════════════════
+
+def interlocuteur_entry_row(entry: EscaladeEntry) -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            rx.vstack(
+                rx.hstack(
+                    rx.badge(entry["perimetre"], color_scheme="indigo", variant="soft", radius="full", font_size="0.7rem"),
+                    rx.text(entry["typologie"], color=TEXT, font_size="0.82rem"),
+                    spacing="2", align="center",
+                ),
+                rx.cond(
+                    entry["traitement_n1"] != "",
+                    rx.text("N1 : " + entry["traitement_n1"], color="#86efac", font_size="0.75rem"),
+                ),
+                spacing="1", align="start", flex="1",
+            ),
+            rx.icon_button(
+                rx.icon("eye", size=13),
+                on_click=EscaladeState.open_entry(entry),
+                background="rgba(99,102,241,0.1)", color=PRIMARY,
+                border=f"1px solid rgba(99,102,241,0.3)",
+                border_radius="6px", size="1", cursor="pointer",
+                _hover={"background": "rgba(99,102,241,0.2)"},
+            ),
+            spacing="3", align="center", width="100%",
+        ),
+        background="#0a0d1a",
+        border_left=f"2px solid rgba(99,102,241,0.3)",
+        padding="8px 12px",
+        margin_left="16px",
+        border_radius="6px",
+    )
+
+
+def interlocuteur_row(item: dict) -> rx.Component:
+    is_expanded = EscaladeState.expanded_interlocuteur == item["nom"]
+    return rx.box(
+        rx.hstack(
+            rx.box(
+                rx.icon("user", size=13, color=MUTED),
+                background="rgba(148,163,184,0.1)",
+                border_radius="6px",
+                padding="5px",
+                display="flex",
+                align_items="center",
+                justify_content="center",
+                flex_shrink="0",
+            ),
+            rx.text(item["nom"], color=TEXT, font_size="0.875rem", font_weight="500", flex="1"),
+            rx.badge(item["count_str"], color_scheme="indigo", variant="soft", radius="full", font_size="0.7rem"),
+            rx.text(
+                item["tags"], color=MUTED, font_size="0.72rem",
+                max_width="360px", overflow="hidden",
+                text_overflow="ellipsis", white_space="nowrap",
+            ),
+            rx.icon_button(
+                rx.icon(rx.cond(is_expanded, "chevron-up", "chevron-down"), size=14),
+                on_click=EscaladeState.toggle_expand_interlocuteur(item["nom"]),
+                background="transparent", color=MUTED,
+                border_radius="6px", size="1", cursor="pointer",
+                _hover={"color": TEXT},
+            ),
+            spacing="3", align="center", padding="10px 14px", width="100%",
+        ),
+        rx.cond(
+            is_expanded,
+            rx.vstack(
+                rx.foreach(EscaladeState.interlocuteur_entries, interlocuteur_entry_row),
+                spacing="1",
+                padding="0 12px 12px 12px",
+                width="100%",
+            ),
+        ),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_radius="10px",
+        overflow="hidden",
+        width="100%",
+        transition="all 0.15s",
+        _hover={"border_color": "rgba(99,102,241,0.3)"},
+    )
+
+
+def interlocuteur_mode() -> rx.Component:
+    return rx.vstack(
+        rx.hstack(
+            rx.box(
+                rx.icon("search", size=14, color=MUTED,
+                        position="absolute", left="10px", top="50%", transform="translateY(-50%)"),
+                rx.input(
+                    placeholder="Rechercher un interlocuteur N2…",
+                    value=EscaladeState.interlocuteur_search,
+                    on_change=EscaladeState.set_interlocuteur_search,
+                    background="#1c2138", border=f"1px solid {BORDER}",
+                    color=TEXT, border_radius="10px",
+                    padding_left="32px", padding_y="9px",
+                    width="100%",
+                    _focus={"border_color": PRIMARY, "outline": "none"},
+                    _placeholder={"color": MUTED},
+                ),
+                position="relative", flex="1",
+            ),
+            rx.badge(
+                EscaladeState.filtered_interlocuteurs_list.length().to_string() + " interlocuteurs",
+                color_scheme="indigo", variant="soft", radius="full",
+            ),
+            spacing="3", align="center", width="100%",
+        ),
+        rx.vstack(
+            rx.foreach(EscaladeState.filtered_interlocuteurs_list, interlocuteur_row),
+            spacing="2",
+            width="100%",
+        ),
+        spacing="4", width="100%",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Mode RECHERCHE LIBRE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def libre_mode() -> rx.Component:
+    return rx.vstack(
+        rx.box(
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("filter", size=16, color=PRIMARY),
+                    rx.text("Recherche plein texte", color=TEXT, font_size="0.9rem", font_weight="600"),
+                    spacing="2", align="center",
+                ),
+                rx.text(
+                    "Recherche dans tous les champs : périmètre, typologie, traitement N1/N2, interlocuteur, conditions…",
+                    color=MUTED, font_size="0.8rem",
+                ),
+                rx.box(
+                    rx.icon("search", size=16, color=MUTED,
+                            position="absolute", left="12px", top="50%", transform="translateY(-50%)"),
+                    rx.input(
+                        placeholder="Saisissez votre recherche…",
+                        value=EscaladeState.search,
+                        on_change=EscaladeState.set_search,
+                        background="#1c2138", border=f"1px solid {BORDER}",
+                        color=TEXT, border_radius="10px",
+                        padding_left="36px", padding_y="10px",
+                        width="100%", font_size="0.9rem",
+                        _focus={"border_color": PRIMARY, "outline": "none"},
+                        _placeholder={"color": MUTED},
+                    ),
+                    position="relative", width="100%",
+                ),
+                spacing="3", width="100%",
+            ),
+            background=CARD_BG, border=f"1px solid {BORDER}",
+            border_radius="14px", padding="1.5rem", width="100%",
+        ),
+        rx.cond(
+            EscaladeState.search != "",
+            rx.vstack(
+                rx.text(EscaladeState.total.to_string() + " résultats", color=MUTED, font_size="0.82rem"),
+                rx.box(
+                    rx.table.root(
+                        rx.table.header(
+                            rx.table.row(
+                                rx.table.column_header_cell("Périmètre",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                                rx.table.column_header_cell("Typologie",     color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                                rx.table.column_header_cell("Traitement N1", color=MUTED, font_size="0.75rem", padding="10px 12px"),
+                                rx.table.column_header_cell("",              padding="10px 12px"),
+                            ),
+                            background="#0d1021",
+                        ),
+                        rx.table.body(rx.foreach(EscaladeState.entries, entry_row)),
+                        width="100%",
+                    ),
+                    background=CARD_BG, border=f"1px solid {BORDER}",
+                    border_radius="14px", overflow="hidden", width="100%",
+                ),
+                rx.hstack(
+                    rx.icon_button(
+                        rx.icon("chevron-left", size=14),
+                        on_click=EscaladeState.go_page(EscaladeState.page - 1),
+                        disabled=EscaladeState.page <= 1,
+                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
+                        border_radius="8px", size="2",
+                    ),
+                    rx.text(
+                        "Page " + EscaladeState.page.to_string() + " / " + EscaladeState.total_pages.to_string(),
+                        color=MUTED, font_size="0.82rem",
+                    ),
+                    rx.icon_button(
+                        rx.icon("chevron-right", size=14),
+                        on_click=EscaladeState.go_page(EscaladeState.page + 1),
+                        disabled=EscaladeState.page >= EscaladeState.total_pages,
+                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
+                        border_radius="8px", size="2",
+                    ),
+                    spacing="3", align="center",
+                ),
+                spacing="3", width="100%",
+            ),
+        ),
+        spacing="4", width="100%",
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Page
+# ══════════════════════════════════════════════════════════════════════════════
+
+def escalade_content() -> rx.Component:
+    return rx.vstack(
+        header_banner(),
+        mode_tabs(),
+        rx.match(
+            EscaladeState.mode,
+            ("recherche",     recherche_mode()),
+            ("assistant",     assistant_mode()),
+            ("arbre",         arbre_mode()),
+            ("interlocuteur", interlocuteur_mode()),
+            ("libre",         libre_mode()),
+            rx.box(),
         ),
         entry_modal(),
         spacing="4",
@@ -345,4 +754,4 @@ def escalade_content() -> rx.Component:
 
 
 def escalade_page() -> rx.Component:
-    return page_layout(escalade_content(), "Matrice d'escalade N1")
+    return page_layout(escalade_content(), "")
