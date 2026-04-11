@@ -76,7 +76,7 @@ def sidebar() -> rx.Component:
                 nav_item("Techniciens", "users",        "/techniciens", "/techniciens"),
                 nav_item("Actualités",  "newspaper",    "/actualites",  "/actualites"),
                 nav_item("Quêtes",      "trophy",       "/quetes",      "/quetes"),
-                nav_item("Feedbacks",   "message-circle","feedbacks",   "/feedbacks"),
+                nav_item("Feedbacks",   "message-circle","/feedbacks",   "/feedbacks"),
                 spacing="1",
                 width="100%",
             ),

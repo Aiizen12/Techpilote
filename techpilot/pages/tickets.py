@@ -123,7 +123,7 @@ def ticket_row(t: TicketItem) -> rx.Component:
 def tickets_content() -> rx.Component:
     return rx.vstack(
         rx.hstack(
-            rx.select(["", *ETATS], placeholder="Tous les états", value=TicketsState.filter_etat, on_change=TicketsState.set_filter, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.select(ETATS, placeholder="Tous les états", value=TicketsState.filter_etat, on_change=TicketsState.set_filter, background="#1e2035", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
             rx.spacer(),
             rx.button(rx.icon("plus", size=16), "Nouveau ticket", on_click=TicketsState.open_form, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", padding="8px 16px", font_size="0.85rem", cursor="pointer", spacing="2"),
             width="100%", align="center",
