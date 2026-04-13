@@ -352,6 +352,17 @@ def dashboard_content() -> rx.Component:
                     rx.text("Notes rapides", color=TEXT, font_size="0.85rem", font_weight="600"),
                     rx.spacer(),
                     rx.text("Auto-sauvegardé", color=MUTED, font_size="0.7rem"),
+                    rx.icon_button(
+                        rx.icon("picture-in-picture-2", size=13),
+                        on_click=DashboardState.toggle_notes_popup,
+                        background="rgba(245,158,11,0.12)",
+                        color="#f59e0b",
+                        border_radius="7px",
+                        size="1",
+                        cursor="pointer",
+                        title="Ouvrir en fenêtre flottante",
+                        _hover={"background": "rgba(245,158,11,0.25)"},
+                    ),
                     spacing="2", align="center", margin_bottom="0.8rem",
                 ),
                 rx.text_area(
@@ -453,6 +464,111 @@ def dashboard_content() -> rx.Component:
             ),
             spacing="4", width="100%", align="start",
         ),
+
+        # ── Popup flottant Notes rapides ─────────────────────────────────────
+        rx.cond(
+            DashboardState.notes_popup,
+            rx.box(
+                # Handle (zone de drag)
+                rx.box(
+                    rx.hstack(
+                        rx.icon("notebook-pen", size=14, color="#f59e0b"),
+                        rx.text("Notes rapides", color=TEXT, font_size="0.85rem", font_weight="600"),
+                        rx.spacer(),
+                        rx.text("Auto-sauvegardé", color=MUTED, font_size="0.7rem"),
+                        rx.icon_button(
+                            rx.icon("x", size=13),
+                            on_click=DashboardState.toggle_notes_popup,
+                            background="rgba(255,255,255,0.08)",
+                            color=MUTED,
+                            border_radius="6px",
+                            size="1",
+                            cursor="pointer",
+                            _hover={"background": "rgba(239,68,68,0.2)", "color": "#ef4444"},
+                        ),
+                        spacing="2",
+                        align="center",
+                    ),
+                    id="notes-popup-handle",
+                    background=f"linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))",
+                    border_bottom=f"1px solid {BORDER}",
+                    padding="0.75rem 1rem",
+                    cursor="move",
+                    user_select="none",
+                    border_radius="14px 14px 0 0",
+                ),
+                # Corps
+                rx.box(
+                    rx.text_area(
+                        placeholder="Tes notes, rappels, astuces du jour…",
+                        value=DashboardState.quick_notes,
+                        on_change=DashboardState.set_quick_notes,
+                        on_blur=DashboardState.save_notes,
+                        background="#0d1021",
+                        color=TEXT,
+                        border=f"1px solid {BORDER}",
+                        border_radius="10px",
+                        padding="0.75rem",
+                        font_size="0.82rem",
+                        min_height="200px",
+                        width="100%",
+                        resize="vertical",
+                        _placeholder={"color": "#475569"},
+                        _focus={"border_color": "#f59e0b", "outline": "none"},
+                    ),
+                    padding="0.9rem 1rem",
+                ),
+                id="notes-floating-popup",
+                position="fixed",
+                top="80px",
+                right="80px",
+                width="380px",
+                background=CARD_BG,
+                border=f"1px solid rgba(245,158,11,0.3)",
+                border_radius="14px",
+                box_shadow="0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,158,11,0.1)",
+                z_index="9999",
+                overflow="hidden",
+            ),
+        ),
+
+        # Script drag
+        rx.script("""
+(function() {
+  function initDrag() {
+    var popup = document.getElementById('notes-floating-popup');
+    var handle = document.getElementById('notes-popup-handle');
+    if (!popup || !handle || popup._dragInit) return;
+    popup._dragInit = true;
+    var mx = 0, my = 0;
+    handle.addEventListener('mousedown', function(e) {
+      if (e.target.closest('button')) return;
+      e.preventDefault();
+      mx = e.clientX; my = e.clientY;
+      var rect = popup.getBoundingClientRect();
+      popup.style.left = rect.left + 'px';
+      popup.style.top = rect.top + 'px';
+      popup.style.right = 'auto';
+      popup.style.bottom = 'auto';
+      function onMove(e) {
+        var dx = e.clientX - mx, dy = e.clientY - my;
+        mx = e.clientX; my = e.clientY;
+        popup.style.left = (popup.offsetLeft + dx) + 'px';
+        popup.style.top  = (popup.offsetTop  + dy) + 'px';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+  var obs = new MutationObserver(initDrag);
+  obs.observe(document.body, { childList: true, subtree: true });
+  initDrag();
+})();
+"""),
 
         spacing="4",
         width="100%",
