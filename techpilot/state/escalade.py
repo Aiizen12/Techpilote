@@ -1,4 +1,5 @@
 import reflex as rx
+import base64
 from techpilot.db.database import load_db
 from techpilot.state.models import EscaladeEntry
 
@@ -258,6 +259,57 @@ class EscaladeState(rx.State):
                 )
                 for r in entries
             ]
+
+    # ── Export CSV ────────────────────────────────────────────────────────────
+
+    def export_csv(self):
+        def esc(v: str) -> str:
+            return '"' + str(v or "").replace('"', '""') + '"'
+
+        db = load_db()
+        results = db.get("escalation_matrix") or []
+
+        if self.search:
+            q = self.search.lower()
+            results = [
+                r for r in results
+                if q in (r.get("typologie") or "").lower()
+                or q in (r.get("perimetre") or "").lower()
+                or q in (r.get("categorie_fresh") or "").lower()
+                or q in (r.get("traitement_n1") or "").lower()
+                or q in (r.get("interlocuteur") or "").lower()
+                or q in (r.get("traitement_n2n3") or "").lower()
+                or q in (r.get("conditions_escalade") or "").lower()
+            ]
+        if self.selected_perimetres:
+            results = [r for r in results if r.get("perimetre") in self.selected_perimetres]
+
+        rows = ["Périmètre,Typologie,Catégorie FRESH,Traitement N1,WP,Interlocuteur,Traitement N2/N3,WP N2,Référents,Conditions"]
+        for r in results:
+            rows.append(",".join([
+                esc(r.get("perimetre", "")),
+                esc(r.get("typologie", "")),
+                esc(r.get("categorie_fresh", "")),
+                esc(r.get("traitement_n1", "")),
+                esc(r.get("wp", "")),
+                esc(r.get("interlocuteur", "")),
+                esc(r.get("traitement_n2n3", "")),
+                esc(r.get("wp_n2", "")),
+                esc(r.get("referents", "")),
+                esc(r.get("conditions_escalade", "")),
+            ]))
+        csv = "\n".join(rows)
+        b64 = base64.b64encode(csv.encode("utf-8")).decode()
+        yield rx.call_script(f"""
+var csv = atob('{b64}');
+var blob = new Blob([csv], {{type:'text/csv;charset=utf-8;'}});
+var url = URL.createObjectURL(blob);
+var a = document.createElement('a');
+a.href = url;
+a.download = 'escalade_' + new Date().toISOString().slice(0,10) + '.csv';
+document.body.appendChild(a); a.click();
+document.body.removeChild(a); URL.revokeObjectURL(url);
+""")
 
     # ── Arbre ─────────────────────────────────────────────────────────────
 

@@ -3,6 +3,7 @@ from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import TicketItem
 import uuid
+import base64
 from datetime import datetime
 
 TEXT    = "#f1f5f9"
@@ -140,6 +141,38 @@ class TicketsState(rx.State):
         db["tickets"] = [t for t in (db.get("tickets") or []) if t.get("id") != tid]
         save_db(db)
         self.load()
+
+    def export_csv(self):
+        def esc(v: str) -> str:
+            return '"' + str(v or "").replace('"', '""') + '"'
+
+        db = load_db()
+        tickets = db.get("tickets") or []
+        rows = ["ID,Titre,Ticket père,Impact,Périmètre,Technicien,État,Notes,Date création"]
+        for t in tickets:
+            rows.append(",".join([
+                esc(str(t.get("id", ""))[:8]),
+                esc(t.get("titre", "")),
+                esc(t.get("ticket_pere", "")),
+                esc(t.get("impact", "")),
+                esc(t.get("perimetre", "")),
+                esc(t.get("technicien_nom", "")),
+                esc(t.get("etat", "")),
+                esc(t.get("notes", "")),
+                esc(str(t.get("date_creation", ""))[:10]),
+            ]))
+        csv = "\n".join(rows)
+        b64 = base64.b64encode(csv.encode("utf-8")).decode()
+        yield rx.call_script(f"""
+var csv = atob('{b64}');
+var blob = new Blob([csv], {{type:'text/csv;charset=utf-8;'}});
+var url = URL.createObjectURL(blob);
+var a = document.createElement('a');
+a.href = url;
+a.download = 'incidents_' + new Date().toISOString().slice(0,10) + '.csv';
+document.body.appendChild(a); a.click();
+document.body.removeChild(a); URL.revokeObjectURL(url);
+""")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -317,6 +350,21 @@ def tickets_content() -> rx.Component:
                 align="center",
             ),
             rx.spacer(),
+            rx.button(
+                rx.icon("download", size=15),
+                "Exporter CSV",
+                on_click=TicketsState.export_csv,
+                background="rgba(239,68,68,0.1)",
+                color=RED,
+                border=f"1px solid rgba(239,68,68,0.3)",
+                border_radius="8px",
+                padding="8px 16px",
+                font_size="0.82rem",
+                font_weight="600",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(239,68,68,0.2)"},
+            ),
             rx.button(
                 rx.icon("plus", size=16),
                 "Déclarer un incident",

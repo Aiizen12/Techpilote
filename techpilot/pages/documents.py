@@ -421,36 +421,123 @@ def documents_content() -> rx.Component:
         # Dialog ajout lien
         rx.dialog.root(
             rx.dialog.content(
-                rx.dialog.title(rx.text("Ajouter un lien", color=TEXT, font_weight="700")),
-                rx.vstack(
-                    rx.input(placeholder="Nom *", value=DocumentsState.link_form["nom"], on_change=lambda v: DocumentsState.set_link_field("nom", v), background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%"),
-                    rx.input(placeholder="URL *", value=DocumentsState.link_form["url"], on_change=lambda v: DocumentsState.set_link_field("url", v), background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%"),
-                    rx.select(
-                        CATEGORIES,
-                        value=DocumentsState.link_form["categorie"],
-                        on_change=lambda v: DocumentsState.set_link_field("categorie", v),
-                        background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
-                    ),
-                    rx.select(
-                        SOUS_CATEGORIES,
-                        placeholder="Dossier (optionnel)",
-                        value=DocumentsState.link_form["sous_categorie"],
-                        on_change=lambda v: DocumentsState.set_link_field("sous_categorie", v),
-                        background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
-                    ),
-                    rx.text_area(placeholder="Description (optionnel)", value=DocumentsState.link_form["description"], on_change=lambda v: DocumentsState.set_link_field("description", v), background="#1e2035", color=TEXT, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%"),
+
+                # Header gradient
+                rx.box(
                     rx.hstack(
-                        rx.button("Annuler", on_click=DocumentsState.close_link_form, background="transparent", color=MUTED, border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", cursor="pointer"),
-                        rx.button("Ajouter", on_click=DocumentsState.create_link, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
+                        rx.box(
+                            rx.icon("link-2", size=18, color="white"),
+                            background="rgba(255,255,255,0.2)",
+                            border_radius="10px",
+                            padding="8px",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.vstack(
+                            rx.text("Ajouter un lien", color="white", font_size="1rem", font_weight="700"),
+                            rx.text("Référencer une ressource externe",
+                                    color="rgba(255,255,255,0.7)", font_size="0.72rem"),
+                            spacing="0", align="start",
+                        ),
+                        spacing="3", align="center",
+                    ),
+                    background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                    border_radius="12px 12px 0 0",
+                    padding="1.25rem 1.5rem",
+                    margin="-24px -24px 0 -24px",
+                ),
+
+                rx.vstack(
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("NOM", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                            rx.text("*", color="#ef4444", font_size="0.75rem"),
+                            spacing="1",
+                        ),
+                        rx.input(
+                            placeholder="Nom du document ou lien…",
+                            value=DocumentsState.link_form["nom"],
+                            on_change=lambda v: DocumentsState.set_link_field("nom", v),
+                            background="#1e2035", color=TEXT,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("URL", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                            rx.text("*", color="#ef4444", font_size="0.75rem"),
+                            spacing="1",
+                        ),
+                        rx.input(
+                            placeholder="https://…",
+                            value=DocumentsState.link_form["url"],
+                            on_change=lambda v: DocumentsState.set_link_field("url", v),
+                            background="#1e2035", color=TEXT,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("CATÉGORIE", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                            rx.select(
+                                CATEGORIES,
+                                value=DocumentsState.link_form["categorie"],
+                                on_change=lambda v: DocumentsState.set_link_field("categorie", v),
+                                background="#1e2035", color=TEXT,
+                                border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
+                            ),
+                            spacing="1", align="start", flex="1",
+                        ),
+                        rx.vstack(
+                            rx.text("DOSSIER", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                            rx.select(
+                                SOUS_CATEGORIES,
+                                placeholder="Optionnel",
+                                value=DocumentsState.link_form["sous_categorie"],
+                                on_change=lambda v: DocumentsState.set_link_field("sous_categorie", v),
+                                background="#1e2035", color=TEXT,
+                                border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
+                            ),
+                            spacing="1", align="start", flex="1",
+                        ),
+                        spacing="3", width="100%",
+                    ),
+                    rx.vstack(
+                        rx.text("DESCRIPTION", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                        rx.text_area(
+                            placeholder="Description optionnelle…",
+                            value=DocumentsState.link_form["description"],
+                            on_change=lambda v: DocumentsState.set_link_field("description", v),
+                            background="#1e2035", color=TEXT,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
+                            rows="2",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.hstack(
+                        rx.button("Annuler", on_click=DocumentsState.close_link_form,
+                                  background="transparent", color=MUTED,
+                                  border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", cursor="pointer"),
+                        rx.button(
+                            rx.icon("plus", size=15),
+                            "Ajouter",
+                            on_click=DocumentsState.create_link,
+                            background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                            color="white", border_radius="8px", cursor="pointer",
+                            font_weight="700", spacing="2",
+                        ),
                         spacing="3", justify="end", width="100%",
                     ),
-                    spacing="3", width="100%",
+                    spacing="4", width="100%", padding_top="1.25rem",
                 ),
+
                 background="#151728",
                 border=f"1px solid rgba(255,255,255,0.1)",
                 border_radius="16px",
-                padding="1.5rem",
+                padding="24px",
                 max_width="480px",
+                overflow="hidden",
             ),
             open=DocumentsState.show_link_form,
         ),

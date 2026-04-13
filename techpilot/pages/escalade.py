@@ -41,15 +41,35 @@ def _tab_btn(label: str, icon_name: str, val: str) -> rx.Component:
 
 def header_banner() -> rx.Component:
     return rx.box(
-        rx.vstack(
-            rx.text("Matrice d'escalade", color=TEXT, font_size="1.6rem", font_weight="800"),
-            rx.text(
-                EscaladeState.total_count.to_string() + " procédures de routage N1 → N2/N3",
-                color="rgba(241,245,249,0.6)",
-                font_size="0.875rem",
+        rx.hstack(
+            rx.vstack(
+                rx.text("Matrice d'escalade", color=TEXT, font_size="1.6rem", font_weight="800"),
+                rx.text(
+                    EscaladeState.total_count.to_string() + " procédures de routage N1 → N2/N3",
+                    color="rgba(241,245,249,0.6)",
+                    font_size="0.875rem",
+                ),
+                spacing="1",
+                align="start",
+                flex="1",
             ),
-            spacing="1",
-            align="start",
+            rx.button(
+                rx.icon("download", size=15),
+                "Exporter CSV",
+                on_click=EscaladeState.export_csv,
+                background="rgba(99,102,241,0.15)",
+                color=PRIMARY,
+                border=f"1px solid rgba(99,102,241,0.35)",
+                border_radius="8px",
+                padding="8px 16px",
+                font_size="0.82rem",
+                font_weight="600",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(99,102,241,0.28)"},
+            ),
+            align="center",
+            width="100%",
         ),
         background="linear-gradient(135deg, rgba(99,102,241,0.28) 0%, rgba(139,92,246,0.18) 50%, transparent 100%)",
         border=f"1px solid rgba(99,102,241,0.3)",
