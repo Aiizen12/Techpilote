@@ -373,7 +373,7 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
     return rx.box(
 
         # CSS responsive
-        rx.html.script("""
+        rx.script("""
 (function() {
   var s = document.createElement('style');
   s.textContent = `
