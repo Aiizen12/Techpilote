@@ -37,7 +37,6 @@ class DashboardState(rx.State):
     show_link_form: bool = False
     link_form_nom: str = ""
     link_form_url: str = ""
-    notes_popup: bool = False
 
     # Meta
     today_label: str = ""
@@ -168,9 +167,6 @@ class DashboardState(rx.State):
             db["quick_notes"] = {}
         db["quick_notes"]["__global__"] = self.quick_notes
         save_db(db)
-
-    def toggle_notes_popup(self):
-        self.notes_popup = not self.notes_popup
 
     # ── Liens rapides ─────────────────────────────────────────────────────────
 
