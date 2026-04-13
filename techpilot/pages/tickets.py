@@ -13,19 +13,28 @@ PRIMARY = "#6366f1"
 RED     = "#ef4444"
 GREEN   = "#22c55e"
 
-IMPACTS = ["critique", "haute", "normale", "basse"]
+IMPACTS = ["basse", "normale", "haute", "critique"]
 
-SEVERITY_LABEL = {"critique": "Critique", "haute": "Haute", "normale": "Modéré", "basse": "Faible"}
-SEVERITY_COLOR = {"critique": "#ef4444", "haute": "#f59e0b", "normale": "#6366f1", "basse": "#94a3b8"}
+IMPACT_CONFIG = {
+    "basse":    {"label": "Faible",    "color": "#6ee7b7", "bg": "rgba(34,197,94,0.15)",   "border_on": "rgba(34,197,94,0.5)"},
+    "normale":  {"label": "Modéré",    "color": "#93c5fd", "bg": "rgba(59,130,246,0.15)",  "border_on": "rgba(59,130,246,0.5)"},
+    "haute":    {"label": "Haute",     "color": "#fcd34d", "bg": "rgba(245,158,11,0.15)",  "border_on": "rgba(245,158,11,0.5)"},
+    "critique": {"label": "Critique",  "color": "#f87171", "bg": "rgba(239,68,68,0.15)",   "border_on": "rgba(239,68,68,0.5)"},
+}
 
 
 class TicketsState(rx.State):
     tickets: list[TicketItem] = []
-    tab: str = "tous"           # "tous" | "en_cours" | "resolu"
+    tab: str = "tous"
     count_en_cours: int = 0
     count_resolus: int = 0
     show_form: bool = False
-    form: dict = {"titre": "", "description": "", "impact": "normale", "numero": ""}
+    technicians: list[dict] = []
+    form: dict = {
+        "titre": "", "ticket_pere": "", "description": "",
+        "impact": "normale", "perimetre": "", "technicien_id": "",
+        "technicien_nom": "", "etat": "en_cours", "notes": "",
+    }
 
     def load(self):
         db = load_db()
@@ -42,12 +51,22 @@ class TicketsState(rx.State):
             TicketItem(
                 id=str(x.get("id") or ""),
                 titre=x.get("titre") or "",
+                ticket_pere=x.get("ticket_pere") or "",
                 description=x.get("description") or "",
                 impact=x.get("impact") or "",
+                perimetre=x.get("perimetre") or "",
+                technicien_id=str(x.get("technicien_id") or ""),
+                technicien_nom=x.get("technicien_nom") or "",
                 etat=x.get("etat") or "",
+                notes=x.get("notes") or "",
                 date_creation=x.get("date_creation") or "",
             )
             for x in filtered
+        ]
+        # Load techs for selector
+        self.technicians = [
+            {"id": str(t.get("id") or ""), "nom": t.get("nom") or ""}
+            for t in (db.get("technicians") or [])
         ]
 
     def set_tab(self, val: str):
@@ -55,7 +74,11 @@ class TicketsState(rx.State):
         self.load()
 
     def open_form(self):
-        self.form = {"titre": "", "description": "", "impact": "normale", "numero": ""}
+        self.form = {
+            "titre": "", "ticket_pere": "", "description": "",
+            "impact": "normale", "perimetre": "", "technicien_id": "",
+            "technicien_nom": "", "etat": "en_cours", "notes": "",
+        }
         self.show_form = True
 
     def close_form(self):
@@ -63,6 +86,19 @@ class TicketsState(rx.State):
 
     def set_field(self, field: str, val: str):
         self.form = {**self.form, field: val}
+
+    def set_impact(self, val: str):
+        self.form = {**self.form, "impact": val}
+
+    def set_etat(self, val: str):
+        self.form = {**self.form, "etat": val}
+
+    def set_tech(self, tid: str):
+        nom = ""
+        for t in self.technicians:
+            if t.get("id") == tid:
+                nom = t.get("nom") or ""
+        self.form = {**self.form, "technicien_id": tid, "technicien_nom": nom}
 
     def create(self):
         if not self.form.get("titre"):
@@ -72,14 +108,18 @@ class TicketsState(rx.State):
             db["tickets"] = []
         db["tickets"].append({
             "id": str(uuid.uuid4()),
-            "titre":       self.form.get("titre", ""),
-            "description": self.form.get("description", ""),
-            "impact":      self.form.get("impact", "normale"),
-            "numero":      self.form.get("numero", ""),
-            "etat": "en_cours",
-            "date_creation":    datetime.utcnow().isoformat(),
-            "date_modification": datetime.utcnow().isoformat(),
-            "date_resolution":  None,
+            "titre":          self.form.get("titre", ""),
+            "ticket_pere":    self.form.get("ticket_pere", ""),
+            "description":    self.form.get("description", ""),
+            "impact":         self.form.get("impact", "normale"),
+            "perimetre":      self.form.get("perimetre", ""),
+            "technicien_id":  self.form.get("technicien_id", ""),
+            "technicien_nom": self.form.get("technicien_nom", ""),
+            "etat":           self.form.get("etat", "en_cours"),
+            "notes":          self.form.get("notes", ""),
+            "date_creation":      datetime.utcnow().isoformat(),
+            "date_modification":  datetime.utcnow().isoformat(),
+            "date_resolution":    None,
         })
         save_db(db)
         self.show_form = False
@@ -90,7 +130,7 @@ class TicketsState(rx.State):
         for t in db.get("tickets") or []:
             if t.get("id") == tid:
                 t["etat"] = "resolu"
-                t["date_resolution"]  = datetime.utcnow().isoformat()
+                t["date_resolution"]   = datetime.utcnow().isoformat()
                 t["date_modification"] = datetime.utcnow().isoformat()
         save_db(db)
         self.load()
@@ -115,6 +155,12 @@ def _severity_badge(impact) -> rx.Component:
     )
 
 
+def _impact_color(impact) -> rx.Var:
+    return rx.cond(impact == "critique", "#f87171",
+           rx.cond(impact == "haute",    "#fcd34d",
+           rx.cond(impact == "normale",  "#93c5fd", "#6ee7b7")))
+
+
 def _tab_btn(label: str, val: str, active_val) -> rx.Component:
     is_active = active_val == val
     return rx.box(
@@ -130,6 +176,50 @@ def _tab_btn(label: str, val: str, active_val) -> rx.Component:
     )
 
 
+def _impact_btn(val: str, label: str, color: str, bg: str) -> rx.Component:
+    is_active = TicketsState.form["impact"] == val
+    return rx.box(
+        rx.vstack(
+            rx.text(label, font_size="0.78rem", font_weight="600",
+                    color=rx.cond(is_active, color, MUTED)),
+            spacing="1",
+            align="center",
+        ),
+        padding="0.5rem 0.375rem",
+        border_radius="10px",
+        border=rx.cond(is_active, f"2px solid {color}88", f"2px solid {BORDER}"),
+        background=rx.cond(is_active, bg, "rgba(255,255,255,0.02)"),
+        cursor="pointer",
+        text_align="center",
+        transition="all 0.15s",
+        on_click=TicketsState.set_impact(val),
+        flex="1",
+    )
+
+
+def _etat_btn(val: str, label: str, icon_name: str, color: str, bg: str) -> rx.Component:
+    is_active = TicketsState.form["etat"] == val
+    return rx.box(
+        rx.hstack(
+            rx.icon(icon_name, size=15, color=rx.cond(is_active, "white", MUTED)),
+            rx.text(label, font_size="0.85rem", font_weight="600",
+                    color=rx.cond(is_active, "white", MUTED)),
+            spacing="2",
+            align="center",
+            justify="center",
+        ),
+        padding="0.7rem",
+        border_radius="12px",
+        border=rx.cond(is_active, "none", f"1.5px dashed {BORDER}"),
+        background=rx.cond(is_active, bg, "rgba(255,255,255,0.03)"),
+        cursor="pointer",
+        text_align="center",
+        transition="all 0.2s",
+        on_click=TicketsState.set_etat(val),
+        flex="1",
+    )
+
+
 def incident_row(t: TicketItem) -> rx.Component:
     border_color = rx.cond(t["etat"] == "en_cours", RED, GREEN)
     num_display  = rx.cond(t["id"] != "", t["id"][:6].upper(), "------")
@@ -137,13 +227,11 @@ def incident_row(t: TicketItem) -> rx.Component:
 
     return rx.box(
         rx.hstack(
-            # Icône état
             rx.cond(
                 t["etat"] == "en_cours",
                 rx.icon("clock", size=16, color=RED),
                 rx.icon("circle-check", size=16, color=GREEN),
             ),
-            # Numéro
             rx.box(
                 rx.text(num_display, color=MUTED, font_size="0.72rem", font_family="monospace"),
                 background="rgba(255,255,255,0.05)",
@@ -151,26 +239,26 @@ def incident_row(t: TicketItem) -> rx.Component:
                 border_radius="4px",
                 padding="2px 6px",
             ),
-            # Titre
             rx.text(t["titre"], color=TEXT, font_size="0.875rem", font_weight="500", flex="1"),
-            # Sévérité
             _severity_badge(t["impact"]),
-            # Assigné
-            rx.text("Non assigné", color=MUTED, font_size="0.78rem"),
-            # Date
+            rx.cond(
+                t["technicien_nom"] != "",
+                rx.text(t["technicien_nom"], color=MUTED, font_size="0.78rem"),
+                rx.text("Non assigné", color=MUTED, font_size="0.78rem"),
+            ),
             rx.text(date_display, color=MUTED, font_size="0.78rem"),
-            # Actions
             rx.hstack(
                 rx.cond(
                     t["etat"] == "en_cours",
                     rx.icon_button(
-                        rx.icon("pencil", size=13),
+                        rx.icon("circle-check", size=13),
                         on_click=TicketsState.resolve(t["id"]),
                         background="transparent",
                         color=MUTED,
                         size="1",
                         cursor="pointer",
-                        _hover={"color": TEXT},
+                        _hover={"color": GREEN},
+                        title="Marquer comme résolu",
                     ),
                 ),
                 rx.icon_button(
@@ -197,6 +285,10 @@ def incident_row(t: TicketItem) -> rx.Component:
         transition="background 0.15s",
         _hover={"background": "rgba(255,255,255,0.02)"},
     )
+
+
+def _tech_option(t: dict) -> rx.Component:
+    return rx.select.item(t["nom"], value=t["id"])
 
 
 def tickets_content() -> rx.Component:
@@ -245,7 +337,6 @@ def tickets_content() -> rx.Component:
 
         # ── KPI cards ─────────────────────────────────────────────────────────
         rx.hstack(
-            # EN COURS
             rx.box(
                 rx.hstack(
                     rx.box(
@@ -274,7 +365,6 @@ def tickets_content() -> rx.Component:
                 padding="1.2rem 1.5rem",
                 flex="1",
             ),
-            # RÉSOLUS
             rx.box(
                 rx.hstack(
                     rx.box(
@@ -309,9 +399,9 @@ def tickets_content() -> rx.Component:
 
         # ── Onglets ───────────────────────────────────────────────────────────
         rx.hstack(
-            _tab_btn("Tous",      "tous",     TicketsState.tab),
-            _tab_btn("En cours",  "en_cours", TicketsState.tab),
-            _tab_btn("Résolus",   "resolu",   TicketsState.tab),
+            _tab_btn("Tous",     "tous",     TicketsState.tab),
+            _tab_btn("En cours", "en_cours", TicketsState.tab),
+            _tab_btn("Résolus",  "resolu",   TicketsState.tab),
             spacing="1",
             background=CARD_BG,
             border=f"1px solid {BORDER}",
@@ -329,49 +419,218 @@ def tickets_content() -> rx.Component:
         # ── Dialog création ───────────────────────────────────────────────────
         rx.dialog.root(
             rx.dialog.content(
-                rx.dialog.title(rx.text("Déclarer un incident", color=TEXT, font_weight="700")),
+
+                # Header gradient
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("shield-alert", size=18, color="white"),
+                            background="rgba(255,255,255,0.2)",
+                            border_radius="10px",
+                            padding="8px",
+                            display="flex",
+                            align_items="center",
+                            justify_content="center",
+                        ),
+                        rx.vstack(
+                            rx.text("Déclarer un incident", color="white", font_size="1rem", font_weight="700"),
+                            rx.text("Renseigner les informations de l'incident",
+                                    color="rgba(255,255,255,0.7)", font_size="0.72rem"),
+                            spacing="0",
+                            align="start",
+                        ),
+                        spacing="3",
+                        align="center",
+                    ),
+                    background=f"linear-gradient(135deg, {RED}, #b91c1c)",
+                    border_radius="12px 12px 0 0",
+                    padding="1.25rem 1.5rem",
+                    margin="-24px -24px 0 -24px",
+                ),
+
                 rx.vstack(
-                    rx.input(
-                        placeholder="Titre *",
-                        value=TicketsState.form["titre"],
-                        on_change=lambda v: TicketsState.set_field("titre", v),
-                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
-                        border_radius="8px", width="100%",
+                    # Ticket père + Titre
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("TICKET PÈRE", color=MUTED, font_size="0.68rem", font_weight="700",
+                                    letter_spacing="0.07em"),
+                            rx.input(
+                                placeholder="INC-12345",
+                                value=TicketsState.form["ticket_pere"],
+                                on_change=lambda v: TicketsState.set_field("ticket_pere", v),
+                                background="#1c2138", color=TEXT,
+                                border=f"1px solid {BORDER}", border_radius="8px",
+                                font_family="monospace", font_size="0.82rem",
+                            ),
+                            spacing="1",
+                            align="start",
+                            width="160px",
+                        ),
+                        rx.vstack(
+                            rx.hstack(
+                                rx.text("TITRE", color=MUTED, font_size="0.68rem", font_weight="700",
+                                        letter_spacing="0.07em"),
+                                rx.text("*", color=RED, font_size="0.75rem"),
+                                spacing="1",
+                            ),
+                            rx.input(
+                                placeholder="Titre court et descriptif",
+                                value=TicketsState.form["titre"],
+                                on_change=lambda v: TicketsState.set_field("titre", v),
+                                background="#1c2138", color=TEXT,
+                                border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                            ),
+                            spacing="1",
+                            align="start",
+                            flex="1",
+                        ),
+                        spacing="3",
+                        align="end",
+                        width="100%",
                     ),
-                    rx.input(
-                        placeholder="Numéro Freshservice (optionnel)",
-                        value=TicketsState.form["numero"],
-                        on_change=lambda v: TicketsState.set_field("numero", v),
-                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
-                        border_radius="8px", width="100%",
+
+                    # Description
+                    rx.vstack(
+                        rx.text("DESCRIPTION DE L'INCIDENT", color=MUTED, font_size="0.68rem",
+                                font_weight="700", letter_spacing="0.07em"),
+                        rx.text_area(
+                            placeholder="Décrivez l'incident : symptômes observés, utilisateurs impactés, périmètre...",
+                            value=TicketsState.form["description"],
+                            on_change=lambda v: TicketsState.set_field("description", v),
+                            background="#1c2138", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                            rows="3",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
                     ),
-                    rx.text_area(
-                        placeholder="Description",
-                        value=TicketsState.form["description"],
-                        on_change=lambda v: TicketsState.set_field("description", v),
-                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
-                        border_radius="8px", width="100%",
+
+                    # Impact (4 boutons)
+                    rx.vstack(
+                        rx.text("IMPACT", color=MUTED, font_size="0.68rem", font_weight="700",
+                                letter_spacing="0.07em"),
+                        rx.hstack(
+                            _impact_btn("basse",    "Faible",   "#6ee7b7", "rgba(34,197,94,0.15)"),
+                            _impact_btn("normale",  "Modéré",   "#93c5fd", "rgba(59,130,246,0.15)"),
+                            _impact_btn("haute",    "Haute",    "#fcd34d", "rgba(245,158,11,0.15)"),
+                            _impact_btn("critique", "Critique", "#f87171", "rgba(239,68,68,0.15)"),
+                            spacing="2",
+                            width="100%",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
                     ),
-                    rx.select(
-                        IMPACTS,
-                        value=TicketsState.form["impact"],
-                        on_change=lambda v: TicketsState.set_field("impact", v),
-                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
-                        border_radius="8px",
+
+                    # Périmètre + Technicien
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("PÉRIMÈTRE", color=MUTED, font_size="0.68rem", font_weight="700",
+                                    letter_spacing="0.07em"),
+                            rx.input(
+                                placeholder="Réseau, Impression...",
+                                value=TicketsState.form["perimetre"],
+                                on_change=lambda v: TicketsState.set_field("perimetre", v),
+                                background="#1c2138", color=TEXT,
+                                border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                            ),
+                            spacing="1",
+                            align="start",
+                            flex="1",
+                        ),
+                        rx.vstack(
+                            rx.text("TECHNICIEN RÉFÉRENT", color=MUTED, font_size="0.68rem",
+                                    font_weight="700", letter_spacing="0.07em"),
+                            rx.select.root(
+                                rx.select.trigger(
+                                    placeholder="Non assigné",
+                                    background="#1c2138",
+                                    color=TEXT,
+                                    border=f"1px solid {BORDER}",
+                                    border_radius="8px",
+                                    width="100%",
+                                ),
+                                rx.select.content(
+                                    rx.select.item("Non assigné", value=""),
+                                    rx.foreach(TicketsState.technicians, _tech_option),
+                                    background="#1c2138",
+                                    border=f"1px solid {BORDER}",
+                                ),
+                                value=TicketsState.form["technicien_id"],
+                                on_change=TicketsState.set_tech,
+                                width="100%",
+                            ),
+                            spacing="1",
+                            align="start",
+                            flex="1",
+                        ),
+                        spacing="3",
+                        width="100%",
                     ),
+
+                    # État
+                    rx.vstack(
+                        rx.text("ÉTAT DE L'INCIDENT", color=MUTED, font_size="0.68rem",
+                                font_weight="700", letter_spacing="0.07em"),
+                        rx.hstack(
+                            _etat_btn("en_cours", "En cours", "clock",
+                                      RED, f"linear-gradient(135deg, {RED}, #b91c1c)"),
+                            _etat_btn("resolu",   "Résolu",   "circle-check",
+                                      GREEN, "linear-gradient(135deg, #059669, #10b981)"),
+                            spacing="3",
+                            width="100%",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
+                    ),
+
+                    # Notes
+                    rx.vstack(
+                        rx.text("NOTES / ACTIONS MENÉES", color=MUTED, font_size="0.68rem",
+                                font_weight="700", letter_spacing="0.07em"),
+                        rx.text_area(
+                            placeholder="Actions effectuées, contournements mis en place...",
+                            value=TicketsState.form["notes"],
+                            on_change=lambda v: TicketsState.set_field("notes", v),
+                            background="#1c2138", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                            rows="2",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
+                    ),
+
+                    # Boutons
                     rx.hstack(
                         rx.button("Annuler", on_click=TicketsState.close_form,
                                   background="transparent", color=MUTED,
                                   border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
-                        rx.button("Créer", on_click=TicketsState.create,
-                                  background=f"linear-gradient(135deg, {RED}, #b91c1c)",
-                                  color="white", border_radius="8px", cursor="pointer"),
+                        rx.button(
+                            rx.icon("check", size=15),
+                            "Créer l'incident",
+                            on_click=TicketsState.create,
+                            background=f"linear-gradient(135deg, {RED}, #b91c1c)",
+                            color="white", border_radius="8px", cursor="pointer",
+                            font_weight="700",
+                            spacing="2",
+                        ),
                         spacing="3", justify="end", width="100%",
                     ),
-                    spacing="3", width="100%",
+
+                    spacing="4",
+                    width="100%",
+                    padding_top="1.25rem",
                 ),
-                background="#111524", border=f"1px solid {BORDER}",
-                border_radius="16px", padding="1.5rem", max_width="480px",
+
+                background="#111524",
+                border=f"1px solid {BORDER}",
+                border_radius="16px",
+                padding="24px",
+                max_width="560px",
+                overflow="hidden",
             ),
             open=TicketsState.show_form,
         ),

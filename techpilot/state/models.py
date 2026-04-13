@@ -99,9 +99,14 @@ class DocGroup(rx.Base):
 class TicketItem(rx.Base):
     id: str = ""
     titre: str = ""
+    ticket_pere: str = ""
     description: str = ""
     impact: str = ""
+    perimetre: str = ""
+    technicien_id: str = ""
+    technicien_nom: str = ""
     etat: str = ""
+    notes: str = ""
     date_creation: str = ""
 
 

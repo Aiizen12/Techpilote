@@ -59,6 +59,9 @@ class ActualitesState(rx.State):
     def set_field(self, f: str, v):
         self.form = {**self.form, f: v}
 
+    def toggle_form_epingle(self):
+        self.form = {**self.form, "epingle": not self.form.get("epingle", False)}
+
     def create(self):
         if not self.form.get("titre"):
             return
@@ -304,30 +307,146 @@ def actualites_content() -> rx.Component:
         # Dialog
         rx.dialog.root(
             rx.dialog.content(
-                rx.dialog.title(rx.text("Nouvelle actualité", color=TEXT, font_weight="700")),
+
+                # Header gradient
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("newspaper", size=18, color="white"),
+                            background="rgba(255,255,255,0.2)",
+                            border_radius="10px",
+                            padding="8px",
+                            display="flex",
+                            align_items="center",
+                            justify_content="center",
+                        ),
+                        rx.vstack(
+                            rx.text("Nouvelle actualité", color="white", font_size="1rem", font_weight="700"),
+                            rx.text("Publier une information à l'équipe",
+                                    color="rgba(255,255,255,0.7)", font_size="0.72rem"),
+                            spacing="0",
+                            align="start",
+                        ),
+                        spacing="3",
+                        align="center",
+                    ),
+                    background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                    border_radius="12px 12px 0 0",
+                    padding="1.25rem 1.5rem",
+                    margin="-24px -24px 0 -24px",
+                ),
+
                 rx.vstack(
-                    rx.input(
-                        placeholder="Titre *",
-                        value=ActualitesState.form["titre"],
-                        on_change=lambda v: ActualitesState.set_field("titre", v),
-                        background="#1c2138", color=TEXT,
-                        border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                    # Type (4 boutons)
+                    rx.vstack(
+                        rx.text("TYPE", color=MUTED, font_size="0.68rem", font_weight="700",
+                                letter_spacing="0.07em"),
+                        rx.hstack(
+                            *[
+                                rx.box(
+                                    rx.text(label, font_size="0.78rem", font_weight="600",
+                                            color=rx.cond(
+                                                ActualitesState.form["type"] == val,
+                                                _type_color(val), MUTED
+                                            )),
+                                    padding="0.5rem 0.6rem",
+                                    border_radius="10px",
+                                    border=rx.cond(
+                                        ActualitesState.form["type"] == val,
+                                        "2px solid " + _type_color(val),
+                                        f"2px solid {BORDER}",
+                                    ),
+                                    background=rx.cond(
+                                        ActualitesState.form["type"] == val,
+                                        _type_bg(val),
+                                        "rgba(255,255,255,0.02)",
+                                    ),
+                                    cursor="pointer",
+                                    text_align="center",
+                                    flex="1",
+                                    transition="all 0.15s",
+                                    on_click=ActualitesState.set_field("type", val),
+                                )
+                                for val, label in [
+                                    ("info", "Info"),
+                                    ("success", "Succès"),
+                                    ("warning", "Avertissement"),
+                                    ("alerte", "Alerte"),
+                                ]
+                            ],
+                            spacing="2",
+                            width="100%",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
                     ),
-                    rx.text_area(
-                        placeholder="Contenu (optionnel)",
-                        value=ActualitesState.form["contenu"],
-                        on_change=lambda v: ActualitesState.set_field("contenu", v),
-                        background="#1c2138", color=TEXT,
-                        border=f"1px solid {BORDER}", border_radius="8px", width="100%",
-                        rows="3",
+
+                    # Titre
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("TITRE", color=MUTED, font_size="0.68rem", font_weight="700",
+                                    letter_spacing="0.07em"),
+                            rx.text("*", color="#ef4444", font_size="0.75rem"),
+                            spacing="1",
+                        ),
+                        rx.input(
+                            placeholder="Titre de l'actualité...",
+                            value=ActualitesState.form["titre"],
+                            on_change=lambda v: ActualitesState.set_field("titre", v),
+                            background="#1c2138", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
                     ),
-                    rx.select(
-                        TYPES,
-                        value=ActualitesState.form["type"],
-                        on_change=lambda v: ActualitesState.set_field("type", v),
-                        background="#1c2138", color=TEXT,
-                        border=f"1px solid {BORDER}", border_radius="8px",
+
+                    # Contenu
+                    rx.vstack(
+                        rx.text("CONTENU", color=MUTED, font_size="0.68rem", font_weight="700",
+                                letter_spacing="0.07em"),
+                        rx.text_area(
+                            placeholder="Décris l'actualité en détail...",
+                            value=ActualitesState.form["contenu"],
+                            on_change=lambda v: ActualitesState.set_field("contenu", v),
+                            background="#1c2138", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                            rows="4",
+                        ),
+                        spacing="1",
+                        align="start",
+                        width="100%",
                     ),
+
+                    # Épingler
+                    rx.box(
+                        rx.hstack(
+                            rx.checkbox(
+                                checked=ActualitesState.form["epingle"],
+                                on_change=ActualitesState.toggle_form_epingle,
+                                color_scheme="amber",
+                            ),
+                            rx.hstack(
+                                rx.icon("pin", size=14, color="#fbbf24"),
+                                rx.text("Épingler cette actualité", color=TEXT, font_size="0.875rem"),
+                                spacing="2",
+                                align="center",
+                            ),
+                            spacing="3",
+                            align="center",
+                            cursor="pointer",
+                        ),
+                        background="rgba(251,191,36,0.06)",
+                        border=f"1px solid rgba(251,191,36,0.2)",
+                        border_radius="10px",
+                        padding="0.75rem 1rem",
+                        cursor="pointer",
+                        width="100%",
+                        on_click=ActualitesState.toggle_form_epingle,
+                    ),
+
+                    # Boutons
                     rx.hstack(
                         rx.button(
                             "Annuler",
@@ -336,17 +455,25 @@ def actualites_content() -> rx.Component:
                             border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer",
                         ),
                         rx.button(
+                            rx.icon("send", size=15),
                             "Publier",
                             on_click=ActualitesState.create,
                             background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
                             color="white", border_radius="8px", cursor="pointer",
+                            font_weight="700",
+                            spacing="2",
                         ),
                         spacing="3", justify="end", width="100%",
                     ),
-                    spacing="3", width="100%",
+
+                    spacing="4",
+                    width="100%",
+                    padding_top="1.25rem",
                 ),
+
                 background="#111524", border=f"1px solid {BORDER}",
-                border_radius="16px", padding="1.5rem", max_width="520px",
+                border_radius="16px", padding="24px", max_width="520px",
+                overflow="hidden",
             ),
             open=ActualitesState.show_form,
         ),
