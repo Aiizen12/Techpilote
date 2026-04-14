@@ -115,7 +115,13 @@ class AuthState(rx.State):
             self.login_password = ""
             return rx.redirect("/dashboard")
 
-        tech = next((t for t in db["technicians"] if str(t.get("id")) == str(user_id)), None)
+        tech = next(
+            (t for t in db["technicians"]
+             if str(t.get("id")) == str(user_id)
+             or (t.get("nom") or "").strip().lower() == user_id.lower()
+             or str(t.get("matricule") or "") == user_id),
+            None
+        )
         if not tech:
             self.login_error = "Utilisateur non trouvé"
             return
