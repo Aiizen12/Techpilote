@@ -97,6 +97,7 @@ class TicketsState(rx.State):
         self.form = {**self.form, "etat": val}
 
     def set_tech(self, tid: str):
+        tid = "" if tid == "_none" else tid
         nom = ""
         for t in self.technicians:
             if t.get("id") == tid:
@@ -334,8 +335,20 @@ def incident_row(t: TicketItem) -> rx.Component:
     )
 
 
-def _tech_option(t: dict) -> rx.Component:
-    return rx.select.item(t["nom"], value=t["id"])
+def _tech_pill(t: dict) -> rx.Component:
+    is_active = TicketsState.form["technicien_id"] == t["id"]
+    return rx.button(
+        t["nom"],
+        on_click=TicketsState.set_tech(t["id"]),
+        style={
+            "background": rx.cond(is_active, "rgba(99,102,241,0.2)", "transparent"),
+            "color": rx.cond(is_active, PRIMARY, MUTED),
+            "border": rx.cond(is_active, "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+            "border_radius": "20px", "padding": "3px 10px",
+            "font_size": "0.75rem", "cursor": "pointer",
+            "white_space": "nowrap", "font_weight": "500",
+        },
+    )
 
 
 def tickets_content() -> rx.Component:
@@ -604,24 +617,30 @@ def tickets_content() -> rx.Component:
                         rx.vstack(
                             rx.text("TECHNICIEN RÉFÉRENT", color=MUTED, font_size="0.68rem",
                                     font_weight="700", letter_spacing="0.07em"),
-                            rx.select.root(
-                                rx.select.trigger(
-                                    placeholder="Non assigné",
-                                    background="#1c2138",
-                                    color=TEXT,
-                                    border=f"1px solid {BORDER}",
-                                    border_radius="8px",
-                                    width="100%",
+                            rx.flex(
+                                rx.button(
+                                    "Non assigné",
+                                    on_click=TicketsState.set_tech("_none"),
+                                    style={
+                                        "background": rx.cond(
+                                            TicketsState.form["technicien_id"] == "",
+                                            "rgba(99,102,241,0.2)", "transparent"
+                                        ),
+                                        "color": rx.cond(
+                                            TicketsState.form["technicien_id"] == "",
+                                            PRIMARY, MUTED
+                                        ),
+                                        "border": rx.cond(
+                                            TicketsState.form["technicien_id"] == "",
+                                            "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"
+                                        ),
+                                        "border_radius": "20px", "padding": "3px 10px",
+                                        "font_size": "0.75rem", "cursor": "pointer",
+                                        "white_space": "nowrap", "font_weight": "500",
+                                    },
                                 ),
-                                rx.select.content(
-                                    rx.select.item("Non assigné", value=""),
-                                    rx.foreach(TicketsState.technicians, _tech_option),
-                                    background="#1c2138",
-                                    border=f"1px solid {BORDER}",
-                                ),
-                                value=TicketsState.form["technicien_id"],
-                                on_change=TicketsState.set_tech,
-                                width="100%",
+                                rx.foreach(TicketsState.technicians, _tech_pill),
+                                flex_wrap="wrap", gap="6px",
                             ),
                             spacing="1",
                             align="start",
