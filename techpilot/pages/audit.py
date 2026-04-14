@@ -188,47 +188,128 @@ def _filter_btn(label: str, val: str, current) -> rx.Component:
 
 def log_row(log: LogEntry) -> rx.Component:
     ts_short = rx.cond(log["timestamp"] != "", log["timestamp"][:16].replace("T", " "), "—")
-    return rx.table.row(
-        rx.table.cell(
-            rx.text(ts_short, color=MUTED, font_size="0.75rem", font_family="monospace"),
-            padding="8px 12px",
-        ),
-        rx.table.cell(
-            rx.hstack(
-                rx.box(
-                    rx.icon(_entity_icon(log["entity"]), size=12, color=MUTED),
-                    width="22px", height="22px",
-                    background="rgba(255,255,255,0.05)",
-                    border_radius="5px",
-                    display="flex",
-                    align_items="center",
-                    justify_content="center",
+
+    border_color = rx.match(
+        log["action"],
+        ("CREATE",     "#22c55e"),
+        ("UPDATE",     "#f59e0b"),
+        ("DELETE",     "#ef4444"),
+        ("LOGIN",      "#6366f1"),
+        ("LOGIN_FAIL", "#ef4444"),
+        ("LOGOUT",     "#475569"),
+        "#475569",
+    )
+    icon_color = rx.match(
+        log["action"],
+        ("CREATE",     "#22c55e"),
+        ("UPDATE",     "#f59e0b"),
+        ("DELETE",     "#f87171"),
+        ("LOGIN",      "#818cf8"),
+        ("LOGIN_FAIL", "#f87171"),
+        ("LOGOUT",     "#94a3b8"),
+        "#94a3b8",
+    )
+    icon_bg = rx.match(
+        log["action"],
+        ("CREATE",     "rgba(34,197,94,0.12)"),
+        ("UPDATE",     "rgba(245,158,11,0.12)"),
+        ("DELETE",     "rgba(239,68,68,0.12)"),
+        ("LOGIN",      "rgba(99,102,241,0.12)"),
+        ("LOGIN_FAIL", "rgba(239,68,68,0.12)"),
+        ("LOGOUT",     "rgba(71,85,105,0.2)"),
+        "rgba(255,255,255,0.05)",
+    )
+    action_icon = rx.match(
+        log["action"],
+        ("CREATE",     "plus-circle"),
+        ("UPDATE",     "pencil"),
+        ("DELETE",     "trash-2"),
+        ("LOGIN",      "log-in"),
+        ("LOGIN_FAIL", "shield-x"),
+        ("LOGOUT",     "log-out"),
+        "activity",
+    )
+    entity_label = rx.match(
+        log["entity"],
+        ("technicien", "Technicien"),
+        ("ticket",     "Ticket"),
+        ("auth",       "Authentification"),
+        log["entity"],
+    )
+
+    return rx.box(
+        rx.hstack(
+            # Icône action
+            rx.box(
+                rx.icon(action_icon, size=15, color=icon_color),
+                width="36px", height="36px",
+                background=icon_bg,
+                border_radius="10px",
+                display="flex",
+                align_items="center",
+                justify_content="center",
+                flex_shrink="0",
+            ),
+            # Contenu principal
+            rx.vstack(
+                rx.hstack(
+                    # Utilisateur
+                    rx.text(log["user_nom"], color=TEXT, font_size="0.85rem", font_weight="600"),
+                    # Badge action
+                    rx.badge(
+                        _action_label(log["action"]),
+                        color_scheme=_action_color(log["action"]),
+                        variant="soft",
+                        radius="full",
+                        font_size="0.68rem",
+                    ),
+                    # Entité
+                    rx.box(
+                        rx.hstack(
+                            rx.icon(_entity_icon(log["entity"]), size=11, color=MUTED),
+                            rx.text(entity_label, color=MUTED, font_size="0.7rem"),
+                            spacing="1",
+                            align="center",
+                        ),
+                        background="rgba(255,255,255,0.04)",
+                        border=f"1px solid {BORDER}",
+                        border_radius="5px",
+                        padding="2px 7px",
+                    ),
+                    spacing="2",
+                    align="center",
+                    flex_wrap="wrap",
                 ),
-                rx.text(log["user_nom"], color=TEXT, font_size="0.82rem"),
-                spacing="2",
-                align="center",
+                rx.cond(
+                    log["detail"] != "",
+                    rx.text(log["detail"], color=MUTED, font_size="0.78rem", line_height="1.4"),
+                ),
+                spacing="1",
+                align="start",
+                flex="1",
+                min_width="0",
             ),
-            padding="8px 12px",
-        ),
-        rx.table.cell(
-            rx.badge(
-                _action_label(log["action"]),
-                color_scheme=_action_color(log["action"]),
-                variant="soft",
-                radius="full",
-                font_size="0.7rem",
+            # Timestamp (droite)
+            rx.text(
+                ts_short,
+                color=MUTED,
+                font_size="0.72rem",
+                font_family="monospace",
+                flex_shrink="0",
+                white_space="nowrap",
             ),
-            padding="8px 12px",
+            spacing="3",
+            align="center",
+            width="100%",
         ),
-        rx.table.cell(
-            rx.text(log["entity"], color=MUTED, font_size="0.75rem", text_transform="capitalize"),
-            padding="8px 12px",
-        ),
-        rx.table.cell(
-            rx.text(log["detail"], color=TEXT, font_size="0.8rem"),
-            padding="8px 12px",
-        ),
-        _hover={"background": "rgba(255,255,255,0.02)"},
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_left=f"3px solid " + border_color,
+        border_radius="10px",
+        padding="0.75rem 1rem",
+        width="100%",
+        transition="background 0.15s",
+        _hover={"background": "rgba(255,255,255,0.025)"},
     )
 
 
@@ -352,7 +433,7 @@ def audit_content() -> rx.Component:
             width="100%",
         ),
 
-        # ── Tableau ───────────────────────────────────────────────────────────
+        # ── Liste de cartes ───────────────────────────────────────────────────
         rx.cond(
             AuditState.logs.length() == 0,
             rx.box(
@@ -372,25 +453,9 @@ def audit_content() -> rx.Component:
                 justify_content="center",
                 width="100%",
             ),
-            rx.box(
-                rx.table.root(
-                    rx.table.header(
-                        rx.table.row(
-                            rx.table.column_header_cell("Horodatage",  color=MUTED, font_size="0.72rem", padding="10px 12px"),
-                            rx.table.column_header_cell("Utilisateur", color=MUTED, font_size="0.72rem", padding="10px 12px"),
-                            rx.table.column_header_cell("Action",      color=MUTED, font_size="0.72rem", padding="10px 12px"),
-                            rx.table.column_header_cell("Entité",      color=MUTED, font_size="0.72rem", padding="10px 12px"),
-                            rx.table.column_header_cell("Détail",      color=MUTED, font_size="0.72rem", padding="10px 12px"),
-                        ),
-                        background="#0d1021",
-                    ),
-                    rx.table.body(rx.foreach(AuditState.logs, log_row)),
-                    width="100%",
-                ),
-                background=CARD_BG,
-                border=f"1px solid {BORDER}",
-                border_radius="14px",
-                overflow="auto",
+            rx.vstack(
+                rx.foreach(AuditState.logs, log_row),
+                spacing="2",
                 width="100%",
             ),
         ),
