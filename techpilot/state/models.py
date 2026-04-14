@@ -58,6 +58,7 @@ class PermRow(rx.Base):
     import_excel: bool = False
     permissions_manage: bool = False
     escalade_proc_edit: bool = False
+    doc_edit: bool = False
 
 
 class FeedbackItem(rx.Base):
