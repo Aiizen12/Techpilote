@@ -206,12 +206,6 @@ def entry_modal() -> rx.Component:
                             align_items="center", justify_content="center",
                         ),
                         rx.text("Procédure N1", color="#22c55e", font_size="0.8rem", font_weight="700"),
-                        rx.box(
-                            rx.text("ÉCHANTILLON", color="#f59e0b", font_size="0.6rem", font_weight="700"),
-                            background="rgba(245,158,11,0.1)",
-                            border="1px solid rgba(245,158,11,0.3)",
-                            border_radius="4px", padding="1px 6px",
-                        ),
                         spacing="2", align="center", margin_bottom="0.65rem",
                     ),
                     rx.vstack(

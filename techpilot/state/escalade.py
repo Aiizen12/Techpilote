@@ -3,34 +3,117 @@ import base64
 from techpilot.db.database import load_db
 from techpilot.state.models import EscaladeEntry
 
-# ── Procédures N1 — échantillon 3 cas réseau / hardware ──────────────────────
+# ── Procédures N1 — réseau / hardware (source : docs procédures internes) ─────
 # Clé : (perimetre, typologie)  →  liste d'étapes ordonnées
 PROCEDURE_MAP: dict[tuple[str, str], list[str]] = {
+
+    # ── RÉSEAU ────────────────────────────────────────────────────────────────
+
     ("Réseau", "Incident réseau agence"): [
-        "Qualifier l'impact : combien d'utilisateurs touchés ? Toute l'agence ou un seul poste ?",
-        "Si 1 seul poste impacté → traiter comme incident réseau isolé, pas comme coupure agence.",
-        "Vérifier les voyants du routeur : LEDs Power, Internet/WAN sont-elles allumées ?",
-        "Tenter un redémarrage du routeur : éteindre 30 s, rallumer, patienter 2 min.",
-        "Si la coupure persiste → proposer un partage connexion 4G (smartphone en hotspot) pour pallier.",
-        "Collecter avant escalade : nom agence, code agence, heure de début, nb utilisateurs, modèle routeur.",
-        "Escalader à Support DSI Exploitation avec ces infos. Indiquer BT-Blue si réseau opérateur BT.",
+        "Qualifier : combien d'utilisateurs impactés ? Toute l'agence ou un seul poste ?",
+        "Si plusieurs utilisateurs → vérifier auprès du SPOC Support Actual si incident général connu avant de continuer.",
+        "Si 1 seul poste impacté → traiter comme 'Pas de réseau sur un seul poste', pas comme coupure agence.",
+        "Demander si une modification / intervention / déménagement récent a eu lieu sur le site.",
+        "Vérifier les voyants du routeur : Power, Internet/WAN sont-ils allumés et fixes ?",
+        "Tenter un redémarrage routeur : éteindre 30 s, rallumer, patienter 2 minutes.",
+        "Si coupure totale persistante → proposer un hotspot 4G (smartphone) pour pallier le temps de la résolution.",
+        "Collecter avant escalade : nom agence, code agence, heure de début, nb utilisateurs, modèle routeur, FAI.",
+        "Escalader selon la matrice : BT Blue si réseau BT (ticket TXXXXXXXXXXX), DSI Exploitation sinon.",
     ],
-    ("Réseau", "Lenteurs réseau sur un poste"): [
-        "Récupérer le nom du poste : clic droit sur « Ce PC » > Propriétés, ou taper hostname en cmd.",
+
+    ("Réseau", "Lenteurs poste"): [
+        "Qualifier : lenteurs sur tout le site ou uniquement sur ce poste ?",
+        "Si tous les postes sont lents → traiter comme 'Incident réseau agence', ne pas poursuivre sur le poste seul.",
+        "Récupérer le nom du poste : clic droit 'Ce PC' > Propriétés, ou taper 'hostname' dans cmd.",
         "Ouvrir le Gestionnaire des tâches (Ctrl+Shift+Esc) > onglet Performances.",
-        "Capturer une screenshot : CPU %, RAM utilisée (Go), Disque à 100 % ?",
-        "Vider les condensateurs : éteindre + débrancher + maintenir le bouton Power 30 s + rebrancher.",
-        "Vérifier les programmes au démarrage (onglet Démarrage du Gestionnaire des tâches), désactiver les inutiles.",
-        "Si les lenteurs persistent → escalader à Support DSI Exploitation avec nom du poste + screenshot.",
+        "Prendre une capture d'écran : CPU %, RAM utilisée (Go), Disque à 100 % ?",
+        "Vérifier l'onglet Démarrage : désactiver les programmes non essentiels au démarrage.",
+        "Vider les condensateurs : éteindre + débrancher adaptateur + maintenir bouton Power 30 s + rebrancher.",
+        "Si les lenteurs persistent après redémarrage → escalader avec nom du poste + capture Gestionnaire des tâches.",
     ],
+
+    ("Réseau", "Incident routeur 4G/5G - Hors BT"): [
+        "Vérifier les voyants du routeur : Power (vert fixe ?), Signal 4G/5G (barres affichées ?), WiFi (allumé ?).",
+        "Demander depuis quand la panne est survenue et si une coupure physique (câble, déplacement) a eu lieu.",
+        "Redémarrer le routeur : éteindre 30 s, rallumer, patienter 2 minutes.",
+        "Si accessible : retirer et remettre la carte SIM du routeur.",
+        "Tester un autre appareil connecté au même routeur pour isoler (problème poste vs routeur).",
+        "Vérifier la couverture opérateur sur le site (test smartphone en 4G/5G).",
+        "Collecter : modèle routeur, opérateur, code agence, heure de début, signalement d'autres utilisateurs.",
+        "Escalader à Support DSI Exploitation avec ces informations.",
+    ],
+
+    ("Réseau", "Incident routeur 4G/5G - Réseau BT"): [
+        "Vérifier les voyants du routeur BT Blue : Power, Signal, WiFi.",
+        "Redémarrer le routeur : éteindre 30 s, rallumer, patienter 2 minutes.",
+        "Si la coupure persiste → rechercher si une référence de maintenance BT (TXXXXXXXXXXX) est connue.",
+        "Collecter : modèle routeur, code agence, nom agence, heure de début, référence maintenance si connue.",
+        "Escalader au groupe dédié BT Blue en précisant la référence de maintenance si disponible.",
+        "En attente de résolution → proposer hotspot 4G en solution de contournement.",
+    ],
+
+    ("Réseau", "Wifi visiteurs"): [
+        "Demander quel réseau WiFi l'utilisateur essaie d'atteindre (visiteurs, invités, métier ?).",
+        "Vérifier que le SSID visiteurs est bien diffusé (un autre appareil le voit-il ?).",
+        "Désactiver puis réactiver le WiFi sur le poste de l'utilisateur.",
+        "Si le SSID visiteurs n'apparaît pas → suspecter la borne WiFi (OMADA) ou sa configuration.",
+        "Si le SSID est absent sur tout le site → escalader à Support DSI Exploitation.",
+    ],
+
+    # ── POSTE DE TRAVAIL ──────────────────────────────────────────────────────
+
     ("Poste de travail", "Demande de matériel"): [
         "Qualifier la demande : panne/remplacement suite à dysfonctionnement ou nouveau besoin ?",
         "Si panne → diagnostiquer le matériel défaillant (symptôme précis, depuis quand, reproductible ?).",
-        "Vérifier l'âge du matériel : > 5 ans = potentiellement éligible au remplacement.",
+        "Vérifier l'âge du matériel : > 5 ans = potentiellement éligible au remplacement (valider avec N2, ne pas annoncer à l'utilisateur).",
         "Collecter obligatoirement : adresse complète agence, code agence, numéro de contact sur site.",
         "Ajouter le code agence dans le ticket FreshService avant d'escalader.",
         "Escalader à SI-TRAVAIL NUMERIQUE avec adresse + contact + description du besoin.",
         "Ne jamais commander directement : toujours passer par SI-TRAVAIL NUMERIQUE.",
+    ],
+
+    ("Poste de travail", "Pas de réseau sur un seul poste"): [
+        "Qualifier : WiFi ou câble réseau ? Problème apparu après une modification récente ?",
+        "WiFi : vérifier que le WiFi est activé et le mode avion désactivé.",
+        "Câble : rebrancher côté poste et côté prise murale. Tester un autre câble et une autre prise.",
+        "Redémarrer le poste + vérifier si une mise à jour Windows est en cours (peut bloquer le réseau).",
+        "Vérifier l'adresse IP (ipconfig) : si 169.254.x.x → problème DHCP, escalader à DSI Exploitation.",
+        "Tests ping : passerelle par défaut → réseau local OK/KO. Ping 8.8.8.8 → internet OK/KO.",
+        "Tests croisés : brancher le poste sur une autre prise fonctionnelle ; brancher un autre poste sur la prise incriminée.",
+        "Si toujours KO → escalader avec : ID poste, résultats ping, type connexion, prises testées.",
+    ],
+
+    ("Poste de travail", "Problème de caméra sur les Latitude 3540 côté Leader"): [
+        "Défaut connu sur Latitude 3540 : la nappe caméra/micro se débranche en ouvrant/fermant le capot.",
+        "Vérifier le numéro de série (S/N) sur l'étiquette du PC ou dans Paramètres > Système > Informations.",
+        "Contrôler la garantie sur le site DELL (onglet 'Vérifier la garantie') avec le S/N.",
+        "Créer un ticket d'intervention DELL en collectant : Nom/Prénom contact sur site, adresse complète, disponibilités, horaires site, numéro de contact.",
+        "L'intervention se fait sur site (technicien DELL déplacement) : pas de renvoi du matériel.",
+        "Informer l'utilisateur que c'est un défaut reconnu par DELL, une intervention est planifiée.",
+        "Renseigner le ticket FreshService avec la référence du ticket DELL créé.",
+    ],
+
+    ("Poste de travail", "Batterie PC Portable ne charge pas"): [
+        "Qualifier : la batterie ne se charge jamais OU elle se charge mais se décharge trop vite ?",
+        "Vérifier que l'adaptateur secteur est correctement branché côté PC et côté prise.",
+        "Tester avec un autre adaptateur compatible si disponible.",
+        "Vider les condensateurs : éteindre, débrancher l'adaptateur, maintenir le bouton Power 30 s, rebrancher.",
+        "Vérifier l'état de la batterie : Paramètres > Système > Alimentation & mise en veille.",
+        "Si batterie HS ou PC sous garantie → escalader à SI-TRAVAIL NUMERIQUE avec S/N + description.",
+    ],
+
+    # ── TÉLÉPHONIE MOBILE ─────────────────────────────────────────────────────
+
+    ("Téléphonie mobile", "Incident lié à la carte SIM"): [
+        "Qualifier : problème d'appels uniquement, de données, ou les deux ?",
+        "iPhone : retirer l'ancienne carte SIM physique si encore présente (crée des conflits avec l'eSIM).",
+        "iPhone : forcer la ligne eSIM sur les contacts problématiques → Contacts > contact > Ligne préférée > eSIM.",
+        "Android (Samsung) : Paramètres > Connexions > Gestionnaire carte SIM > vérifier que l'eSIM est la ligne active.",
+        "Réinitialiser les paramètres réseau (efface les mots de passe WiFi, mais résout les conflits SIM) :",
+        "  iPhone : Réglages > Général > Transférer ou réinitialiser > Réinitialiser les réglages réseau.",
+        "  Android Samsung : Paramètres > Gestion générale > Réinitialiser > Réinitialiser les paramètres réseau.",
+        "Test mode avion : activer > éteindre l'appareil > rallumer > désactiver mode avion.",
+        "Si non résolu → escalader avec : modèle, OS, opérateur, description précise (appels ? données ? les deux ?).",
     ],
 }
 
