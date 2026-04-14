@@ -1,9 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 
-TEXT    = "#f1f5f9"
-PRIMARY = "#6366f1"
-BORDER  = "#1c2138"
+BORDER = "#1c2138"
 
 
 def outils_page() -> rx.Component:
@@ -12,14 +10,18 @@ def outils_page() -> rx.Component:
             rx.el.iframe(
                 src="/tools.html",
                 width="100%",
+                height="100%",
                 style={
-                    "height": "calc(100vh - 56px)",
                     "border": "none",
                     "display": "block",
+                    "min_height": "calc(100vh - 53px)",
                 },
             ),
-            width="100%",
-            padding="0",
+            width="calc(100% + 3rem)",
+            height="calc(100vh - 53px)",
+            margin_left="-1.5rem",
+            margin_top="-1.5rem",
+            overflow="hidden",
         ),
         title="Outils",
     )
