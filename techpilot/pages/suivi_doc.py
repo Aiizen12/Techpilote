@@ -494,48 +494,84 @@ def _sheet_procedures() -> rx.Component:
             align="start", width="100%",
         ),
 
-        # Filtres
+        # Filtres — recherche + reset
         rx.hstack(
             rx.input(
                 value=SuiviDocState.proc_search,
                 on_change=SuiviDocState.set_proc_search,
-                placeholder="Rechercher…",
+                placeholder="Rechercher dans la matrice…",
                 style={
                     "background": CARD_BG, "color": TEXT,
                     "border": f"1px solid {BORDER}", "border_radius": "8px",
-                    "padding": "5px 10px", "font_size": "0.82rem", "width": "200px",
+                    "padding": "5px 10px", "font_size": "0.82rem", "width": "240px",
                 },
             ),
-            rx.select.root(
-                rx.select.trigger(
-                    placeholder="Tous périmètres",
-                    style={
-                        "background": CARD_BG, "color": TEXT,
-                        "border": f"1px solid {BORDER}", "border_radius": "8px",
-                        "padding": "5px 10px", "font_size": "0.8rem",
-                    },
-                ),
-                rx.select.content(
-                    rx.select.item("Tous", value="_all"),
-                    rx.foreach(
-                        SuiviDocState.proc_perimetres,
-                        lambda p: rx.select.item(p, value=p),
-                    ),
-                    background=CARD_BG,
-                ),
-                value=SuiviDocState.proc_filter_perimetre,
-                on_change=SuiviDocState.set_proc_filter_perimetre,
-            ),
             rx.button(
-                rx.icon("x", size=13),
+                rx.icon("x", size=13), "Tout effacer",
                 on_click=SuiviDocState.clear_proc_filter,
                 style={
                     "background": "transparent", "color": MUTED,
                     "border": f"1px solid {BORDER}", "border_radius": "8px",
-                    "padding": "5px 9px", "cursor": "pointer",
+                    "padding": "5px 10px", "cursor": "pointer",
+                    "font_size": "0.78rem", "display": "flex",
+                    "align_items": "center", "gap": "4px",
                 },
             ),
             spacing="2", align="center",
+        ),
+
+        # Pills périmètres
+        rx.box(
+            rx.flex(
+                # pill "Tous"
+                rx.button(
+                    "Tous",
+                    on_click=SuiviDocState.clear_proc_filter,
+                    style={
+                        "background": rx.cond(
+                            SuiviDocState.proc_filter_perimetre == "",
+                            "rgba(99,102,241,0.2)", "transparent"
+                        ),
+                        "color": rx.cond(
+                            SuiviDocState.proc_filter_perimetre == "",
+                            PRIMARY, MUTED
+                        ),
+                        "border": rx.cond(
+                            SuiviDocState.proc_filter_perimetre == "",
+                            "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"
+                        ),
+                        "border_radius": "20px", "padding": "3px 12px",
+                        "font_size": "0.75rem", "cursor": "pointer",
+                        "white_space": "nowrap", "font_weight": "500",
+                    },
+                ),
+                rx.foreach(
+                    SuiviDocState.proc_perimetres,
+                    lambda p: rx.button(
+                        p,
+                        on_click=SuiviDocState.set_proc_filter_perimetre(p),
+                        style={
+                            "background": rx.cond(
+                                SuiviDocState.proc_filter_perimetre == p,
+                                "rgba(99,102,241,0.2)", "transparent"
+                            ),
+                            "color": rx.cond(
+                                SuiviDocState.proc_filter_perimetre == p,
+                                PRIMARY, MUTED
+                            ),
+                            "border": rx.cond(
+                                SuiviDocState.proc_filter_perimetre == p,
+                                "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"
+                            ),
+                            "border_radius": "20px", "padding": "3px 12px",
+                            "font_size": "0.75rem", "cursor": "pointer",
+                            "white_space": "nowrap", "font_weight": "500",
+                        },
+                    ),
+                ),
+                flex_wrap="wrap", gap="6px",
+            ),
+            width="100%",
         ),
 
         # Tableau
