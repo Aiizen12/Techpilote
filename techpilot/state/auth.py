@@ -21,6 +21,7 @@ DEFAULT_PERMS = {
     "import_excel": False,
     "permissions_manage": False,
     "escalade_proc_edit": False,
+    "doc_edit": False,
 }
 
 
@@ -77,6 +78,10 @@ class AuthState(rx.State):
     @rx.var
     def can_edit_procedure(self) -> bool:
         return self.permissions.get("escalade_proc_edit", False)
+
+    @rx.var
+    def can_edit_doc(self) -> bool:
+        return self.permissions.get("doc_edit", False)
 
     @rx.var
     def permissions(self) -> dict:

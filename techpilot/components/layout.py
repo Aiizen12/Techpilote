@@ -245,6 +245,7 @@ def sidebar_content(mobile: bool = False) -> rx.Component:
             nav_item("Escalade N1", "git-branch",       "/escalade",   mobile=mobile),
             nav_item("Tickets",     "ticket",           "/tickets",    mobile=mobile),
             nav_item("Documents",   "folder",           "/documents",  mobile=mobile),
+            nav_item("Suivi de Doc","book-open",        "/suivi-doc",  mobile=mobile),
             mobile=mobile,
         ),
         rx.divider(border_color=BORDER, margin_y="0"),

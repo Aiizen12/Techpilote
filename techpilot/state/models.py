@@ -163,6 +163,25 @@ class LeaderboardEntry(rx.Base):
     position: int = 1
 
 
+class AmeliorationItem(rx.Base):
+    id: str = ""
+    titre: str = ""
+    description: str = ""
+    categorie: str = ""   # Process / UX / Technique / Formation / Autre
+    priorite: str = ""    # Basse / Normale / Haute / Critique
+    statut: str = ""      # Ouvert / En cours / Résolu / Fermé
+    auteur_nom: str = ""
+    date_creation: str = ""
+
+
+class ProcSuiviRow(rx.Base):
+    perimetre: str = ""
+    typologie: str = ""
+    categorie_fresh: str = ""
+    has_procedure: bool = False
+    procedure_source: str = ""   # "Intégrée" | "Personnalisée" | ""
+
+
 class PendingValidation(rx.Base):
     quete_id: str = ""
     quete_titre: str = ""
