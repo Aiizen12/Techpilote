@@ -3,6 +3,37 @@ import base64
 from techpilot.db.database import load_db
 from techpilot.state.models import EscaladeEntry
 
+# ── Procédures N1 — échantillon 3 cas réseau / hardware ──────────────────────
+# Clé : (perimetre, typologie)  →  liste d'étapes ordonnées
+PROCEDURE_MAP: dict[tuple[str, str], list[str]] = {
+    ("Réseau", "Incident réseau agence"): [
+        "Qualifier l'impact : combien d'utilisateurs touchés ? Toute l'agence ou un seul poste ?",
+        "Si 1 seul poste impacté → traiter comme incident réseau isolé, pas comme coupure agence.",
+        "Vérifier les voyants du routeur : LEDs Power, Internet/WAN sont-elles allumées ?",
+        "Tenter un redémarrage du routeur : éteindre 30 s, rallumer, patienter 2 min.",
+        "Si la coupure persiste → proposer un partage connexion 4G (smartphone en hotspot) pour pallier.",
+        "Collecter avant escalade : nom agence, code agence, heure de début, nb utilisateurs, modèle routeur.",
+        "Escalader à Support DSI Exploitation avec ces infos. Indiquer BT-Blue si réseau opérateur BT.",
+    ],
+    ("Réseau", "Lenteurs poste"): [
+        "Récupérer le nom du poste : clic droit sur « Ce PC » > Propriétés, ou taper hostname en cmd.",
+        "Ouvrir le Gestionnaire des tâches (Ctrl+Shift+Esc) > onglet Performances.",
+        "Capturer une screenshot : CPU %, RAM utilisée (Go), Disque à 100 % ?",
+        "Vider les condensateurs : éteindre + débrancher + maintenir le bouton Power 30 s + rebrancher.",
+        "Vérifier les programmes au démarrage (onglet Démarrage du Gestionnaire des tâches), désactiver les inutiles.",
+        "Si les lenteurs persistent → escalader à Support DSI Exploitation avec nom du poste + screenshot.",
+    ],
+    ("Poste de travail", "Demande de matériel"): [
+        "Qualifier la demande : panne/remplacement suite à dysfonctionnement ou nouveau besoin ?",
+        "Si panne → diagnostiquer le matériel défaillant (symptôme précis, depuis quand, reproductible ?).",
+        "Vérifier l'âge du matériel : > 5 ans = potentiellement éligible au remplacement.",
+        "Collecter obligatoirement : adresse complète agence, code agence, numéro de contact sur site.",
+        "Ajouter le code agence dans le ticket FreshService avant d'escalader.",
+        "Escalader à SI-TRAVAIL NUMERIQUE avec adresse + contact + description du besoin.",
+        "Ne jamais commander directement : toujours passer par SI-TRAVAIL NUMERIQUE.",
+    ],
+}
+
 PERIMETRE_COLORS = [
     "#f59e0b", "#8b5cf6", "#f97316", "#64748b", "#06b6d4",
     "#22c55e", "#eab308", "#3b82f6", "#6366f1", "#ef4444",
@@ -128,6 +159,7 @@ class EscaladeState(rx.State):
                 wp_n2=r.get("wp_n2") or "",
                 referents=r.get("referents") or "",
                 conditions_escalade=r.get("conditions_escalade") or "",
+                notes=r.get("notes") or "",
             )
             for r in results[offset: offset + self.limit]
         ]
@@ -163,7 +195,22 @@ class EscaladeState(rx.State):
         self._filter()
 
     def open_entry(self, entry: EscaladeEntry):
-        self.selected_entry = entry
+        key = (entry.perimetre, entry.typologie)
+        steps = PROCEDURE_MAP.get(key, [])
+        self.selected_entry = EscaladeEntry(
+            perimetre=entry.perimetre,
+            typologie=entry.typologie,
+            categorie_fresh=entry.categorie_fresh,
+            traitement_n1=entry.traitement_n1,
+            wp=entry.wp,
+            interlocuteur=entry.interlocuteur,
+            traitement_n2n3=entry.traitement_n2n3,
+            wp_n2=entry.wp_n2,
+            referents=entry.referents,
+            conditions_escalade=entry.conditions_escalade,
+            notes=entry.notes,
+            procedure_n1=steps,
+        )
         self.show_modal = True
 
     def close_modal(self):
@@ -177,7 +224,22 @@ class EscaladeState(rx.State):
             self.favoris = [*self.favoris, self.selected_entry]
 
     def open_favori(self, entry: EscaladeEntry):
-        self.selected_entry = entry
+        key = (entry.perimetre, entry.typologie)
+        steps = PROCEDURE_MAP.get(key, [])
+        self.selected_entry = EscaladeEntry(
+            perimetre=entry.perimetre,
+            typologie=entry.typologie,
+            categorie_fresh=entry.categorie_fresh,
+            traitement_n1=entry.traitement_n1,
+            wp=entry.wp,
+            interlocuteur=entry.interlocuteur,
+            traitement_n2n3=entry.traitement_n2n3,
+            wp_n2=entry.wp_n2,
+            referents=entry.referents,
+            conditions_escalade=entry.conditions_escalade,
+            notes=entry.notes,
+            procedure_n1=steps,
+        )
         self.show_modal = True
 
     def copy_fresh_cat(self):
@@ -187,6 +249,10 @@ class EscaladeState(rx.State):
     def is_selected_favori(self) -> bool:
         key = self.selected_entry.perimetre + "|" + self.selected_entry.typologie
         return any(f.perimetre + "|" + f.typologie == key for f in self.favoris)
+
+    @rx.var
+    def has_procedure(self) -> bool:
+        return len(self.selected_entry.procedure_n1) > 0
 
     @rx.var
     def total_pages(self) -> int:
@@ -211,6 +277,7 @@ class EscaladeState(rx.State):
                 wp_n2=r.get("wp_n2") or "",
                 referents=r.get("referents") or "",
                 conditions_escalade=r.get("conditions_escalade") or "",
+                notes=r.get("notes") or "",
             )
             for r in entries
         ]
@@ -256,6 +323,7 @@ class EscaladeState(rx.State):
                     wp_n2=r.get("wp_n2") or "",
                     referents=r.get("referents") or "",
                     conditions_escalade=r.get("conditions_escalade") or "",
+                    notes=r.get("notes") or "",
                 )
                 for r in entries
             ]
@@ -333,6 +401,7 @@ document.body.removeChild(a); URL.revokeObjectURL(url);
                     wp_n2=r.get("wp_n2") or "",
                     referents=r.get("referents") or "",
                     conditions_escalade=r.get("conditions_escalade") or "",
+                    notes=r.get("notes") or "",
                 )
                 for r in entries
             ]

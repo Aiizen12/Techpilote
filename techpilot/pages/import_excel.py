@@ -60,6 +60,7 @@ def _parse_escalade_matrix(wb) -> list[dict]:
     col_wp_n2      = find_col(["wp n2"])
     col_referents  = find_col(["référent", "referent"])
     col_conditions = find_col(["conditions"])
+    col_notes      = find_col(["notes"])
 
     entries = []
     for row in rows[header_row_idx + 1:]:
@@ -86,6 +87,7 @@ def _parse_escalade_matrix(wb) -> list[dict]:
             "wp_n2":              get(col_wp_n2),
             "referents":          get(col_referents),
             "conditions_escalade": get(col_conditions),
+            "notes":              get(col_notes),
         })
     return entries
 

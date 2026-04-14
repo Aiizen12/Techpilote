@@ -130,6 +130,8 @@ class EscaladeEntry(rx.Base):
     wp_n2: str = ""
     referents: str = ""
     conditions_escalade: str = ""
+    notes: str = ""
+    procedure_n1: list[str] = []
 
 
 class QueteItem(rx.Base):

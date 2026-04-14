@@ -193,6 +193,70 @@ def entry_modal() -> rx.Component:
                     border_radius="8px", padding="10px 14px", margin_top="0.5rem",
                 ),
             ),
+
+            # ── Procédure N1 ──────────────────────────────────────────────
+            rx.cond(
+                EscaladeState.has_procedure,
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("clipboard-list", size=13, color="#22c55e"),
+                            background="rgba(34,197,94,0.12)", border_radius="6px",
+                            padding="4px", display="flex",
+                            align_items="center", justify_content="center",
+                        ),
+                        rx.text("Procédure N1", color="#22c55e", font_size="0.8rem", font_weight="700"),
+                        rx.box(
+                            rx.text("ÉCHANTILLON", color="#f59e0b", font_size="0.6rem", font_weight="700"),
+                            background="rgba(245,158,11,0.1)",
+                            border="1px solid rgba(245,158,11,0.3)",
+                            border_radius="4px", padding="1px 6px",
+                        ),
+                        spacing="2", align="center", margin_bottom="0.65rem",
+                    ),
+                    rx.vstack(
+                        rx.foreach(
+                            EscaladeState.selected_entry.procedure_n1,
+                            lambda step: rx.hstack(
+                                rx.box(
+                                    rx.icon("circle-check", size=13, color="#22c55e"),
+                                    min_width="18px", flex_shrink="0", padding_top="2px",
+                                ),
+                                rx.text(
+                                    step,
+                                    color=TEXT,
+                                    font_size="0.82rem",
+                                    line_height="1.55",
+                                ),
+                                spacing="2",
+                                align="start",
+                                width="100%",
+                            ),
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    background="rgba(34,197,94,0.04)",
+                    border="1px solid rgba(34,197,94,0.18)",
+                    border_left="3px solid #22c55e",
+                    border_radius="10px",
+                    padding="12px 14px",
+                    margin_top="0.75rem",
+                ),
+            ),
+
+            # ── Notes Excel ───────────────────────────────────────────────
+            rx.cond(
+                e["notes"] != "",
+                rx.box(
+                    rx.text("Notes", color=MUTED, font_size="0.72rem", font_weight="600", margin_bottom="4px"),
+                    rx.text(e["notes"], color="#94a3b8", font_size="0.78rem", line_height="1.5",
+                            font_style="italic"),
+                    background="rgba(148,163,184,0.05)", border=f"1px solid {BORDER}",
+                    border_radius="8px", padding="10px 14px", margin_top="0.5rem",
+                ),
+            ),
+
             background="#111524", border=f"1px solid {BORDER}",
             border_radius="16px", max_width="600px", width="90vw", padding="1.5rem",
         ),
