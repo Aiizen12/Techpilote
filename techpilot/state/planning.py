@@ -12,11 +12,16 @@ class PlanningState(rx.State):
     selected_week: str = ""
     entries: list[dict] = []
     astreintes: list[AstreinteEntry] = []
-    tech_names: list[str] = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Alistair"]
+    tech_names: list[str] = []
     entries_by_tech: list[PlanningEntry] = []
 
     def load_data(self):
         db = load_db()
+        # Uniquement les techniciens actifs
+        self.tech_names = [
+            t.get("nom", "") for t in db.get("technicians", [])
+            if t.get("active", True) and t.get("nom")
+        ]
         semaines = list(dict.fromkeys(
             _normalize_week(p.get("week", ""))
             for p in db["planning"] if p.get("week")

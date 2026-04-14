@@ -129,6 +129,10 @@ class AuthState(rx.State):
             self.login_error = "Utilisateur non trouvé"
             log_activity(user_id, "LOGIN_FAIL", "auth", "Utilisateur non trouvé")
             return
+        if not tech.get("active", True):
+            self.login_error = "Compte désactivé. Contactez votre responsable."
+            log_activity(tech.get("nom", user_id), "LOGIN_FAIL", "auth", "Compte désactivé")
+            return
         if not tech.get("password_hash"):
             self.login_error = "Aucun mot de passe défini. Contactez votre responsable."
             return

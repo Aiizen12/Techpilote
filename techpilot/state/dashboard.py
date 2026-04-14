@@ -76,6 +76,7 @@ class DashboardState(rx.State):
             latest = saved_week
         else:
             latest = semaines[-1] if semaines else None
+        active_names = {t.get("nom", "") for t in techs if t.get("active", True)}
         seen: set = set()
         plan_rows = []
         if latest:
@@ -83,7 +84,7 @@ class DashboardState(rx.State):
                 if p.get("week") != latest:
                     continue
                 name = p.get("technician_name") or p.get("technicien_nom") or ""
-                if not name or name in seen:
+                if not name or name in seen or name not in active_names:
                     continue
                 seen.add(name)
                 plan_rows.append(PlanningRow(
