@@ -174,66 +174,132 @@ class ImportExcelState(rx.State):
     async def handle_matrix_upload(self, files: list[rx.UploadFile]):
         if not files:
             self.matrix_status = "error"
-            self.matrix_msg = "Aucun fichier sélectionné."
+            self.matrix_msg = "Aucun fichier sélectionné. Déposez un fichier avant de cliquer."
             return
+
+        fname = files[0].name
+        self.matrix_filename = fname
         self.matrix_status = "loading"
-        self.matrix_msg = "Analyse du fichier…"
-        self.matrix_filename = files[0].name
+        self.matrix_msg = f"Lecture de « {fname} »…"
         yield
 
         try:
             import openpyxl
             data = await files[0].read()
+            size_kb = round(len(data) / 1024, 1)
+
+            self.matrix_msg = f"Fichier reçu ({size_kb} Ko) — ouverture du classeur…"
+            yield
+
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            sheets = wb.sheetnames
+
+            self.matrix_msg = f"Onglets détectés : {', '.join(sheets)} — recherche de la matrice…"
+            yield
+
             entries = _parse_escalade_matrix(wb)
+
             if not entries:
                 self.matrix_status = "error"
-                self.matrix_msg = "Aucune entrée trouvée. Vérifiez l'onglet 'Matrice de Production'."
+                self.matrix_msg = (
+                    f"Aucune entrée trouvée dans les onglets : {', '.join(sheets)}. "
+                    f"L'onglet doit contenir « Matrice de Production » dans son nom."
+                )
+                log_activity("import", "LOGIN_FAIL", "import", f"Matrice : 0 entrée — onglets={sheets}")
                 return
+
+            self.matrix_msg = f"{len(entries)} lignes parsées — sauvegarde en base…"
+            yield
+
             db = load_db()
+            old_count = len(db.get("escalation_matrix") or [])
             db["escalation_matrix"] = entries
             save_db(db)
+
             self.matrix_count    = len(entries)
             self.matrix_db_count = len(entries)
             self.matrix_status   = "success"
-            self.matrix_msg      = f"{len(entries)} procédures importées avec succès."
+            self.matrix_msg      = (
+                f"{len(entries)} procédures importées "
+                f"(avant : {old_count}, après : {len(entries)})."
+            )
             auth = await self.get_state(AuthState)
-            log_activity(auth.user_nom, "UPDATE", "import", f"Matrice : {len(entries)} entrées depuis {files[0].name}")
+            log_activity(
+                auth.user_nom, "UPDATE", "import",
+                f"Matrice OK : {len(entries)} entrées depuis « {fname} » (onglets : {', '.join(sheets)})"
+            )
+
         except Exception as e:
+            import traceback
+            detail = traceback.format_exc().splitlines()[-1]
             self.matrix_status = "error"
-            self.matrix_msg = f"Erreur : {str(e)}"
+            self.matrix_msg = f"Erreur : {str(e)} — {detail}"
+            log_activity("import", "LOGIN_FAIL", "import", f"Matrice ERREUR : {str(e)}")
 
     async def handle_planning_upload(self, files: list[rx.UploadFile]):
         if not files:
             self.planning_status = "error"
-            self.planning_msg = "Aucun fichier sélectionné."
+            self.planning_msg = "Aucun fichier sélectionné. Déposez un fichier avant de cliquer."
             return
+
+        fname = files[0].name
+        self.planning_filename = fname
         self.planning_status = "loading"
-        self.planning_msg = "Analyse du fichier…"
-        self.planning_filename = files[0].name
+        self.planning_msg = f"Lecture de « {fname} »…"
         yield
 
         try:
             import openpyxl
             data = await files[0].read()
+            size_kb = round(len(data) / 1024, 1)
+
+            self.planning_msg = f"Fichier reçu ({size_kb} Ko) — ouverture du classeur…"
+            yield
+
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            sheets = wb.sheetnames
+
+            self.planning_msg = f"Onglets détectés : {', '.join(sheets)} — recherche du planning…"
+            yield
+
             entries = _parse_planning(wb)
+
             if not entries:
                 self.planning_status = "error"
-                self.planning_msg = "Aucune entrée trouvée. Vérifiez l'onglet 'planning (TEST)'."
+                self.planning_msg = (
+                    f"Aucune entrée trouvée dans les onglets : {', '.join(sheets)}. "
+                    f"L'onglet doit s'appeler « planning (TEST) » ou « planning »."
+                )
+                log_activity("import", "LOGIN_FAIL", "import", f"Planning : 0 entrée — onglets={sheets}")
                 return
+
+            self.planning_msg = f"{len(entries)} lignes parsées — sauvegarde en base…"
+            yield
+
             db = load_db()
+            old_count = len(db.get("planning") or [])
             db["planning"] = entries
             save_db(db)
+
             self.planning_count    = len(entries)
             self.planning_db_count = len(entries)
             self.planning_status   = "success"
-            self.planning_msg      = f"{len(entries)} entrées de planning importées."
+            self.planning_msg      = (
+                f"{len(entries)} entrées importées "
+                f"(avant : {old_count}, après : {len(entries)})."
+            )
             auth = await self.get_state(AuthState)
-            log_activity(auth.user_nom, "UPDATE", "import", f"Planning : {len(entries)} entrées depuis {files[0].name}")
+            log_activity(
+                auth.user_nom, "UPDATE", "import",
+                f"Planning OK : {len(entries)} entrées depuis « {fname} » (onglets : {', '.join(sheets)})"
+            )
+
         except Exception as e:
+            import traceback
+            detail = traceback.format_exc().splitlines()[-1]
             self.planning_status = "error"
-            self.planning_msg = f"Erreur : {str(e)}"
+            self.planning_msg = f"Erreur : {str(e)} — {detail}"
+            log_activity("import", "LOGIN_FAIL", "import", f"Planning ERREUR : {str(e)}")
 
 
 # ── Composants ────────────────────────────────────────────────────────────────
