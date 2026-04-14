@@ -347,7 +347,7 @@ def _sheet_amelioration() -> rx.Component:
                         },
                     ),
                     rx.select.content(
-                        rx.select.item("Tous", value=""),
+                        rx.select.item("Tous", value="_all"),
                         *[rx.select.item(s, value=s) for s in STATUTS_AM],
                         background=CARD_BG,
                     ),

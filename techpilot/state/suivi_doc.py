@@ -76,7 +76,7 @@ class SuiviDocState(rx.State):
         ]
 
     def set_filter_statut(self, v: str):
-        self.filter_statut = v
+        self.filter_statut = "" if v == "_all" else v
         self._load_amelioration()
 
     def clear_filter_statut(self):
@@ -241,7 +241,7 @@ class SuiviDocState(rx.State):
         self.proc_rows = result
 
     def set_proc_filter_perimetre(self, v: str):
-        self.proc_filter_perimetre = v
+        self.proc_filter_perimetre = "" if v == "_all" else v
         self.proc_page = 1
         self._load_proc_suivi()
 
