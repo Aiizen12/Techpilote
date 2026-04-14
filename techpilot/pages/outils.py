@@ -5,52 +5,36 @@ TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
 PRIMARY = "#6366f1"
 BORDER  = "#1c2138"
-CARD    = "#111524"
-
-TOOLS = [
-    {"id": "diagnostic", "label": "Aide au diagnostic N1", "icon": "stethoscope", "color": "#06b6d4", "src": "/diagnostic.html"},
-    {"id": "reseau",     "label": "N1 Réseau",             "icon": "wifi",        "color": "#818cf8", "src": "/reseau.html"},
-]
 
 
 class OutilsState(rx.State):
     active_tool: str = "diagnostic"
 
-    def set_tool(self, tool_id: str):
-        self.active_tool = tool_id
+    def set_diagnostic(self):
+        self.active_tool = "diagnostic"
+
+    def set_reseau(self):
+        self.active_tool = "reseau"
 
 
-def _tool_tab(tool: dict) -> rx.Component:
-    is_active = OutilsState.active_tool == tool["id"]
+def _tab_btn(label: str, icon: str, tool_id: str, handler) -> rx.Component:
+    is_active = OutilsState.active_tool == tool_id
     return rx.button(
-        rx.icon(tool["icon"], size=13),
-        tool["label"],
-        on_click=OutilsState.set_tool(tool["id"]),
-        display="inline-flex",
-        align_items="center",
-        gap="6px",
-        padding="5px 14px",
-        border_radius="8px",
-        font_size="0.8rem",
-        font_weight="500",
-        cursor="pointer",
-        border=rx.cond(is_active, "1px solid rgba(99,102,241,0.5)", f"1px solid {BORDER}"),
-        background=rx.cond(is_active, "rgba(99,102,241,0.15)", "transparent"),
-        color=rx.cond(is_active, PRIMARY, MUTED),
-        _hover={"border_color": "rgba(99,102,241,0.4)", "color": TEXT},
-    )
-
-
-def _iframe_for(tool: dict) -> rx.Component:
-    return rx.el.iframe(
-        src=tool["src"],
-        width="100%",
-        display=rx.cond(OutilsState.active_tool == tool["id"], "block", "none"),
+        rx.icon(icon, size=13),
+        label,
+        on_click=handler,
         style={
-            "height": "calc(100vh - 130px)",
-            "border": f"1px solid {BORDER}",
-            "border_radius": "12px",
-            "background": "#0d0f1a",
+            "display": "inline-flex",
+            "align_items": "center",
+            "gap": "6px",
+            "padding": "5px 14px",
+            "border_radius": "8px",
+            "font_size": "0.8rem",
+            "font_weight": "500",
+            "cursor": "pointer",
+            "border": rx.cond(is_active, "1px solid rgba(99,102,241,0.5)", f"1px solid {BORDER}"),
+            "background": rx.cond(is_active, "rgba(99,102,241,0.15)", "transparent"),
+            "color": rx.cond(is_active, PRIMARY, MUTED),
         },
     )
 
@@ -58,7 +42,7 @@ def _iframe_for(tool: dict) -> rx.Component:
 def outils_page() -> rx.Component:
     return page_layout(
         rx.vstack(
-            # En-tête
+            # En-tête avec onglets
             rx.hstack(
                 rx.hstack(
                     rx.icon("wrench", size=20, color=PRIMARY),
@@ -66,16 +50,38 @@ def outils_page() -> rx.Component:
                     spacing="2", align="center",
                 ),
                 rx.spacer(),
-                # Onglets
                 rx.hstack(
-                    *[_tool_tab(t) for t in TOOLS],
+                    _tab_btn("Aide au diagnostic N1", "stethoscope", "diagnostic", OutilsState.set_diagnostic),
+                    _tab_btn("N1 Réseau", "wifi", "reseau", OutilsState.set_reseau),
                     spacing="2",
                 ),
                 width="100%", align="center",
             ),
 
-            # Iframes (toutes montées, visibilité gérée par CSS display)
-            *[_iframe_for(t) for t in TOOLS],
+            # Iframe diagnostic
+            rx.cond(
+                OutilsState.active_tool == "diagnostic",
+                rx.el.iframe(
+                    src="/diagnostic.html",
+                    width="100%",
+                    style={
+                        "height": "calc(100vh - 130px)",
+                        "border": f"1px solid {BORDER}",
+                        "border_radius": "12px",
+                        "background": "#0d0f1a",
+                    },
+                ),
+                rx.el.iframe(
+                    src="/reseau.html",
+                    width="100%",
+                    style={
+                        "height": "calc(100vh - 130px)",
+                        "border": f"1px solid {BORDER}",
+                        "border_radius": "12px",
+                        "background": "#0d0f1a",
+                    },
+                ),
+            ),
 
             spacing="3", width="100%",
         ),
