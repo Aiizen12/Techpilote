@@ -3,26 +3,34 @@ import uuid
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
+from techpilot.db.activity import log_activity
+from techpilot.state.auth import AuthState
 
-TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
+TEXT    = "#f1f5f9"
+MUTED   = "#94a3b8"
+CARD_BG = "#111524"
+BORDER  = "#1c2138"
+PRIMARY = "#6366f1"
 
 TECH_NAMES = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Alistair"]
 
+COLOR_MATRIX  = "#9333ea"
+COLOR_PLANNING = "#059669"
+
+
+# ── Parsers ───────────────────────────────────────────────────────────────────
 
 def _parse_escalade_matrix(wb) -> list[dict]:
-    """Parse matrice d'escalade depuis workbook openpyxl."""
     sheet_name = None
     for name in wb.sheetnames:
         if "matrice de production" in name.lower() or "matrice prod" in name.lower():
             sheet_name = name
             break
     ws = wb[sheet_name or wb.sheetnames[0]]
-
     rows = list(ws.iter_rows(values_only=True))
     if not rows:
         return []
 
-    # Trouver ligne d'en-tête
     header_row_idx = 0
     for i, row in enumerate(rows[:5]):
         row_vals = [str(c).lower() if c else "" for c in row]
@@ -39,16 +47,16 @@ def _parse_escalade_matrix(wb) -> list[dict]:
                     return i
         return -1
 
-    col_perimetre    = find_col(["périmètre", "perimetre", "p\u00e9rim"])
-    col_typologie    = find_col(["typologie"])
-    col_categ        = find_col(["catégorie - fresh", "categorie - fresh", "catégorie fresh", "cat\u00e9g"])
-    col_n1           = find_col(["traitement n1"])
-    col_wp           = find_col(["wp"])
-    col_interlo      = find_col(["interlocuteur"])
-    col_n2n3         = find_col(["traitement n2/3", "traitement n2n3", "traitement n2"])
-    col_wp_n2        = find_col(["wp n2"])
-    col_referents    = find_col(["référent", "referent"])
-    col_conditions   = find_col(["conditions"])
+    col_perimetre  = find_col(["périmètre", "perimetre", "p\u00e9rim"])
+    col_typologie  = find_col(["typologie"])
+    col_categ      = find_col(["catégorie - fresh", "categorie - fresh", "catégorie fresh", "cat\u00e9g"])
+    col_n1         = find_col(["traitement n1"])
+    col_wp         = find_col(["wp"])
+    col_interlo    = find_col(["interlocuteur"])
+    col_n2n3       = find_col(["traitement n2/3", "traitement n2n3", "traitement n2"])
+    col_wp_n2      = find_col(["wp n2"])
+    col_referents  = find_col(["référent", "referent"])
+    col_conditions = find_col(["conditions"])
 
     entries = []
     for row in rows[header_row_idx + 1:]:
@@ -65,22 +73,21 @@ def _parse_escalade_matrix(wb) -> list[dict]:
 
         entries.append({
             "id": str(uuid.uuid4()),
-            "perimetre": perimetre,
-            "typologie": typologie,
-            "categorie_fresh": get(col_categ),
-            "traitement_n1": get(col_n1),
-            "wp": get(col_wp),
-            "interlocuteur": get(col_interlo),
-            "traitement_n2n3": get(col_n2n3),
-            "wp_n2": get(col_wp_n2),
-            "referents": get(col_referents),
+            "perimetre":          perimetre,
+            "typologie":          typologie,
+            "categorie_fresh":    get(col_categ),
+            "traitement_n1":      get(col_n1),
+            "wp":                 get(col_wp),
+            "interlocuteur":      get(col_interlo),
+            "traitement_n2n3":    get(col_n2n3),
+            "wp_n2":              get(col_wp_n2),
+            "referents":          get(col_referents),
             "conditions_escalade": get(col_conditions),
         })
     return entries
 
 
 def _parse_planning(wb) -> list[dict]:
-    """Parse planning depuis workbook openpyxl."""
     sheet_name = None
     for name in wb.sheetnames:
         nl = name.lower()
@@ -97,7 +104,6 @@ def _parse_planning(wb) -> list[dict]:
     if not rows:
         return []
 
-    # Trouver ligne semaines
     week_row_idx = 0
     for i, row in enumerate(rows[:5]):
         if any(c and "semaine" in str(c).lower() for c in row):
@@ -133,36 +139,37 @@ def _parse_planning(wb) -> list[dict]:
                     ex["telework_days"] = tt
             else:
                 entry_map[key] = {
-                    "id": str(uuid.uuid4()),
+                    "id":              str(uuid.uuid4()),
                     "technician_name": tech_name,
-                    "week": week["label"],
-                    "horaire": horaire,
-                    "bendoc_pause": bendoc,
-                    "telework_days": tt,
+                    "week":            week["label"],
+                    "horaire":         horaire,
+                    "bendoc_pause":    bendoc,
+                    "telework_days":   tt,
                 }
     return list(entry_map.values())
 
 
+# ── State ─────────────────────────────────────────────────────────────────────
+
 class ImportExcelState(rx.State):
-    matrix_status: str = ""   # "", "loading", "success", "error"
+    # Matrice
+    matrix_status: str = ""
     matrix_msg: str = ""
     matrix_count: int = 0
+    matrix_db_count: int = 0
+    matrix_filename: str = ""
 
+    # Planning
     planning_status: str = ""
     planning_msg: str = ""
     planning_count: int = 0
+    planning_db_count: int = 0
+    planning_filename: str = ""
 
-    sheets_status: str = ""
-    sheets_msg: str = ""
-
-    def sync_google_sheets(self):
-        from techpilot.db.sync_sheets import sync_from_sheets
-        self.sheets_status = "loading"
-        self.sheets_msg = "Synchronisation en cours..."
-        yield
-        ok, msg = sync_from_sheets()
-        self.sheets_status = "success" if ok else "error"
-        self.sheets_msg = msg
+    def load_counts(self):
+        db = load_db()
+        self.matrix_db_count  = len(db.get("escalation_matrix") or [])
+        self.planning_db_count = len(db.get("planning") or [])
 
     async def handle_matrix_upload(self, files: list[rx.UploadFile]):
         if not files:
@@ -170,7 +177,8 @@ class ImportExcelState(rx.State):
             self.matrix_msg = "Aucun fichier sélectionné."
             return
         self.matrix_status = "loading"
-        self.matrix_msg = "Import en cours..."
+        self.matrix_msg = "Analyse du fichier…"
+        self.matrix_filename = files[0].name
         yield
 
         try:
@@ -185,9 +193,12 @@ class ImportExcelState(rx.State):
             db = load_db()
             db["escalation_matrix"] = entries
             save_db(db)
-            self.matrix_count = len(entries)
-            self.matrix_status = "success"
-            self.matrix_msg = f"{len(entries)} entrées importées dans la matrice d'escalade."
+            self.matrix_count    = len(entries)
+            self.matrix_db_count = len(entries)
+            self.matrix_status   = "success"
+            self.matrix_msg      = f"{len(entries)} procédures importées avec succès."
+            auth = await self.get_state(AuthState)
+            log_activity(auth.user_nom, "UPDATE", "import", f"Matrice : {len(entries)} entrées depuis {files[0].name}")
         except Exception as e:
             self.matrix_status = "error"
             self.matrix_msg = f"Erreur : {str(e)}"
@@ -198,7 +209,8 @@ class ImportExcelState(rx.State):
             self.planning_msg = "Aucun fichier sélectionné."
             return
         self.planning_status = "loading"
-        self.planning_msg = "Import en cours..."
+        self.planning_msg = "Analyse du fichier…"
+        self.planning_filename = files[0].name
         yield
 
         try:
@@ -213,216 +225,356 @@ class ImportExcelState(rx.State):
             db = load_db()
             db["planning"] = entries
             save_db(db)
-            self.planning_count = len(entries)
-            self.planning_status = "success"
-            self.planning_msg = f"{len(entries)} entrées importées dans le planning."
+            self.planning_count    = len(entries)
+            self.planning_db_count = len(entries)
+            self.planning_status   = "success"
+            self.planning_msg      = f"{len(entries)} entrées de planning importées."
+            auth = await self.get_state(AuthState)
+            log_activity(auth.user_nom, "UPDATE", "import", f"Planning : {len(entries)} entrées depuis {files[0].name}")
         except Exception as e:
             self.planning_status = "error"
             self.planning_msg = f"Erreur : {str(e)}"
 
 
-def _status_box(status, msg) -> rx.Component:
+# ── Composants ────────────────────────────────────────────────────────────────
+
+def _status_banner(status, msg) -> rx.Component:
     return rx.cond(
         status != "",
-        rx.box(
-            rx.hstack(
+        rx.hstack(
+            rx.cond(
+                status == "success",
+                rx.icon("circle-check", size=15, color="#22c55e"),
                 rx.cond(
-                    status == "success",
-                    rx.icon("check-circle", size=16, color="#22c55e"),
-                    rx.cond(
-                        status == "loading",
-                        rx.icon("loader", size=16, color=MUTED),
-                        rx.icon("x-circle", size=16, color="#ef4444"),
-                    ),
+                    status == "loading",
+                    rx.icon("loader-circle", size=15, color=MUTED),
+                    rx.icon("circle-x", size=15, color="#ef4444"),
                 ),
-                rx.text(msg, font_size="0.82rem", color=rx.cond(status == "success", "#86efac", rx.cond(status == "loading", MUTED, "#fca5a5"))),
-                spacing="2", align="center",
             ),
+            rx.text(
+                msg,
+                font_size="0.8rem",
+                color=rx.cond(
+                    status == "success", "#86efac",
+                    rx.cond(status == "loading", MUTED, "#fca5a5"),
+                ),
+                flex="1",
+            ),
+            spacing="2",
+            align="center",
             background=rx.cond(
-                status == "success", "rgba(34,197,94,0.08)",
-                rx.cond(status == "loading", "rgba(100,116,139,0.08)", "rgba(239,68,68,0.08)")
+                status == "success", "rgba(34,197,94,0.07)",
+                rx.cond(status == "loading", "rgba(148,163,184,0.07)", "rgba(239,68,68,0.07)"),
             ),
             border=rx.cond(
-                status == "success", "1px solid rgba(34,197,94,0.25)",
-                rx.cond(status == "loading", f"1px solid {BORDER}", "1px solid rgba(239,68,68,0.25)")
+                status == "success", "1px solid rgba(34,197,94,0.2)",
+                rx.cond(status == "loading", f"1px solid {BORDER}", "1px solid rgba(239,68,68,0.2)"),
             ),
             border_radius="8px",
-            padding="10px 14px",
-            margin_top="0.5rem",
+            padding="0.6rem 0.9rem",
+            width="100%",
         ),
     )
 
 
-def _upload_card(
+def _upload_zone(
     title: str,
-    icon: str,
+    subtitle: str,
+    icon_name: str,
     accent: str,
     upload_id: str,
     handler,
     status,
     msg,
+    db_count,
+    filename,
 ) -> rx.Component:
     return rx.box(
         rx.vstack(
+
+            # ── En-tête ──────────────────────────────────────────────────────
             rx.hstack(
                 rx.box(
-                    rx.icon(icon, size=20, color=accent),
-                    background=f"rgba(99,102,241,0.1)",
-                    border_radius="8px",
-                    padding="8px",
+                    rx.icon(icon_name, size=22, color=accent),
+                    background=f"rgba(99,102,241,0.08)",
+                    border_radius="10px",
+                    padding="10px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
                 ),
                 rx.vstack(
-                    rx.text(title, color=TEXT, font_weight="700", font_size="0.95rem"),
-                    rx.text(
-                        rx.cond(upload_id == "matrix_upload", "Onglet : Matrice de Production", "Onglet : planning (TEST)"),
-                        color=MUTED, font_size="0.75rem",
-                    ),
-                    spacing="0", align="start",
+                    rx.text(title, color=TEXT, font_size="1rem", font_weight="700"),
+                    rx.text(subtitle, color=MUTED, font_size="0.75rem"),
+                    spacing="0",
+                    align="start",
                 ),
-                spacing="3", align="center",
+                rx.spacer(),
+                # Badge compteur DB
+                rx.cond(
+                    db_count > 0,
+                    rx.box(
+                        rx.vstack(
+                            rx.text(
+                                db_count.to_string(),
+                                color=accent,
+                                font_size="1.4rem",
+                                font_weight="800",
+                                line_height="1",
+                            ),
+                            rx.text("en base", color=MUTED, font_size="0.65rem"),
+                            spacing="0",
+                            align="center",
+                        ),
+                        background=f"rgba(99,102,241,0.06)",
+                        border=f"1px solid {BORDER}",
+                        border_radius="10px",
+                        padding="0.5rem 0.9rem",
+                        text_align="center",
+                    ),
+                ),
+                spacing="3",
+                align="center",
+                width="100%",
             ),
+
             rx.divider(border_color=BORDER),
+
+            # ── Zone de dépôt ─────────────────────────────────────────────────
             rx.upload(
-                rx.box(
-                    rx.icon("upload", size=28, color=MUTED),
-                    rx.text("Glisser-déposer un fichier Excel", color=MUTED, font_size="0.82rem", margin_top="0.5rem"),
-                    rx.text(".xlsx, .xls, .xlsm", color="#334155", font_size="0.72rem"),
-                    display="flex",
-                    flex_direction="column",
-                    align_items="center",
-                    padding="1.5rem",
+                rx.vstack(
+                    rx.box(
+                        rx.icon("folder-open", size=38, color=accent),
+                        background=f"rgba(99,102,241,0.07)",
+                        border_radius="14px",
+                        padding="18px",
+                        display="flex",
+                        align_items="center",
+                        justify_content="center",
+                    ),
+                    rx.text(
+                        "Glisser-déposer votre fichier Excel ici",
+                        color=TEXT,
+                        font_size="0.88rem",
+                        font_weight="500",
+                        margin_top="0.5rem",
+                    ),
+                    rx.text(
+                        "ou cliquer pour parcourir",
+                        color=MUTED,
+                        font_size="0.75rem",
+                    ),
+                    rx.box(
+                        rx.text(".xlsx  .xls  .xlsm", color=MUTED, font_size="0.7rem", font_family="monospace"),
+                        background="rgba(255,255,255,0.04)",
+                        border=f"1px solid {BORDER}",
+                        border_radius="5px",
+                        padding="3px 10px",
+                        margin_top="0.25rem",
+                    ),
+                    spacing="1",
+                    align="center",
+                    padding="2rem 1rem",
                 ),
                 id=upload_id,
                 accept={"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx", ".xls", ".xlsm"]},
                 max_files=1,
                 border=f"2px dashed {BORDER}",
-                border_radius="10px",
-                _hover={"border_color": accent, "cursor": "pointer"},
+                border_radius="12px",
                 width="100%",
+                transition="all 0.2s",
+                _hover={"border_color": accent, "background": f"rgba(99,102,241,0.03)", "cursor": "pointer"},
             ),
+
+            # ── Fichier sélectionné ───────────────────────────────────────────
+            rx.cond(
+                filename != "",
+                rx.hstack(
+                    rx.icon("file-spreadsheet", size=14, color=accent),
+                    rx.text(filename, color=TEXT, font_size="0.78rem", font_weight="500"),
+                    spacing="2",
+                    align="center",
+                    background="rgba(255,255,255,0.04)",
+                    border=f"1px solid {BORDER}",
+                    border_radius="7px",
+                    padding="5px 10px",
+                ),
+            ),
+
+            # ── Bouton ────────────────────────────────────────────────────────
             rx.button(
-                rx.icon("download", size=16),
-                "Importer",
+                rx.cond(
+                    status == "loading",
+                    rx.icon("loader-circle", size=16),
+                    rx.icon("upload", size=16),
+                ),
+                rx.cond(status == "loading", "Import en cours…", "Lancer l'import"),
                 on_click=handler(rx.upload_files(upload_id=upload_id)),
-                background=f"linear-gradient(135deg, {accent}, {accent}cc)",
-                color="white",
-                border_radius="8px",
-                padding="9px 18px",
-                font_size="0.85rem",
+                background=rx.cond(
+                    status == "loading",
+                    "rgba(148,163,184,0.15)",
+                    f"linear-gradient(135deg, {accent}, {accent}bb)",
+                ),
+                color=rx.cond(status == "loading", MUTED, "white"),
+                border_radius="10px",
+                padding="10px 20px",
+                font_size="0.875rem",
                 font_weight="600",
-                cursor="pointer",
+                cursor=rx.cond(status == "loading", "not-allowed", "pointer"),
                 width="100%",
                 spacing="2",
-                _hover={"opacity": "0.85"},
+                _hover={"opacity": rx.cond(status == "loading", "1", "0.88")},
+                transition="all 0.15s",
             ),
-            _status_box(status, msg),
+
+            # ── Statut ────────────────────────────────────────────────────────
+            _status_banner(status, msg),
+
             spacing="3",
             width="100%",
         ),
         background=CARD_BG,
         border=f"1px solid {BORDER}",
         border_top=f"3px solid {accent}",
-        border_radius="14px",
-        padding="1.25rem",
+        border_radius="16px",
+        padding="1.5rem",
         flex="1",
-        min_width="280px",
+        min_width="300px",
     )
 
 
-def _sheets_sync_card() -> rx.Component:
+def _format_card() -> rx.Component:
+    """Carte d'aide sur le format attendu."""
     return rx.box(
         rx.hstack(
-            rx.box(
-                rx.icon("table-2", size=20, color="#34d399"),
-                background="rgba(52,211,153,0.12)",
-                border_radius="8px",
-                padding="8px",
-            ),
-            rx.vstack(
-                rx.hstack(
-                    rx.text("Google Sheets", color=TEXT, font_weight="700", font_size="0.95rem"),
-                    rx.badge("Auto · 60 min", color_scheme="green", variant="soft", radius="full", font_size="0.65rem"),
-                    spacing="2", align="center",
-                ),
-                rx.text("Matrice d'escalade — synchronisation automatique", color=MUTED, font_size="0.75rem"),
-                spacing="0", align="start",
-            ),
-            rx.spacer(),
-            rx.button(
-                rx.icon("refresh-cw", size=15),
-                "Sync maintenant",
-                on_click=ImportExcelState.sync_google_sheets,
-                background="rgba(52,211,153,0.12)",
-                color="#34d399",
-                border="1px solid rgba(52,211,153,0.3)",
-                border_radius="8px",
-                font_size="0.82rem",
-                font_weight="600",
-                padding="7px 14px",
-                cursor="pointer",
-                spacing="2",
-                _hover={"background": "rgba(52,211,153,0.22)"},
-            ),
-            spacing="3", align="center", width="100%",
+            rx.icon("info", size=16, color=PRIMARY),
+            rx.text("Format attendu", color=TEXT, font_size="0.85rem", font_weight="600"),
+            spacing="2",
+            align="center",
+            margin_bottom="0.75rem",
         ),
-        _status_box(ImportExcelState.sheets_status, ImportExcelState.sheets_msg),
-        background=CARD_BG,
+        rx.vstack(
+            rx.hstack(
+                rx.box(
+                    rx.icon("git-branch", size=13, color=COLOR_MATRIX),
+                    background="rgba(147,51,234,0.1)",
+                    border_radius="5px",
+                    padding="4px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Matrice d'escalade", color=TEXT, font_size="0.8rem", font_weight="600"),
+                    rx.text(
+                        "Onglet contenant « Matrice de Production » — colonnes : Périmètre, Typologie, Catégorie FRESH, Traitement N1, WP, Interlocuteur, Traitement N2/3, Référents, Conditions",
+                        color=MUTED, font_size="0.73rem", line_height="1.5",
+                    ),
+                    spacing="0", align="start",
+                ),
+                spacing="3",
+                align="start",
+            ),
+            rx.divider(border_color=BORDER),
+            rx.hstack(
+                rx.box(
+                    rx.icon("calendar-days", size=13, color=COLOR_PLANNING),
+                    background="rgba(5,150,105,0.1)",
+                    border_radius="5px",
+                    padding="4px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Planning", color=TEXT, font_size="0.8rem", font_weight="600"),
+                    rx.text(
+                        "Onglet « planning (TEST) » — ligne d'en-tête avec « Semaine SXX », noms des techniciens en lignes (Bastian, Adrien, Mirgaël, Cédric, Thaïs, Alistair)",
+                        color=MUTED, font_size="0.73rem", line_height="1.5",
+                    ),
+                    spacing="0", align="start",
+                ),
+                spacing="3",
+                align="start",
+            ),
+            spacing="3",
+        ),
+        background="#0d1021",
         border=f"1px solid {BORDER}",
-        border_top="3px solid #34d399",
-        border_radius="14px",
-        padding="1.25rem",
+        border_radius="12px",
+        padding="1rem 1.25rem",
         width="100%",
     )
 
 
 def import_excel_content() -> rx.Component:
     return rx.vstack(
-        _sheets_sync_card(),
-        rx.text(
-            "Importez vos fichiers Excel pour mettre à jour la matrice d'escalade ou le planning.",
-            color=MUTED, font_size="0.875rem",
-        ),
+
+        # ── Header ────────────────────────────────────────────────────────────
         rx.hstack(
-            _upload_card(
-                "Matrice d'escalade",
-                "git-branch",
-                "#9333ea",
-                "matrix_upload",
-                ImportExcelState.handle_matrix_upload,
-                ImportExcelState.matrix_status,
-                ImportExcelState.matrix_msg,
+            rx.hstack(
+                rx.box(
+                    rx.icon("file-up", size=20, color="white"),
+                    background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                    border_radius="10px",
+                    padding="8px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Import de données", color=TEXT, font_size="1.1rem", font_weight="700"),
+                    rx.text("Déposez vos fichiers Excel pour mettre à jour la base", color=MUTED, font_size="0.78rem"),
+                    spacing="0",
+                    align="start",
+                ),
+                spacing="3",
+                align="center",
             ),
-            _upload_card(
-                "Planning",
-                "calendar-days",
-                "#059669",
-                "planning_upload",
-                ImportExcelState.handle_planning_upload,
-                ImportExcelState.planning_status,
-                ImportExcelState.planning_msg,
+            width="100%",
+            align="center",
+        ),
+
+        # ── Deux zones de dépôt ───────────────────────────────────────────────
+        rx.hstack(
+            _upload_zone(
+                title="Matrice d'escalade",
+                subtitle="Onglet : Matrice de Production",
+                icon_name="git-branch",
+                accent=COLOR_MATRIX,
+                upload_id="matrix_upload",
+                handler=ImportExcelState.handle_matrix_upload,
+                status=ImportExcelState.matrix_status,
+                msg=ImportExcelState.matrix_msg,
+                db_count=ImportExcelState.matrix_db_count,
+                filename=ImportExcelState.matrix_filename,
             ),
-            spacing="4",
+            _upload_zone(
+                title="Planning",
+                subtitle="Onglet : planning (TEST)",
+                icon_name="calendar-days",
+                accent=COLOR_PLANNING,
+                upload_id="planning_upload",
+                handler=ImportExcelState.handle_planning_upload,
+                status=ImportExcelState.planning_status,
+                msg=ImportExcelState.planning_msg,
+                db_count=ImportExcelState.planning_db_count,
+                filename=ImportExcelState.planning_filename,
+            ),
+            spacing="5",
             width="100%",
             wrap="wrap",
             align="start",
         ),
-        rx.box(
-            rx.text("Format attendu", color=TEXT, font_weight="600", font_size="0.85rem", margin_bottom="0.5rem"),
-            rx.vstack(
-                rx.hstack(rx.icon("git-branch", size=14, color="#c4b5fd"), rx.text("Matrice : fichier avec un onglet contenant 'Matrice de Production' — colonnes Périmètre, Typologie, Traitement N1, etc.", color=MUTED, font_size="0.78rem"), spacing="2", align="center"),
-                rx.hstack(rx.icon("calendar-days", size=14, color="#6ee7b7"), rx.text("Planning : fichier avec un onglet 'planning (TEST)' — colonnes Semaine, noms des techniciens en lignes.", color=MUTED, font_size="0.78rem"), spacing="2", align="center"),
-                spacing="2",
-            ),
-            background="#0d1021",
-            border=f"1px solid {BORDER}",
-            border_radius="10px",
-            padding="1rem",
-            width="100%",
-        ),
-        spacing="4",
+
+        # ── Format attendu ────────────────────────────────────────────────────
+        _format_card(),
+
+        spacing="5",
         width="100%",
+        on_mount=ImportExcelState.load_counts,
     )
 
 
 def import_excel_page() -> rx.Component:
-    return page_layout(import_excel_content(), "Import Excel")
+    return page_layout(import_excel_content(), "Import de données")
