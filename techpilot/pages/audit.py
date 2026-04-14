@@ -189,15 +189,15 @@ def _filter_btn(label: str, val: str, current) -> rx.Component:
 def log_row(log: LogEntry) -> rx.Component:
     ts_short = rx.cond(log["timestamp"] != "", log["timestamp"][:16].replace("T", " "), "—")
 
-    border_color = rx.match(
+    border_left_val = rx.match(
         log["action"],
-        ("CREATE",     "#22c55e"),
-        ("UPDATE",     "#f59e0b"),
-        ("DELETE",     "#ef4444"),
-        ("LOGIN",      "#6366f1"),
-        ("LOGIN_FAIL", "#ef4444"),
-        ("LOGOUT",     "#475569"),
-        "#475569",
+        ("CREATE",     "3px solid #22c55e"),
+        ("UPDATE",     "3px solid #f59e0b"),
+        ("DELETE",     "3px solid #ef4444"),
+        ("LOGIN",      "3px solid #6366f1"),
+        ("LOGIN_FAIL", "3px solid #ef4444"),
+        ("LOGOUT",     "3px solid #475569"),
+        "3px solid #475569",
     )
     icon_color = rx.match(
         log["action"],
@@ -304,7 +304,7 @@ def log_row(log: LogEntry) -> rx.Component:
         ),
         background=CARD_BG,
         border=f"1px solid {BORDER}",
-        border_left=f"3px solid " + border_color,
+        border_left=border_left_val,
         border_radius="10px",
         padding="0.75rem 1rem",
         width="100%",
