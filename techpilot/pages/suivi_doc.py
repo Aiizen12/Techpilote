@@ -214,7 +214,7 @@ def _form_modal() -> rx.Component:
     )
 
 
-# ── Confirmation suppression (mini dialog) ────────────────────────────────────
+# ── Confirmation suppression amélioration ─────────────────────────────────────
 
 def _confirm_delete_modal() -> rx.Component:
     return rx.dialog.root(
@@ -251,70 +251,195 @@ def _confirm_delete_modal() -> rx.Component:
     )
 
 
-# ── Sheet 1 : Amélioration Desk ───────────────────────────────────────────────
+# ── Modal procédure (ajout/visualisation depuis le tableau) ───────────────────
 
-def _amelioration_row(item) -> rx.Component:
-    return rx.box(
-        rx.hstack(
-            # Titre + description
+def _proc_form_modal() -> rx.Component:
+    can_edit = AuthState.can_edit_procedure
+    return rx.dialog.root(
+        rx.dialog.content(
             rx.vstack(
-                rx.text(item.titre, color=TEXT, font_size="0.88rem", font_weight="600"),
-                rx.cond(
-                    item.description != "",
-                    rx.text(
-                        item.description, color=MUTED, font_size="0.78rem",
-                        line_height="1.45",
-                        style={"display": "-webkit-box", "WebkitLineClamp": "2",
-                               "WebkitBoxOrient": "vertical", "overflow": "hidden"},
-                    ),
-                ),
-                spacing="1", align="start", flex="1",
-            ),
-            # Badges
-            rx.vstack(
-                _categorie_badge(item.categorie),
-                _priorite_badge(item.priorite),
-                spacing="1", align="end",
-            ),
-            # Statut
-            rx.box(_statut_badge(item.statut), min_width="80px"),
-            # Auteur + date
-            rx.vstack(
-                rx.text(item.auteur_nom, color=TEXT, font_size="0.78rem"),
-                rx.text(item.date_creation, color=MUTED, font_size="0.7rem"),
-                spacing="0", align="end", min_width="90px",
-            ),
-            # Actions (si droit)
-            rx.cond(
-                AuthState.can_edit_doc,
+                # Titre du modal
                 rx.hstack(
-                    rx.button(
-                        rx.icon("pencil", size=13),
-                        on_click=SuiviDocState.open_edit_form(item.id),
-                        style={
-                            "background": "rgba(99,102,241,0.1)", "color": PRIMARY,
-                            "border": "1px solid rgba(99,102,241,0.2)",
-                            "border_radius": "6px", "padding": "4px 8px",
-                            "cursor": "pointer",
-                        },
+                    rx.icon("list-checks", size=16, color="#22c55e"),
+                    rx.vstack(
+                        rx.text(
+                            SuiviDocState.proc_form_perimetre + " — " + SuiviDocState.proc_form_typologie,
+                            color=TEXT, font_weight="700", font_size="0.95rem",
+                        ),
+                        rx.text("Procédure N1", color=MUTED, font_size="0.72rem"),
+                        spacing="0",
                     ),
-                    rx.button(
-                        rx.icon("trash-2", size=13),
-                        on_click=SuiviDocState.ask_delete(item.id),
-                        style={
-                            "background": "rgba(239,68,68,0.08)", "color": "#ef4444",
-                            "border": "1px solid rgba(239,68,68,0.2)",
-                            "border_radius": "6px", "padding": "4px 8px",
-                            "cursor": "pointer",
-                        },
+                    spacing="2", align="center",
+                ),
+                rx.divider(border_color=BORDER),
+                # Zone étapes
+                rx.cond(
+                    can_edit,
+                    # Mode édition
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("pencil", size=12, color=MUTED),
+                            rx.text(
+                                "Une étape par ligne",
+                                color=MUTED, font_size="0.72rem",
+                            ),
+                            spacing="1", align="center",
+                        ),
+                        rx.text_area(
+                            value=SuiviDocState.proc_form_steps_text,
+                            on_change=SuiviDocState.set_proc_form_steps_text,
+                            placeholder="Étape 1 : Vérifier la connexion réseau\nÉtape 2 : Relancer le service\n...",
+                            rows="14",
+                            style={
+                                "background": "#0d1117", "color": TEXT,
+                                "border": f"1px solid {BORDER}", "border_radius": "8px",
+                                "padding": "10px 12px", "width": "100%",
+                                "font_size": "0.83rem", "resize": "vertical",
+                                "line_height": "1.6", "font_family": "monospace",
+                            },
+                        ),
+                        spacing="2", width="100%",
                     ),
-                    spacing="1",
+                    # Mode lecture seule
+                    rx.box(
+                        rx.cond(
+                            SuiviDocState.proc_form_steps_text != "",
+                            rx.text(
+                                SuiviDocState.proc_form_steps_text,
+                                color=TEXT, font_size="0.85rem",
+                                white_space="pre-wrap", line_height="1.7",
+                            ),
+                            rx.hstack(
+                                rx.icon("circle-slash", size=16, color=MUTED),
+                                rx.text("Aucune procédure définie.", color=MUTED, font_size="0.85rem"),
+                                spacing="2", align="center",
+                            ),
+                        ),
+                        background="#0d1117",
+                        border=f"1px solid {BORDER}",
+                        border_radius="8px",
+                        padding="12px 14px",
+                        width="100%",
+                        min_height="120px",
+                    ),
+                ),
+                # Boutons
+                rx.hstack(
+                    rx.cond(
+                        can_edit,
+                        rx.button(
+                            rx.icon("save", size=14),
+                            rx.text("Sauvegarder", font_size="0.85rem"),
+                            on_click=SuiviDocState.save_proc_form,
+                            style={
+                                "background": PRIMARY, "color": "white",
+                                "border": "none", "border_radius": "8px",
+                                "padding": "6px 16px", "cursor": "pointer",
+                                "display": "flex", "align_items": "center", "gap": "6px",
+                            },
+                        ),
+                    ),
+                    rx.dialog.close(
+                        rx.button(
+                            "Fermer",
+                            on_click=SuiviDocState.close_proc_form,
+                            style={
+                                "background": "transparent", "color": MUTED,
+                                "border": f"1px solid {BORDER}", "border_radius": "8px",
+                                "padding": "6px 16px", "font_size": "0.85rem", "cursor": "pointer",
+                            },
+                        ),
+                    ),
+                    spacing="2", justify="end", width="100%",
+                ),
+                spacing="4", width="100%",
+            ),
+            background=CARD_BG, border=f"1px solid {BORDER}",
+            border_radius="16px", max_width="600px", width="90vw", padding="1.5rem",
+        ),
+        open=SuiviDocState.show_proc_form,
+    )
+
+
+# ── Sheet 1 : Amélioration Desk (tableau) ────────────────────────────────────
+
+def _amelioration_header() -> rx.Component:
+    return rx.hstack(
+        rx.text("Titre / Description", color=MUTED, font_size="0.72rem", font_weight="700",
+                flex="1", min_width="0"),
+        rx.text("Catégorie",  color=MUTED, font_size="0.72rem", font_weight="700", min_width="95px"),
+        rx.text("Priorité",   color=MUTED, font_size="0.72rem", font_weight="700", min_width="80px"),
+        rx.text("Statut",     color=MUTED, font_size="0.72rem", font_weight="700", min_width="85px"),
+        rx.text("Auteur",     color=MUTED, font_size="0.72rem", font_weight="700",
+                min_width="80px", max_width="90px"),
+        rx.text("Date",       color=MUTED, font_size="0.72rem", font_weight="700", min_width="72px"),
+        # Espace actions (affiché ou non selon le droit)
+        rx.cond(
+            AuthState.can_edit_doc,
+            rx.box(width="68px"),
+        ),
+        spacing="3", width="100%",
+        padding="7px 14px",
+        border_bottom=f"1px solid {BORDER}",
+    )
+
+
+def _amelioration_table_row(item) -> rx.Component:
+    return rx.hstack(
+        # Titre + description
+        rx.vstack(
+            rx.text(item.titre, color=TEXT, font_size="0.85rem", font_weight="600"),
+            rx.cond(
+                item.description != "",
+                rx.text(
+                    item.description, color=MUTED, font_size="0.75rem",
+                    style={"display": "-webkit-box", "WebkitLineClamp": "1",
+                           "WebkitBoxOrient": "vertical", "overflow": "hidden"},
                 ),
             ),
-            spacing="4", align="center", width="100%",
+            spacing="0", align="start", flex="1", min_width="0",
         ),
-        background=CARD_BG, border=f"1px solid {BORDER}",
-        border_radius="10px", padding="12px 16px",
+        # Catégorie
+        rx.box(_categorie_badge(item.categorie), min_width="95px"),
+        # Priorité
+        rx.box(_priorite_badge(item.priorite), min_width="80px"),
+        # Statut
+        rx.box(_statut_badge(item.statut), min_width="85px"),
+        # Auteur
+        rx.text(item.auteur_nom, color=MUTED, font_size="0.75rem",
+                min_width="80px", max_width="90px",
+                style={"overflow": "hidden", "text_overflow": "ellipsis", "white_space": "nowrap"}),
+        # Date
+        rx.text(item.date_creation, color=MUTED, font_size="0.72rem", min_width="72px"),
+        # Actions
+        rx.cond(
+            AuthState.can_edit_doc,
+            rx.hstack(
+                rx.button(
+                    rx.icon("pencil", size=13),
+                    on_click=SuiviDocState.open_edit_form(item.id),
+                    style={
+                        "background": "rgba(99,102,241,0.1)", "color": PRIMARY,
+                        "border": "1px solid rgba(99,102,241,0.2)",
+                        "border_radius": "6px", "padding": "4px 8px", "cursor": "pointer",
+                    },
+                ),
+                rx.button(
+                    rx.icon("trash-2", size=13),
+                    on_click=SuiviDocState.ask_delete(item.id),
+                    style={
+                        "background": "rgba(239,68,68,0.08)", "color": "#ef4444",
+                        "border": "1px solid rgba(239,68,68,0.2)",
+                        "border_radius": "6px", "padding": "4px 8px", "cursor": "pointer",
+                    },
+                ),
+                spacing="1",
+            ),
+        ),
+        spacing="3", align="center", width="100%",
+        padding="9px 14px",
+        border_bottom=f"1px solid {BORDER}",
+        _hover={"background": "rgba(255,255,255,0.02)"},
     )
 
 
@@ -336,25 +461,33 @@ def _sheet_amelioration() -> rx.Component:
             ),
             rx.spacer(),
             rx.hstack(
-                # Filtre statut
-                rx.select.root(
-                    rx.select.trigger(
-                        placeholder="Tous statuts",
-                        style={
-                            "background": CARD_BG, "color": TEXT,
-                            "border": f"1px solid {BORDER}", "border_radius": "8px",
-                            "padding": "5px 10px", "font_size": "0.8rem",
-                        },
-                    ),
-                    rx.select.content(
-                        rx.select.item("Tous", value="_all"),
-                        *[rx.select.item(s, value=s) for s in STATUTS_AM],
-                        background=CARD_BG,
-                    ),
-                    value=SuiviDocState.filter_statut,
-                    on_change=SuiviDocState.set_filter_statut,
+                # Filtre statut (pills)
+                rx.button(
+                    "Tous",
+                    on_click=SuiviDocState.clear_filter_statut,
+                    style={
+                        "background": rx.cond(SuiviDocState.filter_statut == "", "rgba(99,102,241,0.2)", "transparent"),
+                        "color": rx.cond(SuiviDocState.filter_statut == "", PRIMARY, MUTED),
+                        "border": rx.cond(SuiviDocState.filter_statut == "", "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+                        "border_radius": "20px", "padding": "3px 12px",
+                        "font_size": "0.75rem", "cursor": "pointer", "white_space": "nowrap",
+                    },
                 ),
-                # Bouton ajouter (si droit)
+                *[
+                    rx.button(
+                        s,
+                        on_click=SuiviDocState.set_filter_statut(s),
+                        style={
+                            "background": rx.cond(SuiviDocState.filter_statut == s, "rgba(99,102,241,0.2)", "transparent"),
+                            "color": rx.cond(SuiviDocState.filter_statut == s, PRIMARY, MUTED),
+                            "border": rx.cond(SuiviDocState.filter_statut == s, "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+                            "border_radius": "20px", "padding": "3px 12px",
+                            "font_size": "0.75rem", "cursor": "pointer", "white_space": "nowrap",
+                        },
+                    )
+                    for s in STATUTS_AM
+                ],
+                # Bouton ajouter
                 rx.cond(
                     AuthState.can_edit_doc,
                     rx.button(
@@ -369,25 +502,27 @@ def _sheet_amelioration() -> rx.Component:
                         },
                     ),
                 ),
-                spacing="2", align="center",
+                spacing="2", align="center", flex_wrap="wrap",
             ),
             align="start", width="100%",
         ),
 
-        # Liste des fiches
+        # Tableau
         rx.cond(
             SuiviDocState.items.length() > 0,
-            rx.vstack(
-                rx.foreach(SuiviDocState.items, _amelioration_row),
-                spacing="2", width="100%",
+            rx.box(
+                _amelioration_header(),
+                rx.vstack(
+                    rx.foreach(SuiviDocState.items, _amelioration_table_row),
+                    spacing="0", width="100%",
+                ),
+                background=CARD_BG, border=f"1px solid {BORDER}",
+                border_radius="12px", overflow_x="auto",
             ),
             rx.box(
                 rx.vstack(
                     rx.icon("notebook-pen", size=32, color=MUTED),
-                    rx.text(
-                        "Aucune fiche d'amélioration.",
-                        color=MUTED, font_size="0.9rem",
-                    ),
+                    rx.text("Aucune fiche d'amélioration.", color=MUTED, font_size="0.9rem"),
                     rx.cond(
                         AuthState.can_edit_doc,
                         rx.text(
@@ -428,9 +563,11 @@ def _proc_row(row) -> rx.Component:
             min_width="130px",
         ),
         spacing="3", align="center", width="100%",
-        padding="8px 14px",
+        padding="9px 14px",
         border_bottom=f"1px solid {BORDER}",
-        _hover={"background": "rgba(255,255,255,0.02)"},
+        cursor="pointer",
+        _hover={"background": "rgba(99,102,241,0.05)"},
+        on_click=SuiviDocState.open_proc_form(row.perimetre, row.typologie),
     )
 
 
@@ -444,14 +581,30 @@ def _proc_header() -> rx.Component:
         rx.text("Procédure N1",    color=MUTED, font_size="0.72rem", font_weight="700",
                 min_width="130px"),
         spacing="3", width="100%",
-        padding="6px 14px",
+        padding="7px 14px",
         border_bottom=f"1px solid {BORDER}",
+    )
+
+
+def _pill_btn(label: str, val: str, current_val, on_click_event) -> rx.Component:
+    is_active = current_val == val
+    return rx.button(
+        label,
+        on_click=on_click_event,
+        style={
+            "background": rx.cond(is_active, "rgba(99,102,241,0.2)", "transparent"),
+            "color": rx.cond(is_active, PRIMARY, MUTED),
+            "border": rx.cond(is_active, "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+            "border_radius": "20px", "padding": "3px 12px",
+            "font_size": "0.75rem", "cursor": "pointer",
+            "white_space": "nowrap", "font_weight": "500",
+        },
     )
 
 
 def _sheet_procedures() -> rx.Component:
     return rx.vstack(
-        # En-tête + filtres
+        # En-tête + compteurs
         rx.hstack(
             rx.vstack(
                 rx.hstack(
@@ -460,41 +613,37 @@ def _sheet_procedures() -> rx.Component:
                     spacing="2", align="center",
                 ),
                 rx.text(
-                    "Toutes les lignes de la matrice d'escalade avec l'état de couverture procédurale",
+                    "Cliquez sur une ligne pour voir ou modifier la procédure associée",
                     color=MUTED, font_size="0.78rem",
                 ),
                 spacing="1",
             ),
             rx.spacer(),
             rx.hstack(
-                # Compteurs
-                rx.hstack(
-                    rx.box(
-                        rx.text(
-                            SuiviDocState.proc_count_with.to_string() + " couvertes",
-                            color="#22c55e", font_size="0.75rem", font_weight="600",
-                        ),
-                        background="rgba(34,197,94,0.08)",
-                        border="1px solid rgba(34,197,94,0.2)",
-                        border_radius="6px", padding="3px 8px",
+                rx.box(
+                    rx.text(
+                        SuiviDocState.proc_count_with.to_string() + " couvertes",
+                        color="#22c55e", font_size="0.75rem", font_weight="600",
                     ),
-                    rx.box(
-                        rx.text(
-                            SuiviDocState.proc_count_without.to_string() + " sans",
-                            color=MUTED, font_size="0.75rem", font_weight="600",
-                        ),
-                        background="rgba(100,116,139,0.08)",
-                        border=f"1px solid {BORDER}",
-                        border_radius="6px", padding="3px 8px",
-                    ),
-                    spacing="2",
+                    background="rgba(34,197,94,0.08)",
+                    border="1px solid rgba(34,197,94,0.2)",
+                    border_radius="6px", padding="3px 8px",
                 ),
-                spacing="2", align="center",
+                rx.box(
+                    rx.text(
+                        SuiviDocState.proc_count_without.to_string() + " sans procédure",
+                        color=MUTED, font_size="0.75rem", font_weight="600",
+                    ),
+                    background="rgba(100,116,139,0.08)",
+                    border=f"1px solid {BORDER}",
+                    border_radius="6px", padding="3px 8px",
+                ),
+                spacing="2",
             ),
             align="start", width="100%",
         ),
 
-        # Filtres — recherche + reset
+        # Barre filtres
         rx.hstack(
             rx.input(
                 value=SuiviDocState.proc_search,
@@ -520,10 +669,21 @@ def _sheet_procedures() -> rx.Component:
             spacing="2", align="center",
         ),
 
+        # Filtre : Procédure Oui/Non
+        rx.hstack(
+            rx.text("Procédure :", color=MUTED, font_size="0.75rem", font_weight="600"),
+            _pill_btn("Toutes", "", SuiviDocState.proc_filter_has_proc,
+                      SuiviDocState.set_proc_filter_has_proc("_all")),
+            _pill_btn("Avec procédure", "oui", SuiviDocState.proc_filter_has_proc,
+                      SuiviDocState.set_proc_filter_has_proc("oui")),
+            _pill_btn("Sans procédure", "non", SuiviDocState.proc_filter_has_proc,
+                      SuiviDocState.set_proc_filter_has_proc("non")),
+            spacing="2", align="center",
+        ),
+
         # Pills périmètres
         rx.box(
             rx.flex(
-                # pill "Tous"
                 rx.button(
                     "Tous",
                     on_click=SuiviDocState.clear_proc_filter,
@@ -669,6 +829,7 @@ def suivi_doc_page() -> rx.Component:
             # Modals
             _form_modal(),
             _confirm_delete_modal(),
+            _proc_form_modal(),
 
             spacing="5", width="100%",
             on_mount=SuiviDocState.load,

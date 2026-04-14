@@ -36,10 +36,17 @@ class SuiviDocState(rx.State):
     proc_rows: list[ProcSuiviRow] = []
     proc_perimetres: list[str] = []
     proc_filter_perimetre: str = ""
+    proc_filter_has_proc: str = ""   # "" | "oui" | "non"
     proc_search: str = ""
     proc_page: int = 1
     proc_limit: int = 30
     proc_total: int = 0
+
+    # ── Formulaire procédure (depuis le tableau) ──────────────────────────
+    show_proc_form: bool = False
+    proc_form_perimetre: str = ""
+    proc_form_typologie: str = ""
+    proc_form_steps_text: str = ""
 
     # ── Chargement ────────────────────────────────────────────────────────
 
@@ -203,12 +210,9 @@ class SuiviDocState(rx.State):
                 or q in (r.get("categorie_fresh") or "").lower()
             ]
 
-        self.proc_total = len(filtered)
-        offset = (self.proc_page - 1) * self.proc_limit
-        page_rows = filtered[offset: offset + self.proc_limit]
-
-        result = []
-        for r in page_rows:
+        # Compute has_procedure for each row
+        computed = []
+        for r in filtered:
             p = r.get("perimetre") or ""
             t = r.get("typologie") or ""
             c = r.get("categorie_fresh") or ""
@@ -221,7 +225,6 @@ class SuiviDocState(rx.State):
                 has_proc = True
                 source = "Intégrée"
             else:
-                # Fuzzy fallback
                 t_lower = t.lower()
                 found = False
                 for (mp, mt) in PROCEDURE_MAP:
@@ -231,22 +234,42 @@ class SuiviDocState(rx.State):
                 has_proc = found
                 source = "Intégrée" if found else ""
 
-            result.append(ProcSuiviRow(
+            computed.append((p, t, c, has_proc, source))
+
+        # Filter by has_procedure
+        if self.proc_filter_has_proc == "oui":
+            computed = [(p, t, c, hp, s) for p, t, c, hp, s in computed if hp]
+        elif self.proc_filter_has_proc == "non":
+            computed = [(p, t, c, hp, s) for p, t, c, hp, s in computed if not hp]
+
+        self.proc_total = len(computed)
+        offset = (self.proc_page - 1) * self.proc_limit
+        page_rows = computed[offset: offset + self.proc_limit]
+
+        self.proc_rows = [
+            ProcSuiviRow(
                 perimetre=p,
                 typologie=t,
                 categorie_fresh=c,
-                has_procedure=has_proc,
-                procedure_source=source,
-            ))
-        self.proc_rows = result
+                has_procedure=hp,
+                procedure_source=s,
+            )
+            for p, t, c, hp, s in page_rows
+        ]
 
     def set_proc_filter_perimetre(self, v: str):
         self.proc_filter_perimetre = "" if v == "_all" else v
         self.proc_page = 1
         self._load_proc_suivi()
 
+    def set_proc_filter_has_proc(self, v: str):
+        self.proc_filter_has_proc = "" if v == "_all" else v
+        self.proc_page = 1
+        self._load_proc_suivi()
+
     def clear_proc_filter(self):
         self.proc_filter_perimetre = ""
+        self.proc_filter_has_proc = ""
         self.proc_search = ""
         self.proc_page = 1
         self._load_proc_suivi()
@@ -259,6 +282,61 @@ class SuiviDocState(rx.State):
     def proc_go_page(self, p: int):
         self.proc_page = p
         self._load_proc_suivi()
+
+    # ── Procédure form (depuis le tableau) ────────────────────────────────
+
+    def open_proc_form(self, perimetre: str, typologie: str):
+        db = load_db()
+        key = f"{perimetre}|{typologie}"
+        custom = (db.get("procedures_custom") or {}).get(key)
+        self.proc_form_perimetre = perimetre
+        self.proc_form_typologie = typologie
+        if custom:
+            self.proc_form_steps_text = "\n".join(custom)
+        else:
+            # Fallback to PROCEDURE_MAP
+            exact = PROCEDURE_MAP.get((perimetre, typologie), [])
+            if not exact:
+                t_lower = typologie.lower()
+                for (p, t), steps in PROCEDURE_MAP.items():
+                    if p == perimetre and (t.lower() in t_lower or t_lower in t.lower()):
+                        exact = steps
+                        break
+            self.proc_form_steps_text = "\n".join(exact)
+        self.show_proc_form = True
+
+    def close_proc_form(self):
+        self.show_proc_form = False
+
+    def set_proc_form_steps_text(self, v: str):
+        self.proc_form_steps_text = v
+
+    async def save_proc_form(self):
+        if not self.proc_form_steps_text.strip():
+            yield rx.toast.error("Les étapes sont obligatoires.")
+            return
+        db = load_db()
+        if "procedures_custom" not in db:
+            db["procedures_custom"] = {}
+        key = f"{self.proc_form_perimetre}|{self.proc_form_typologie}"
+        steps = [s.strip() for s in self.proc_form_steps_text.strip().split("\n") if s.strip()]
+        db["procedures_custom"][key] = steps
+        save_db(db)
+        self.show_proc_form = False
+        self._load_proc_suivi()
+        yield rx.toast.success("Procédure sauvegardée.")
+
+    async def delete_proc_form(self):
+        db = load_db()
+        key = f"{self.proc_form_perimetre}|{self.proc_form_typologie}"
+        customs = db.get("procedures_custom") or {}
+        if key in customs:
+            del customs[key]
+            db["procedures_custom"] = customs
+            save_db(db)
+        self.show_proc_form = False
+        self._load_proc_suivi()
+        yield rx.toast.info("Procédure personnalisée supprimée.")
 
     @rx.var
     def proc_total_pages(self) -> int:
