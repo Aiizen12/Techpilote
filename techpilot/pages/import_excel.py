@@ -12,7 +12,10 @@ CARD_BG = "#111524"
 BORDER  = "#1c2138"
 PRIMARY = "#6366f1"
 
-TECH_NAMES = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Tiphaine", "Sabrina", "Alistair"]
+def _get_tech_names() -> list[str]:
+    """Charge les noms des techniciens depuis la base de données."""
+    db = load_db()
+    return [t.get("nom", "") for t in db.get("technicians", []) if t.get("nom")]
 
 COLOR_MATRIX  = "#9333ea"
 COLOR_PLANNING = "#059669"
@@ -118,6 +121,9 @@ def _parse_planning(wb) -> list[dict]:
                 weeks.append({"col": c_idx, "label": label})
         return weeks
 
+    # Charger les noms depuis la DB (configurable via page Techniciens)
+    tech_names = _get_tech_names()
+
     # Repérer TOUS les blocs d'en-têtes de semaines dans la feuille
     header_indices = [i for i, row in enumerate(rows) if is_week_header(row)]
 
@@ -136,7 +142,7 @@ def _parse_planning(wb) -> list[dict]:
             if not row or all(c is None for c in row):
                 continue
             first = str(row[0]).strip() if row[0] else (str(row[1]).strip() if len(row) > 1 and row[1] else "")
-            tech_name = next((n for n in TECH_NAMES if first.lower().startswith(n.lower())), None)
+            tech_name = next((n for n in tech_names if first.lower().startswith(n.lower())), None)
             if not tech_name:
                 continue
             for week in weeks:
@@ -291,7 +297,11 @@ class ImportExcelState(rx.State):
                 1 for row in _rows
                 if any(c and "semaine" in str(c).lower() for c in row)
             )
-            self.planning_msg = f"{_n_blocks} bloc(s) de semaines détectés — parsing…"
+            _tech_names = _get_tech_names()
+            self.planning_msg = (
+                f"{_n_blocks} bloc(s) de semaines détectés — "
+                f"techniciens reconnus : {', '.join(_tech_names)} — parsing…"
+            )
             yield
 
             entries = _parse_planning(wb)
