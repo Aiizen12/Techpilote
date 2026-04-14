@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aide au diagnostic N1</title>
+  <style>
+    :root {
+      --bg: #1d1515;
+      --card: #f7f5f2;
+      --text: #171214;
+      --muted: #4f4a4d;
+      --border: #30618C;
+      --accent: #59A8D9;
+      --accent-soft: #e8f4fb;
+      --cyan: #5BB5D9;
+      --cyan-soft: #e7f7fc;
+      --sand: #F2B279;
+      --sand-soft: #fdf0e2;
+      --coral: #F28F6B;
+      --coral-soft: #fde8e0;
+      --shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1460px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero,
+    .panel,
+    .guide-card,
+    .banner,
+
+    .mode-banner {
+      background: linear-gradient(180deg, #ffffff 0%, #f4f9fd 100%);
+      border-color: var(--accent);
+      margin-bottom: 18px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .mode-card {
+      border: 1px solid #d7e6f2;
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .search-row input {
+      flex: 1;
+    }
+
+    .search-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .progress-wrap {
+      border: 1px solid #d7e6f2;
+      border-radius: 16px;
+      padding: 14px;
+      background: #fbfdff;
+      margin: 14px 0 2px;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #dfeef8;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #30618C 0%, #59A8D9 100%);
+      border-radius: 999px;
+      transition: width 0.2s ease;
+    }
+
+    .copy-card {
+      border-style: dashed;
+      background: #fbfdff;
+    }
+
+    .copy-box {
+      width: 100%;
+      min-height: 150px;
+      border: 1px solid #bfd8eb;
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      font: inherit;
+      color: var(--text);
+      resize: vertical;
+    }
+
+    .hint-box {
+      border: 1px solid #d7e6f2;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fff;
+      margin-top: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .subject-radio input {
+      accent-color: #30618C;
+    }
+
+    .small-equipment {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, #30618C 0%, #59A8D9 55%, #5BB5D9 100%);
+      border-color: #5BB5D9;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      line-height: 1.15;
+      color: #fff;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255,255,255,0.94);
+      font-size: 1rem;
+      max-width: 980px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.2s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: #30618C;
+      color: #fff;
+      border-color: #30618C;
+    }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .guide-card {
+      padding: 18px 20px;
+    }
+
+    .guide-card.practices {
+      background: linear-gradient(180deg, #ffffff 0%, var(--sand-soft) 100%);
+      border-color: var(--sand);
+    }
+
+    .guide-card.gestures {
+      background: linear-gradient(180deg, #ffffff 0%, var(--cyan-soft) 100%);
+      border-color: var(--cyan);
+    }
+
+    .guide-card h2,
+    .banner h2,
+    .panel h2,
+    .small-equipment h2 {
+      margin: 0 0 12px;
+      font-size: 1.08rem;
+    }
+
+    .guide-card ul,
+    .section ul,
+    .small-equipment ul {
+      margin: 0;
+      padding-left: 20px;
+      line-height: 1.55;
+    }
+
+    .banner {
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+
+    .banner.subjects {
+      background: linear-gradient(180deg, #ffffff 0%, var(--accent-soft) 100%);
+      border-color: var(--accent);
+    }
+
+    .banner.materials {
+      background: linear-gradient(180deg, #ffffff 0%, var(--cyan-soft) 100%);
+      border-color: var(--cyan);
+    }
+
+    .banner p,
+    .panel-subtitle,
+    .summary,
+    .field-hint,
+    .small-equipment p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .chip input {
+      margin: 0;
+      accent-color: #30618C;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(340px, 470px) 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel { padding: 20px; }
+
+    .filters {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid #bfd8eb;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(89, 168, 217, 0.12);
+    }
+
+    .category {
+      border: 1px solid #d7e6f2;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      background: #ffffff;
+    }
+
+    .category:last-child,
+    .result-card:last-child { margin-bottom: 0; }
+
+    .category-header,
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      flex-wrap: wrap;
+    }
+
+    .category-title,
+    .result-card h3 {
+      margin: 0;
+      font-weight: 800;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .category-family {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-top: 4px;
+    }
+
+    .badge {
+      background: #30618C;
+      color: #fff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .material-tags,
+    .result-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #5BB5D9;
+      background: #e7f7fc;
+      color: #1e4c6d;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .symptom-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    label.symptom {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border: 1px solid #e2edf5;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    label.symptom:hover {
+      border-color: #59A8D9;
+      background: #eef8fd;
+    }
+
+    input[type="checkbox"] {
+      margin-top: 2px;
+      transform: scale(1.06);
+      accent-color: #30618C;
+    }
+
+    .empty-state {
+      border: 2px dashed #5BB5D9;
+      border-radius: 18px;
+      padding: 28px;
+      text-align: center;
+      color: var(--text);
+      background: #eef8fd;
+    }
+
+    .result-card {
+      border: 1px solid #d7e6f2;
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+      background: #fff;
+    }
+
+    .matched {
+      background: #f2f9fd;
+      border: 1px solid #cde4f4;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin: 14px 0;
+    }
+
+    .section {
+      margin-top: 14px;
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .section h4 {
+      margin: 0 0 10px;
+      font-size: 0.98rem;
+    }
+
+    .diagnostic {
+      background: #e5eef6;
+      border: 1px solid #30618C;
+    }
+
+    .escalation {
+      background: #fde8e0;
+      border: 1px solid #F28F6B;
+    }
+
+    .ticket {
+      background: #e7f7fc;
+      border: 1px solid #5BB5D9;
+    }
+
+    .procedures {
+      background: #fdf0e2;
+      border: 1px solid #F2B279;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .question-card {
+      border: 1px solid #d7e6f2;
+      border-radius: 18px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .question-card h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+    }
+
+    .decision-status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      border: 1px solid #59A8D9;
+      background: #e8f4fb;
+      color: #1e4c6d;
+    }
+
+    .small-equipment {
+      padding: 18px 20px;
+      margin-top: 20px;
+      background: linear-gradient(180deg, #ffffff 0%, var(--sand-soft) 100%);
+      border-color: var(--sand);
+    }
+
+    .small-equipment ul {
+      columns: 2;
+      column-gap: 24px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .guide-grid,
+      .decision-grid,
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .small-equipment ul {
+        columns: 1;
+      }
+      .search-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Aide au diagnostic N1</h1>
+      <p>Cochez des symptômes pour les pannes matérielles, ou utilisez les arbres de décision dédiés pour Citrix et les incidents navigateur / application web.</p>
+      <div class="toolbar">
+        <button class="btn-primary" id="expandAllBtn">Tout sélectionner</button>
+        <button id="clearBtn">Réinitialiser</button>
+      </div>
+    </section>
+
+    <div class="guide-grid">
+      <section class="guide-card practices">
+        <h2>Les 5 bonnes pratiques</h2>
+        <ul id="goodPracticesList"></ul>
+      </section>
+      <section class="guide-card gestures">
+        <h2>Les deux gestes systématiques</h2>
+        <ul id="systematicStepsList"></ul>
+      </section>
+    </div>
+
+    <section class="banner subjects">
+      <h2>Filtrer par sujets</h2>
+      <p>Un seul sujet est affiché à la fois : matériel, Citrix, ou navigateur / application web.</p>
+      <div class="chip-row" id="subjectFilterContainer"></div>
+    </section>
+
+    <section class="panel mode-banner">
+      <div class="results-header">
+        <div>
+          <h2>Mode actif</h2>
+          <div class="summary" id="activeModeText">Mode matériel activé : recherchez un symptôme, cochez-le, puis copiez la synthèse du ticket.</div>
+        </div>
+        <span class="badge" id="activeModeBadge">Panne matériels</span>
+      </div>
+      <div class="mode-grid" id="activeModeTips"></div>
+    </section>
+
+    <section class="banner materials" id="materialBanner">
+      <h2>Filtrer par matériel</h2>
+      <p>Par défaut, tous les matériels sont affichés. Cochez un ou plusieurs matériels pour limiter l’affichage.</p>
+      <div class="chip-row" id="materialFilterContainer"></div>
+    </section>
+
+    <section class="panel" id="citrixSection" style="display:none; margin-bottom:20px;">
+      <div class="results-header">
+        <div>
+          <h2>Arbre de décision Citrix</h2>
+          <div class="summary">Répondez aux questions et indiquez les tests réalisés pour obtenir les actions N1, l’interprétation, la résolution possible ou l’escalade N2.</div>
+        </div>
+        <button id="resetCitrixBtn">Réinitialiser la qualification Citrix</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <strong>Progression Citrix</strong>
+          <span id="citrixProgressText">0 / 15 réponses</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="citrixProgressBar"></div></div>
+      </div>
+
+      <div class="decision-grid">
+        <section class="question-card">
+          <h3>1. Qualifier</h3>
+          <div class="field"><label for="citrixPortal">Le portail Citrix s’ouvre-t-il ?</label><select id="citrixPortal"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="citrixIcons">Les icônes sont-elles visibles ?</label><select id="citrixIcons"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="citrixClick">Au clic sur le bureau ou l’application</label><select id="citrixClick"><option value="">Sélectionner</option><option value="nothing">Rien</option><option value="ica">Téléchargement d’un fichier .ica</option><option value="message">Message d’erreur</option><option value="closing">Connexion puis fermeture</option></select></div>
+          <div class="field"><label for="citrixOthers">Un autre collègue a le même problème au même moment ?</label><select id="citrixOthers"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>2. Vérifier</h3>
+          <div class="field"><label for="citrixWeb">Test site web / intranet</label><select id="citrixWeb"><option value="">Sélectionner</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="citrixNetwork">Autre réseau / partage de connexion</label><select id="citrixNetwork"><option value="">Non testé</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="citrixRights">Droits AD vérifiés</label><select id="citrixRights"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="citrixMessageType">Cas fréquent / type de message</label><select id="citrixMessageType"><option value="">Aucun / non précisé</option><option value="cert">Certificat / page sécurisée / connexion refusée</option><option value="none-resource">Aucune ressource disponible</option><option value="cannot-complete">Cannot complete your request</option><option value="access-denied">Accès refusé</option><option value="app-closes">L’application se ferme immédiatement</option><option value="other">Autre message</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>3. Actions N1</h3>
+          <div class="field"><label for="citrixClose">Quitter Workspace + relancer navigateur / Workspace</label><select id="citrixClose"><option value="">Non fait</option><option value="done_ko">Fait, toujours KO</option><option value="done_ok">Fait, résolu</option></select></div>
+          <div class="field"><label for="citrixReset">Reset Citrix Workspace</label><select id="citrixReset"><option value="">Non fait</option><option value="done_ko">Fait, toujours KO</option><option value="done_ok">Fait, résolu</option></select></div>
+          <div class="field"><label for="citrixRestart">Redémarrage du poste</label><select id="citrixRestart"><option value="">Non fait</option><option value="done_ko">Fait, toujours KO</option><option value="done_ok">Fait, résolu</option></select></div>
+          <div class="field"><label for="citrixReinstall">Réinstallation Citrix Workspace</label><select id="citrixReinstall"><option value="">Non faite</option><option value="done_ko">Faite, toujours KO</option><option value="done_ok">Faite, résolu</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>4. Isolement du problème</h3>
+          <div class="field"><label for="citrixSource">Même compte sur un autre poste / même ressource chez un collègue</label><select id="citrixSource"><option value="">Non testé</option><option value="works_elsewhere">Fonctionne ailleurs</option><option value="fails_everywhere">Ne fonctionne nulle part</option></select></div>
+          <div class="field"><label for="citrixAppScope">Une seule application touchée ou toutes ?</label><select id="citrixAppScope"><option value="">Non précisé</option><option value="one">Une seule application</option><option value="all">Toutes les applications / aucun bureau</option></select></div>
+          <div class="field"><label for="citrixOtherApp">Une autre application Citrix démarre ?</label><select id="citrixOtherApp"><option value="">Non testé</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+        </section>
+      </div>
+
+      <div id="citrixOutput" class="empty-state">Renseignez les réponses ci-dessus pour obtenir l’analyse Citrix.</div>
+    </section>
+
+    <section class="panel" id="browserSection" style="display:none; margin-bottom:20px;">
+      <div class="results-header">
+        <div>
+          <h2>Arbre de décision Navigateur / application web</h2>
+          <div class="summary">Répondez aux questions pour qualifier l’incident, guider les tests et déterminer la résolution ou l’escalade.</div>
+        </div>
+        <button id="resetBrowserBtn">Réinitialiser la qualification navigateur</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <strong>Progression navigateur</strong>
+          <span id="browserProgressText">0 / 20 réponses</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="browserProgressBar"></div></div>
+      </div>
+
+      <div class="decision-grid">
+        <section class="question-card">
+          <h3>1. Qualifier l’incident</h3>
+          <div class="field"><label for="browserAppName">Nom de l’application</label><input id="browserAppName" type="text" placeholder="Ex. intranet RH, CRM, portail client..." /></div>
+          <div class="field"><label for="browserUrl">URL utilisée</label><input id="browserUrl" type="text" placeholder="https://..." /></div>
+          <div class="field"><label for="browserUsed">Navigateur utilisé</label><select id="browserUsed"><option value="">Sélectionner</option><option value="chrome">Chrome</option><option value="edge">Edge</option><option value="firefox">Firefox</option><option value="safari">Safari</option><option value="other">Autre</option></select></div>
+          <div class="field"><label for="browserCase">Cas précis observé</label><select id="browserCase"><option value="">Aucun / non précisé</option><option value="sso">Authentification SSO</option><option value="blank">Page blanche</option><option value="loop">Boucle de connexion</option><option value="cert">Erreur certificat / page sécurisée</option><option value="popup">Blocage pop-up / ouverture de fenêtre</option><option value="other">Autre symptôme</option></select></div>
+          <div class="field"><label for="browserError">Message d’erreur exact / symptôme</label><textarea id="browserError" placeholder="Message exact, capture, action réalisée au moment du blocage..."></textarea></div>
+          <div class="field"><label for="browserImpact">Un seul utilisateur ou plusieurs impactés ?</label><select id="browserImpact"><option value="">Sélectionner</option><option value="single">Un seul utilisateur</option><option value="multiple">Plusieurs utilisateurs</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>2. Premier test et environnement</h3>
+          <div class="field"><label for="browserMultiSites">Tester plusieurs sites et services</label><select id="browserMultiSites"><option value="">Sélectionner</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="browserUpdated">Navigateur à jour</label><select id="browserUpdated"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="browserDateTime">Date / heure du poste correctes</label><select id="browserDateTime"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="browserPopups">Pop-ups autorisés si nécessaire</label><select id="browserPopups"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option><option value="na">Non concerné</option></select></div>
+          <div class="field"><label for="browserVpnProxy">Présence d’un VPN ou proxy pouvant gêner l’accès</label><select id="browserVpnProxy"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>3. Reproduire et rafraîchir</h3>
+          <div class="field"><label for="browserReproduce">Situation reproduite</label><select id="browserReproduce"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="browserForcedRefresh">Après rechargement forcé</label><select id="browserForcedRefresh"><option value="">Non fait</option><option value="ok">OK, résolu</option><option value="ko">KO, pas de changement</option></select></div>
+          <div class="field"><label for="browserPrivate">Résultat en navigation privée</label><select id="browserPrivate"><option value="">Non testé</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="browserCacheCookies">Après suppression cache / cookies du site ou du navigateur</label><select id="browserCacheCookies"><option value="">Non fait</option><option value="ok">OK, résolu</option><option value="ko">KO, pas de changement</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>4. Comparatifs navigateur / profil</h3>
+          <div class="field"><label for="browserOtherBrowser">Autre navigateur testé</label><select id="browserOtherBrowser"><option value="">Sélectionner</option><option value="chrome">Chrome</option><option value="edge">Edge</option><option value="firefox">Firefox</option><option value="safari">Safari</option><option value="other">Autre</option></select></div>
+          <div class="field"><label for="browserOtherBrowserResult">Résultat sur l’autre navigateur</label><select id="browserOtherBrowserResult"><option value="">Non testé</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="browserProfileDisconnect">Test après déconnexion du profil Chrome</label><select id="browserProfileDisconnect"><option value="">Non testé</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="browserNewProfile">Test avec un nouveau profil Chrome</label><select id="browserNewProfile"><option value="">Non testé</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+          <div class="field"><label for="browserSyncRetest">Après synchronisation du compte dans le nouveau profil</label><select id="browserSyncRetest"><option value="">Non testé</option><option value="ok">OK</option><option value="ko">KO</option></select></div>
+        </section>
+      </div>
+
+      <div id="browserOutput" class="empty-state">Renseignez les réponses ci-dessus pour obtenir l’analyse navigateur / application web.</div>
+    </section>
+
+    <div class="layout" id="materialLayout">
+      <aside class="panel">
+        <h2>Symptômes à cocher</h2>
+        <p class="panel-subtitle">Vous pouvez combiner recherche, filtre par sujet, filtre par matériel et sélection manuelle.</p>
+
+        <div class="filters">
+          <div class="field">
+            <label for="symptomSearch">Recherche de symptômes</label>
+            <div class="search-row">
+              <input type="text" id="symptomSearch" placeholder="Ex. écran noir, hors ligne, batterie, réseau..." />
+              <button type="button" id="clearSearchBtn">Effacer</button>
+            </div>
+            <div class="field-hint">Le texte saisi coche automatiquement les symptômes correspondants sur les pannes visibles.</div>
+            <div class="search-meta"><span id="searchMatchInfo">Aucune recherche active.</span></div>
+          </div>
+
+          <div class="field">
+            <label for="incidentFilter">Afficher un seul type de panne</label><select id="incidentFilter"><option value="">Tous les types de panne</option></select>
+            <div class="field-hint">Tant que ce menu n’est pas utilisé, tous les types de panne restent visibles.</div>
+          </div>
+        </div>
+
+        <div id="symptomContainer"></div>
+      </aside>
+
+      <main>
+        <section class="panel">
+          <div class="results-header">
+            <div>
+              <h2>Résultats du diagnostic</h2>
+              <div class="summary" id="summaryText">Aucun symptôme sélectionné.</div>
+            </div>
+          </div>
+          <div id="resultsContainer" class="empty-state">Sélectionnez des symptômes à gauche pour les pannes matérielles.</div>
+        </section>
+
+        <section class="small-equipment">
+          <h2>Petits matériels</h2>
+          <p>Les petits matériels en panne sont achetables par les utilisateurs. Ils font une note de frais pour se faire rembourser.</p>
+          <ul>
+            <li>Souris filaires ou sans-fil simples</li>
+            <li>Claviers filaires ou sans-fil simples</li>
+            <li>Tapis de souris</li>
+            <li>Repose-poignets</li>
+            <li>Câbles HDMI, DisplayPort, USB, Ethernet RJ45</li>
+            <li>Adaptateurs USB-C vers HDMI, USB-A vers USB-C</li>
+            <li>Chargeurs de téléphone</li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const goodPractices = [
+      'Hors incident, les changements de matériels sont programmés suivant l’âge.',
+      'Toujours faire des tests croisés.',
+      'Le N1 diagnostique et résout si possible.',
+      'Sans résolution, le N1 escalade au N2.',
+      'Le N1 ne s’engage jamais sur un changement de matériel ; seul le niveau 2 décide des actions à mener.'
+    ];
+
+    const systematicSteps = [
+      'Redémarrer la machine.',
+      'Vérifier les câbles électriques et réseau sur la machine et sur les prises murales.'
+    ];
+
+    const subjectOrder = ['Panne matériels', 'Panne Citrix', 'Panne navigateur / application web'];
+    const materialOrder = ['poste', 'écran externe', 'imprimante', 'téléphone IP', 'téléphone mobile', 'réseau'];
+
+    const ticketInfo = {
+      poste: ['Nom du poste.', 'Agence / site et adresse postale.', 'Symptôme exact, y compris chocs physiques si constatés.', 'Moment d’apparition : au démarrage, après 10 minutes, sur batterie, sur dock, avec écran externe, etc.', 'Horodatage : depuis quand.', 'Messages d’erreur exacts + capture d’écran si possible.', 'Codes LED / bips.', 'Résultat des vérifications déjà effectuées.', 'Tests déjà réalisés : autre chargeur, autre câble, autre écran, etc.'],
+      ecran: ['Nom ou numéro de série de l’écran.', 'Agence / site et adresse postale.', 'Symptôme exact, y compris chocs physiques si constatés.', 'Horodatage.', 'Messages d’erreur exacts.', 'Résultat des vérifications déjà effectuées.', 'Tests déjà réalisés.'],
+      imprimante: ['Nom exact de l’imprimante ou du copieur concerné.', 'Site, bâtiment, étage, service ou zone du périphérique.', 'Utilisateur impacté et, si applicable, nombre d’utilisateurs concernés.', 'Symptôme exact : hors ligne, impressions bloquées, mauvais bac, mauvais format, bourrage, erreur affichée, etc.', 'Message d’erreur exact affiché sur le poste ou sur l’écran du copieur.', 'Type d’incident : impression impossible, file bloquée, mauvaise sortie papier, incident multi-bac, copie OK mais impression KO, etc.', 'Précision sur l’impact : un seul utilisateur, plusieurs utilisateurs, tout un service.', 'Résultat des tests déjà réalisés.', 'Nom du document ou type de document si le problème ne touche qu’un cas particulier.', 'Heure d’apparition du problème et caractère permanent ou intermittent.'],
+      telip: ['Marque et modèle du téléphone IP.', 'Numéro d’extension.', 'Site / bâtiment / bureau.', 'Utilisateur impacté.', 'Problème sur téléphone physique, MyIstra ou les deux.', 'Message exact affiché.', 'Heure d’apparition.', 'Tests d’appel entrant / sortant réalisés.', 'Tests combiné / haut-parleur / casque réalisés.', 'Nombre d’utilisateurs impactés.'],
+      mobile: ['Marque et modèle du mobile.', 'Android ou iPhone.', 'Présence d’une carte SIM ou d’une eSIM.', 'Numéro de ligne ou utilisateur concerné.', 'Message exact affiché.', 'Heure d’apparition.', 'Site ou localisation.', 'Situation permanente ou intermittente.', 'Services concernés : appels, SMS, données mobiles, Wi-Fi, Bluetooth ou application.', 'Tests déjà réalisés : redémarrage, mode avion, autre chargeur, autre câble, test d’appel, test Wi-Fi.'],
+      reseau: ['Type d’équipement concerné : poste, téléphone IP, imprimante ou copieur.', 'Marque et modèle si pertinent.', 'Utilisateur impacté.', 'Site, bâtiment, étage, bureau ou zone.', 'Situation isolée ou collective.', 'Connexion concernée : câble ou Wi-Fi.', 'Message exact affiché.', 'Horodatage.', 'Caractère permanent ou intermittent.', 'Tests déjà réalisés.', 'Services touchés : Internet, application métier, appels, impression, accès partage réseau.']
+    };
+
+    const procedures = {
+      poste: ['Nomenclature des PC ACTUAL', 'Liste Pc Siege'],
+      ecran: ['Installation écrans Philips - écran avec dock et sans dock', 'Affichage sur deux écrans', 'CLICKSHARE utilisation', 'Guide utilisateur écrans de salles'],
+      imprimante: ['Procédure installation copieur RICOH', 'Configuration impression sécurisée', 'Configurer les impressions par défaut', 'Problème de lenteur d’impression Toshiba', 'Impressions en recto/verso'],
+      telip: ['Personnaliser les raccourcis Blue sur MyIstra', 'Téléphone Actual sur Act-Office Laval', 'Réinitialisation mot de passe Polycom', 'Plateforme Centile', 'Fiche N1 MyIstra', 'Installation MyIstra manuellement'],
+      mobile: ['Procédure de configuration des smartphones automatisé', 'Procédure en cas de vol de smartphone'],
+      reseau: ['Suivi déploiement routeur 4G/5G Actual', 'Configuration du scan des copieurs RICOH connectés au réseau Actual']
+    };
+
+    const incidents = [
+      { id:'pc-alim', family:'PC, Mac, Chromebook', materials:['poste'], title:'Panne d’alimentation / chargeur / bloc d’alimentation', ticket:'poste', proc:'poste', symptoms:['Aucun voyant.','Aucun bruit de ventilation.','Le bouton d’alimentation ne réagit pas.','Le chargeur ne semble pas alimenter le poste.'], diagnostic:['Tester la prise murale avec un autre appareil.','Retirer la multiprise, le dock ou tout intermédiaire électrique et tester en direct.','Tester avec un autre câble secteur ou un autre chargeur connu comme fonctionnel.','Sur portable, tester le PC sur secteur seul si la procédure locale l’autorise.','Faire un reset électrique : débrancher l’alimentation, maintenir le bouton Power 15 à 20 secondes, puis retester.','Si présents, relever précisément les voyants, couleurs, clignotements et bips.'], escalation:['Aucun signe de vie après test prise + câble + chargeur.','LED ou code d’erreur persistant.'] },
+      { id:'pc-ram', family:'PC, Mac, Chromebook', materials:['poste'], title:'Panne mémoire vive (RAM)', ticket:'poste', proc:'poste', symptoms:['Plantages fréquents.','Écrans bleus.','Redémarrages aléatoires.','Blocage au démarrage ou pendant l’usage.','Stop codes liés à la mémoire comme MEMORY_MANAGEMENT.'], diagnostic:['Vérifier si les incidents sont aléatoires ou se produisent à froid / à chaud.','Noter les éventuels codes d’erreur Windows ou écrans bleus.','Si le PC ne démarre pas correctement, relever les bips / LED de diagnostic.'], escalation:['Le test mémoire échoue.','Le poste démarre, mais n’arrive pas sur l’OS.'] },
+      { id:'pc-disk', family:'PC, Mac, Chromebook', materials:['poste'], title:'Panne de disque SSD / HDD', ticket:'poste', proc:'poste', symptoms:['Message No bootable device.','Message Missing Operating System.','Disque non détecté.','Lenteurs extrêmes.','Blocages fréquents.','Bruits mécaniques anormaux sur HDD.'], diagnostic:['Noter le message exact affiché à l’écran.','Demander si l’utilisateur entend des clics, grattements ou autres bruits inhabituels.'], escalation:['Le disque émet des bruits anormaux.','Le poste affiche régulièrement des erreurs de démarrage liées au disque.','Un message d’erreur de démarrage revient de façon répétée.'] },
+      { id:'pc-heat', family:'PC, Mac, Chromebook', materials:['poste'], title:'Surchauffe / ventilateur / refroidissement', ticket:'poste', proc:'poste', symptoms:['Arrêts inopinés.','Redémarrages après quelques minutes.','Ventilateur très bruyant.','Châssis anormalement chaud.','Baisse de performances sous charge.'], diagnostic:['Vérifier si la situation survient après quelques minutes ou seulement en usage intensif.','S’assurer que le PC est utilisé sur une surface dure et dégagée.','Contrôler visuellement les grilles d’aération.','Noter si le ventilateur tourne en continu, s’arrête anormalement ou fait un bruit inhabituel.'], escalation:['Le poste s’éteint encore après les vérifications de base.','Le ventilateur semble défectueux.','La surchauffe revient de façon répétée.'] },
+      { id:'pc-battery', family:'PC, Mac, Chromebook', materials:['poste'], title:'Batterie / charge sur portable', ticket:'poste', proc:'poste', symptoms:['Batterie qui ne charge plus.','Autonomie très faible.','Portable qui fonctionne uniquement branché.','Batterie non détectée.','Déformation du châssis liée à une batterie gonflée.'], diagnostic:['Vérifier l’usage du bon chargeur et l’état du câble.','Tester le PC sur secteur uniquement si possible.','Générer un rapport batterie avec la commande : powercfg /batteryreport.','Demander une inspection visuelle : si la batterie est gonflée, arrêter l’usage et escalader immédiatement.'], escalation:['La batterie n’est plus détectée.','L’autonomie est anormalement basse avec rapport dégradé.','Batterie gonflée ou châssis déformé.'] },
+      { id:'pc-display', family:'PC, Mac, Chromebook', materials:['poste'], title:'Écran / affichage / GPU / câblage vidéo', ticket:'poste', proc:'poste', symptoms:['Écran noir.','Pas d’image sur écran externe.','Image intermittente.','Affichage présent sur un écran mais pas sur l’autre.','Artefacts visuels ou perte de signal.'], diagnostic:['Débrancher dock, adaptateur ou hub vidéo et tester en direct.','Si possible, tester avec un autre câble, un autre écran ou un autre port vidéo.','Sous Windows, utiliser Win + P pour vérifier le mode d’affichage.','Utiliser Win + Ctrl + Maj + B pour relancer le pilote graphique.','Si Windows démarre, vérifier l’état du pilote graphique et retester après réinstallation si besoin.','Si l’écran interne reste noir mais qu’un écran externe fonctionne, orienter le diagnostic vers la dalle, la nappe ou le circuit d’affichage interne.'], escalation:['Aucun affichage malgré test écran + câble + port.','Artefacts persistants.','Affichage externe OK mais écran interne HS.'] },
+      { id:'pc-startup', family:'PC, Mac, Chromebook', materials:['poste'], title:'Carte mère / démarrage, mais le chargement de l’OS est KO', ticket:'poste', proc:'poste', symptoms:['Le PC s’allume partiellement mais ne démarre pas.','Blocage au logo constructeur.','Voyants de diagnostic.','Bips au démarrage.','Aucun accès à Windows malgré présence d’alimentation.'], diagnostic:['Noter le code LED ou la séquence de bips.','Débrancher tous les périphériques non essentiels : USB, dock, imprimante, disque externe, écran additionnel.','Vérifier si le comportement change sans périphérique connecté.'], escalation:['Toujours en échec sans périphériques branchés.','Code LED / bip persistant.'] },
+      { id:'screen-external', family:'Écrans externes', materials:['écran externe'], title:'Panne écran externe / affichage', ticket:'ecran', proc:'ecran', symptoms:['Écran noir.','Pas d’image.','Image intermittente.','Image figée.','Affichage présent sur un écran mais pas sur l’autre.','Artefacts visuels, lignes ou scintillements.'], diagnostic:['Vérifier si le poste est bien allumé et si des voyants sont présents.','Demander si l’écran concerné est allumé et relié à la bonne source vidéo.','Faire tester le branchement direct sans dock, hub ou adaptateur si le contexte le permet.','Faire vérifier le câble vidéo et, si possible, tester avec un autre câble ou un autre écran.','Sous Windows, faire utiliser Win + P pour vérifier le mode d’affichage.','Demander si l’affichage apparaît au démarrage ou uniquement après l’ouverture de session.','Noter précisément si l’affichage est noir, coupé, déformé, clignotant ou partiel.'], escalation:['Aucun affichage malgré vérification écran + câble + source.','L’image reste instable ou présente des artefacts persistants.','L’affichage fonctionne sur écran externe mais pas sur l’écran du portable.','Le poste semble démarrer, mais aucun affichage exploitable n’est obtenu après les vérifications de base.'] },
+      { id:'printer-visible', family:'Imprimantes / copieurs', materials:['imprimante'], title:'Panne bourrage / consommables / incident visible', ticket:'imprimante', proc:'imprimante', symptoms:['Message de bourrage papier.','Message bac vide.','Message capot ouvert.','Message toner faible ou toner vide.','Le copieur est indisponible pour l’impression.'], diagnostic:['Noter le message exact affiché sur l’écran du copieur.','Vérifier avec l’utilisateur si l’incident est visible sur le périphérique.','Demander si la situation concerne l’impression, la copie ou les deux.','Vérifier si un autre utilisateur rencontre le même symptôme sur le même copieur.','Demander si le périphérique affiche un défaut persistant ou s’il redevient disponible par intermittence.'], escalation:['Le message d’erreur reste affiché en permanence.','Le copieur est indisponible pour plusieurs utilisateurs.','Le périphérique ne revient pas à l’état prêt après vérification de base.','Le message indique une intervention physique nécessaire.'] },
+      { id:'printer-tray', family:'Imprimantes / copieurs', materials:['imprimante'], title:'Panne mauvais bac / mauvais format papier', ticket:'imprimante', proc:'imprimante', symptoms:['Le document sort du mauvais bac.','Le mauvais format papier est utilisé.','Le copieur demande un papier différent de celui attendu.','Le document part en A4 au lieu d’un autre format.','Le document ne respecte pas le paramétrage multi-bac attendu.'], diagnostic:['Vérifier que la bonne imprimante / le bon bac sont sélectionnés.','Faire confirmer le bac choisi dans les options d’impression.','Faire vérifier le format papier sélectionné dans le document et dans la fenêtre d’impression.','Demander si la situation concerne tous les documents ou un seul.','Faire tester une impression simple avec les paramètres attendus.','Noter précisément le bac demandé, le bac réellement utilisé et le format attendu.'], escalation:['Les impressions partent toujours dans le mauvais bac malgré vérification des paramètres.','Le mauvais format papier est utilisé de façon systématique.','La situation touche plusieurs utilisateurs sur le même périphérique.','Le dysfonctionnement semble lié au paramétrage du copieur, du pilote ou de la file d’impression.'] },
+      { id:'printer-offline', family:'Imprimantes / copieurs', materials:['imprimante'], title:'Panne imprimante / copieur hors ligne', ticket:'imprimante', proc:'imprimante', symptoms:['Message imprimante hors ligne.','Le périphérique apparaît indisponible sur le poste.','Aucune impression ne part.','Les documents restent en attente sans sortir.','L’utilisateur peut copier ou scanner, mais pas imprimer.'], diagnostic:['Vérifier si la situation concerne un seul utilisateur ou plusieurs.','Vérifier que la bonne imprimante réseau est sélectionnée.','Faire confirmer que le copieur affiché est bien celui utilisé habituellement.','Faire vérifier si le périphérique apparaît hors ligne sur le poste.','Faire tester une impression simple.','Noter si la copie locale fonctionne sur le copieur.','Vérifier si la situation est constante ou intermittente.'], escalation:['Plusieurs utilisateurs sont impactés sur le même copieur.','Le périphérique reste hors ligne malgré les vérifications effectuées.','La copie fonctionne mais aucune impression réseau n’aboutit.','La situation semble liée à la connectivité, à la file serveur ou au paramétrage du périphérique.'] },
+      { id:'printer-queue', family:'Imprimantes / copieurs', materials:['imprimante'], title:'Panne impression bloquée en file d’attente', ticket:'imprimante', proc:'imprimante', symptoms:['Les impressions restent en file d’attente.','Le document ne sort jamais.','Une ancienne impression bloque les suivantes.','Les travaux d’impression s’accumulent.','L’utilisateur ne peut plus imprimer alors que le copieur semble disponible.'], diagnostic:['Vérifier si un seul utilisateur est concerné ou plusieurs.','Noter le message exact affiché sur le poste s’il existe.','Faire vérifier le contenu de la file d’attente d’impression.','Faire supprimer les travaux bloqués si l’utilisateur y a accès.','Faire tester une nouvelle impression simple après vidage de la file.','Demander si le blocage concerne tous les documents ou un document précis.','Noter si le copieur reçoit les travaux mais ne les imprime pas, ou s’ils restent uniquement côté poste.'], escalation:['La file d’attente se bloque de nouveau immédiatement après un test simple.','Plusieurs utilisateurs ont des travaux bloqués sur le même copieur.','Les impressions n’arrivent jamais jusqu’au périphérique.','La situation semble liée à la file d’impression, au serveur ou au pilote.'] },
+      { id:'printer-routing', family:'Imprimantes / copieurs', materials:['imprimante'], title:'Panne mauvaise imprimante / mauvaise file sélectionnée', ticket:'imprimante', proc:'imprimante', symptoms:['L’impression part sur un autre copieur.','Le document sort dans un autre service ou une autre agence.','L’utilisateur voit plusieurs imprimantes similaires et ne sait pas laquelle choisir.','Le document ne sort pas sur le périphérique attendu.'], diagnostic:['Faire vérifier le nom exact de l’imprimante sélectionnée.','Comparer ce nom avec le copieur attendu par l’utilisateur.','Vérifier si une ancienne file d’impression ou un ancien copieur est encore utilisé.','Faire tester une impression simple vers la bonne imprimante réseau.','Noter le nom de la file sélectionnée et le nom du périphérique attendu.'], escalation:['La bonne file est sélectionnée mais les impressions partent quand même ailleurs.','Plusieurs utilisateurs constatent une confusion ou un mauvais routage.','La situation semble liée au déploiement des files ou au paramétrage d’impression.'] },
+      { id:'ip-power', family:'Téléphones IP', materials:['téléphone IP'], title:'Panne téléphone IP non alimenté / écran éteint', ticket:'telip', proc:'telip', symptoms:['Téléphone éteint.','Écran noir.','Aucun voyant.','Le téléphone ne réagit pas.','Impossible d’utiliser la ligne.'], diagnostic:['Vérifier la marque et le modèle du téléphone si visibles.','Demander si l’écran est totalement éteint ou si un message est affiché.','Vérifier si le câble réseau et, le cas échéant, l’alimentation externe semblent bien branchés.','Demander si d’autres équipements à proximité rencontrent un problème similaire.','Faire redémarrer le téléphone si la procédure locale l’autorise et si l’utilisateur peut le faire simplement.','Noter précisément l’état des voyants, de l’écran et tout message affiché.'], escalation:['Le téléphone reste éteint après vérifications de base.','Aucun voyant ni écran au contrôle visuel.','Plusieurs téléphones de la même zone présentent le même symptôme.'] },
+      { id:'ip-register', family:'Téléphones IP', materials:['téléphone IP'], title:'Panne téléphone IP non enregistré / ligne indisponible', ticket:'telip', proc:'telip', symptoms:['Message de type non enregistré.','Message service indisponible.','Impossible d’émettre ou de recevoir des appels.','Le téléphone démarre mais la ligne n’est pas utilisable.','L’extension ne semble pas active.'], diagnostic:['Noter le message exact affiché sur l’écran du téléphone.','Vérifier si la situation concerne un seul poste ou plusieurs utilisateurs.','Faire confirmer le numéro d’extension ou l’identifiant téléphonique de l’utilisateur.','Faire redémarrer le téléphone si cela est autorisé dans la procédure locale.','Vérifier si le téléphone affiche l’heure, le nom de l’utilisateur ou un état d’erreur.','Noter la marque, le modèle, le site, le service et l’emplacement du poste.'], escalation:['Le téléphone reste non enregistré après redémarrage simple.','La ligne reste indisponible sans amélioration.','Plusieurs postes rencontrent le même problème sur le même site ou la même zone.'] },
+      { id:'ip-calls-out', family:'Téléphones IP', materials:['téléphone IP'], title:'Panne impossibilité d’émettre des appels', ticket:'telip', proc:'telip', symptoms:['Impossible d’appeler.','La numérotation échoue.','L’appel coupe immédiatement.','Pas de tonalité.','Message d’erreur lors de la tentative d’appel.'], diagnostic:['Vérifier si la situation concerne tous les appels ou seulement certains numéros.','Faire tester un appel interne puis un appel externe si le contexte le permet.','Demander si l’utilisateur entend une tonalité, un silence ou un message vocal.','Vérifier si la situation est permanente ou intermittente.','Noter le message exact affiché sur le téléphone ou dans MyIstra s’il y en a un.','Faire préciser si la situation touche uniquement le téléphone physique, uniquement MyIstra, ou les deux.'], escalation:['Aucun appel sortant n’aboutit malgré les vérifications de base.','La situation touche plusieurs utilisateurs.','Les appels échouent de façon systématique sans message exploitable côté utilisateur.'] },
+      { id:'ip-calls-in', family:'Téléphones IP', materials:['téléphone IP'], title:'Panne impossibilité de recevoir des appels', ticket:'telip', proc:'telip', symptoms:['Le téléphone ne sonne pas.','Les appels entrants n’arrivent pas.','Les correspondants tombent directement sur messagerie ou sur un autre numéro.','L’utilisateur rate les appels alors que la ligne semble active.'], diagnostic:['Vérifier si la situation concerne tous les appels entrants ou seulement certains appelants.','Faire réaliser un test d’appel entrant depuis un autre poste si possible.','Vérifier si le téléphone sonne, affiche l’appel, ou ne réagit pas du tout.','Demander si un renvoi d’appel, un mode silencieux ou un mode ne pas déranger semble activé.','Noter précisément le comportement observé pendant le test.','Faire préciser si la situation existe sur le téléphone IP, sur MyIstra, ou sur les deux.'], escalation:['Aucun appel entrant n’arrive malgré un test concluant côté appelant.','Les appels sont systématiquement redirigés de façon anormale.','La situation touche plusieurs utilisateurs ou un groupe de lignes.'] },
+      { id:'ip-audio', family:'Téléphones IP', materials:['téléphone IP'], title:'Panne audio : pas de son / son dans un seul sens', ticket:'telip', proc:'telip', symptoms:['L’utilisateur n’entend pas le correspondant.','Le correspondant n’entend pas l’utilisateur.','Le son fonctionne dans un seul sens.','Le son est très faible, haché ou coupé.','La conversation devient inaudible.'], diagnostic:['Vérifier si la situation se produit sur tous les appels ou seulement certains.','Faire tester en combiné, en haut-parleur et, si présent, avec casque.','Vérifier si le micro n’est pas coupé et si le volume est correct.','Demander si la situation concerne le téléphone IP, MyIstra, ou les deux.','Faire tester un appel court interne pour reproduire le symptôme.','Noter précisément si la situation concerne l’émission, la réception ou la qualité audio.'], escalation:['Le son reste absent ou dégradé après les vérifications de base.','La situation est reproductible sur tous les appels.','Le défaut touche plusieurs utilisateurs ou plusieurs postes.'] },
+      { id:'ip-features', family:'Téléphones IP / MyIstra', materials:['téléphone IP'], title:'Panne MyIstra / fonctions / sonnerie', ticket:'telip', proc:'telip', symptoms:['MyIstra ne s’ouvre pas.','La ligne n’apparaît pas dans MyIstra.','Le téléphone ne sonne plus.','Une touche ne répond pas.','Le transfert ou le renvoi ne fonctionne pas.'], diagnostic:['Noter le message exact affiché.','Faire préciser si le problème concerne le téléphone physique, MyIstra, ou les deux.','Faire fermer puis relancer MyIstra si la procédure locale l’autorise.','Faire réaliser un test d’appel entrant ou sortant.','Noter la fonction concernée et le comportement observé.'], escalation:['MyIstra reste inutilisable après relance.','La ligne n’apparaît pas ou n’est pas exploitable.','Aucune alerte d’appel n’est obtenue malgré les vérifications de base.','La situation impacte plusieurs utilisateurs.'] },
+      { id:'mobile-power', family:'Téléphones mobiles', materials:['téléphone mobile'], title:'Panne mobile non allumé / écran noir', ticket:'mobile', proc:'mobile', symptoms:['Téléphone éteint.','Écran noir.','Aucun signe de charge.','Le téléphone ne réagit plus.','Impossible d’utiliser l’appareil.'], diagnostic:['Vérifier la marque et le modèle du téléphone.','Demander si l’écran est totalement noir ou si un message apparaît.','Vérifier si le téléphone réagit lorsqu’il est branché à son chargeur habituel.','Faire tester avec un autre câble ou un autre chargeur si disponible.','Faire maintenir le bouton d’alimentation selon l’usage habituel du téléphone.','Noter précisément si le téléphone vibre, sonne, affiche une batterie vide ou reste sans réaction.'], escalation:['Le téléphone ne montre aucun signe de vie après les vérifications de base.','L’écran reste noir en permanence malgré test de charge.','La situation empêche tout usage du mobile.'] },
+      { id:'mobile-battery', family:'Téléphones mobiles', materials:['téléphone mobile'], title:'Panne batterie / charge', ticket:'mobile', proc:'mobile', symptoms:['Le téléphone ne charge plus.','La batterie se vide très vite.','Le mobile fonctionne seulement branché.','La charge est anormalement lente.','Le téléphone chauffe pendant la charge.'], diagnostic:['Vérifier l’état apparent du câble, du chargeur et du connecteur.','Demander si la situation est apparue soudainement ou progressivement.','Faire tester une autre prise de courant si possible.','Faire tester un autre câble ou un autre chargeur compatible si disponible.','Noter si un message de charge apparaît à l’écran.','Demander si la situation est constante ou intermittente.'], escalation:['Le téléphone ne charge toujours pas après les vérifications de base.','L’autonomie est devenue anormalement faible.','Le téléphone chauffe fortement ou présente un comportement anormal pendant la charge.','Le mobile n’est utilisable qu’en restant branché.'] },
+      { id:'mobile-network', family:'Téléphones mobiles', materials:['téléphone mobile','réseau'], title:'Panne réseau mobile / SIM / eSIM', ticket:'mobile', proc:'mobile', symptoms:['Pas de réseau mobile.','Appels impossibles.','SMS impossibles.','Message carte SIM absente, SIM non reconnue ou eSIM indisponible.','Barres réseau absentes ou très instables.'], diagnostic:['Vérifier si la situation concerne les appels, les SMS, les données mobiles ou l’ensemble.','Demander le message exact affiché à l’écran.','Vérifier si le téléphone utilise une carte SIM ou une eSIM.','Vérifier si le mode avion est activé ou non.','Faire désactiver puis réactiver le mode avion.','Faire redémarrer le téléphone.','Demander si la situation survient dans un seul lieu ou partout.','Noter l’adresse du site et l’horodatage.'], escalation:['Le mobile reste sans réseau après les vérifications de base.','La carte SIM semble non reconnue en permanence.','L’eSIM semble absente, inactive ou non utilisable.','La situation touche plusieurs utilisateurs sur le même site.','Les appels, SMS et données mobiles sont tous indisponibles.'] },
+      { id:'mobile-calls', family:'Téléphones mobiles', materials:['téléphone mobile'], title:'Panne appels entrants / sortants', ticket:'mobile', proc:'mobile', symptoms:['Impossible d’appeler.','Impossible de recevoir des appels.','Les appels coupent immédiatement.','Les correspondants tombent sur messagerie sans faire sonner le mobile.','Le téléphone semble connecté mais les appels ne passent pas.'], diagnostic:['Vérifier si la situation concerne les appels entrants, sortants ou les deux.','Faire tester un appel vers un numéro interne ou externe si possible.','Demander le comportement exact : silence, coupure, message, échec immédiat.','Vérifier si la situation est permanente ou intermittente.','Demander si le mobile affiche un renvoi d’appel, un mode ne pas déranger ou un mode silencieux et les désactiver le cas échéant.','Noter si la situation existe dans un lieu précis ou partout.','Vérifier si le téléphone utilise une carte SIM ou une eSIM.'], escalation:['Aucun appel entrant ou sortant ne fonctionne après les vérifications de base.','Les appels échouent de façon systématique.','La situation touche plusieurs utilisateurs.','Le comportement semble lié à la ligne mobile, à la SIM, à l’eSIM ou au service opérateur.'] },
+      { id:'mobile-data', family:'Téléphones mobiles', materials:['téléphone mobile','réseau'], title:'Panne données mobiles / Internet mobile / Wi-Fi / Bluetooth', ticket:'mobile', proc:'mobile', symptoms:['Pas d’accès Internet en 4G ou 5G.','Impossible de se connecter au Wi-Fi.','Le Wi-Fi se déconnecte souvent.','Impossible d’appairer un accessoire Bluetooth.','La connexion est instable.'], diagnostic:['Vérifier si la situation concerne les données mobiles, le Wi-Fi, le Bluetooth ou plusieurs services.','Faire vérifier si les données mobiles / le Wi-Fi / le Bluetooth sont activés.','Faire désactiver puis réactiver la fonction concernée ou le mode avion.','Faire tester l’ouverture d’un site simple ou d’une application Internet courante.','Demander si la situation survient partout ou uniquement sur un site donné.','Vérifier si le téléphone utilise une carte SIM ou une eSIM lorsque les données mobiles sont concernées.'], escalation:['Les services restent indisponibles après les vérifications de base.','La situation touche plusieurs utilisateurs dans la même zone.','Le réseau est affiché mais aucun accès Internet mobile n’est possible.','Le défaut est permanent et reproductible.'] },
+      { id:'mobile-screen', family:'Téléphones mobiles', materials:['téléphone mobile'], title:'Panne écran tactile / audio / applications / authentification', ticket:'mobile', proc:'mobile', symptoms:['Écran figé.','Tactile qui ne répond plus.','Le correspondant n’entend pas l’utilisateur.','Une application métier ne s’ouvre plus.','Code refusé ou authentification impossible.'], diagnostic:['Demander si la situation est permanente ou intermittente.','Faire décrire précisément le comportement de l’écran, du son ou de l’application.','Faire verrouiller puis déverrouiller l’écran si possible.','Faire redémarrer le téléphone si la procédure locale l’autorise.','Noter si le problème touche l’usage métier, les appels ou l’accès au mobile.','Préciser si le mobile est Android ou iPhone.'], escalation:['Le téléphone n’est plus exploitable normalement.','Le problème bloque l’usage métier.','L’utilisateur reste bloqué malgré les vérifications de base.','Le défaut semble lié au compte, à l’authentification ou à la gestion de l’appareil.'] },
+      { id:'network-workstation', family:'Pannes réseau', materials:['poste','réseau'], title:'Incident réseau sur poste de travail', ticket:'reseau', proc:'reseau', symptoms:['Pas d’accès à Internet.','Impossible d’accéder aux applications métier.','Impossible d’ouvrir un lecteur réseau ou une ressource partagée.','Message réseau non identifié ou pas de connexion.','Le poste semble connecté, mais aucun service réseau ne fonctionne.','Déconnexions fréquentes du réseau.'], diagnostic:['Vérifier si la situation concerne un seul utilisateur ou plusieurs utilisateurs.','Demander si le poste est connecté en Wi-Fi, en câble réseau ou via un dock.','Faire vérifier si l’icône réseau indique une connexion active ou une anomalie.','Faire tester l’accès à un site Internet simple ou à une ressource métier connue.','Demander si la situation concerne tout le réseau ou seulement une application.','Faire retirer le dock ou l’adaptateur réseau intermédiaire si le contexte le permet, puis tester en direct.','Faire vérifier le branchement du câble réseau si le poste est en connexion filaire.','Si le poste est en Wi-Fi, faire vérifier que le bon réseau sans fil est utilisé.','Noter le message exact affiché sur le poste.','Noter si la situation est permanente ou intermittente.'], escalation:['Le poste n’a toujours aucun accès réseau après les vérifications de base.','La situation touche plusieurs utilisateurs sur la même zone ou le même site.','Le poste semble connecté mais aucun service réseau n’est accessible.','Le dysfonctionnement semble lié à l’infrastructure réseau, au port réseau, au Wi-Fi ou au poste.'] },
+      { id:'network-wifi', family:'Pannes réseau', materials:['poste','réseau'], title:'Incident réseau Wi-Fi sur poste de travail', ticket:'reseau', proc:'reseau', symptoms:['Impossible de se connecter au Wi-Fi.','Déconnexions fréquentes.','Wi-Fi connecté sans accès Internet.','Signal faible ou instable.','Les applications SaaS fonctionnent mal ou très lentement.'], diagnostic:['Vérifier si le bon réseau Wi-Fi est sélectionné.','Faire confirmer si le poste apparaît connecté au Wi-Fi.','Demander si d’autres utilisateurs rencontrent le même problème dans la même zone.','Faire désactiver puis réactiver le Wi-Fi si la procédure locale l’autorise.','Faire rapprocher l’utilisateur d’une zone de meilleure couverture si cela est possible.','Faire tester l’accès à un site simple ou à une application métier.','Noter le message exact affiché et la zone concernée.','Noter si la situation est constante ou intermittente.'], escalation:['Le Wi-Fi reste inutilisable après les vérifications de base.','La situation touche plusieurs utilisateurs dans la même zone.','Le poste se connecte au Wi-Fi mais aucun accès réseau n’est possible.','Le dysfonctionnement semble lié à la couverture, au point d’accès ou à l’authentification réseau.'] },
+      { id:'network-ip', family:'Pannes réseau', materials:['téléphone IP','réseau'], title:'Incident réseau sur téléphone IP', ticket:'reseau', proc:'reseau', symptoms:['Téléphone IP sans service.','Téléphone IP non enregistré.','Impossible d’émettre ou de recevoir des appels.','Le téléphone démarre mais la ligne n’est pas disponible.','Le téléphone semble alimenté mais ne rejoint pas le réseau.'], diagnostic:['Vérifier la marque et le modèle du téléphone IP.','Noter le message exact affiché à l’écran.','Vérifier si la situation concerne un seul poste ou plusieurs téléphones dans la même zone.','Faire vérifier les branchements visibles du câble réseau et, le cas échéant, du câble d’alimentation.','Demander si le téléphone affiche l’heure, un nom, une extension ou un message d’erreur.','Faire redémarrer le téléphone si la procédure locale l’autorise.','Noter le site, le service et l’emplacement du poste téléphonique.','Préciser si la situation touche le téléphone physique, le logiciel de téléphonie fixe ou les deux.'], escalation:['Le téléphone IP reste indisponible après les vérifications de base.','Le téléphone semble alimenté mais n’obtient pas de service.','Plusieurs téléphones de la même zone sont impactés.','La situation semble liée au réseau, à la téléphonie IP ou à l’infrastructure locale.'] },
+      { id:'network-printer', family:'Pannes réseau', materials:['imprimante','réseau'], title:'Incident réseau sur imprimante / copieur réseau', ticket:'reseau', proc:'reseau', symptoms:['Imprimante hors ligne.','Impossible d’imprimer.','Les documents restent bloqués en file d’attente.','Le copieur est visible physiquement mais ne répond pas à l’impression.','L’utilisateur peut copier localement mais pas imprimer depuis son poste.'], diagnostic:['Vérifier si la situation concerne un seul utilisateur ou plusieurs utilisateurs.','Faire vérifier que la bonne imprimante réseau est sélectionnée.','Noter le message exact affiché sur le poste ou sur le copieur.','Demander si la copie locale fonctionne sur le périphérique.','Faire tester une impression simple.','Faire vérifier si l’imprimante apparaît hors ligne ou indisponible sur le poste.','Faire vider la file d’attente locale si des travaux sont bloqués.','Demander si la situation touche tous les documents ou seulement un document précis.','Noter le site, le nom du copieur et le service concerné.'], escalation:['Le périphérique reste hors ligne après les vérifications de base.','Plusieurs utilisateurs ne peuvent plus imprimer vers le même copieur.','La copie locale fonctionne mais aucune impression réseau n’aboutit.','La situation semble liée au réseau, à la file d’impression ou au périphérique.'] }
+    ];
+
+    const goodPracticesList = document.getElementById('goodPracticesList');
+    const systematicStepsList = document.getElementById('systematicStepsList');
+    const subjectFilterContainer = document.getElementById('subjectFilterContainer');
+    const activeModeText = document.getElementById('activeModeText');
+    const activeModeBadge = document.getElementById('activeModeBadge');
+    const activeModeTips = document.getElementById('activeModeTips');
+    const materialBanner = document.getElementById('materialBanner');
+    const materialLayout = document.getElementById('materialLayout');
+    const materialFilterContainer = document.getElementById('materialFilterContainer');
+    const symptomContainer = document.getElementById('symptomContainer');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const summaryText = document.getElementById('summaryText');
+    const symptomSearch = document.getElementById('symptomSearch');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const searchMatchInfo = document.getElementById('searchMatchInfo');
+    const incidentFilter = document.getElementById('incidentFilter');
+    const clearBtn = document.getElementById('clearBtn');
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    const citrixSection = document.getElementById('citrixSection');
+    const citrixOutput = document.getElementById('citrixOutput');
+    const citrixProgressText = document.getElementById('citrixProgressText');
+    const citrixProgressBar = document.getElementById('citrixProgressBar');
+    const browserSection = document.getElementById('browserSection');
+    const browserOutput = document.getElementById('browserOutput');
+    const browserProgressText = document.getElementById('browserProgressText');
+    const browserProgressBar = document.getElementById('browserProgressBar');
+
+    const manualSelections = {};
+    let searchSelections = {};
+    let selectedSubjects = new Set(['Panne matériels']);
+    let selectedMaterials = new Set();
+
+    const accentPairs = [['é','e'],['è','e'],['ê','e'],['ë','e'],['à','a'],['â','a'],['ä','a'],['î','i'],['ï','i'],['ô','o'],['ö','o'],['ù','u'],['û','u'],['ü','u'],['ç','c'],['œ','oe'],['æ','ae']];
+
+    function normalize(value) {
+      let result = String(value || '').toLowerCase().trim();
+      accentPairs.forEach(function(pair) {
+        result = result.split(pair[0]).join(pair[1]);
+      });
+      return result;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function copyTextById(id, button) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const text = 'value' in el ? el.value : el.textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else if (el.select) {
+        el.select();
+        document.execCommand('copy');
+      }
+      if (button) {
+        const previous = button.textContent;
+        button.textContent = 'Copié';
+        setTimeout(function() {
+          button.textContent = previous;
+        }, 1200);
+      }
+    }
+
+    window.copyTextById = copyTextById;
+
+    function updateDecisionProgress(ids, textEl, barEl) {
+      const filled = ids.filter(function(id) {
+        return normalize(getValue(id)) !== '';
+      }).length;
+      const pct = ids.length ? Math.round((filled / ids.length) * 100) : 0;
+      textEl.textContent = filled + ' / ' + ids.length + ' réponses';
+      barEl.style.width = pct + '%';
+    }
+
+    function updateActiveModeBanner() {
+      let mode = 'Panne matériels';
+      let text = 'Mode matériel activé : recherchez un symptôme, cochez-le, puis copiez la synthèse du ticket.';
+      let tips = [
+        'Utilisez la recherche pour cocher rapidement des symptômes.',
+        'Filtrez par matériel pour réduire la liste.',
+        'Copiez une synthèse prête à remonter dans le ticket.'
+      ];
+
+      if (selectedSubjects.has('Panne Citrix')) {
+        mode = 'Panne Citrix';
+        text = 'Mode Citrix activé : avancez question par question, puis copiez la qualification finale.';
+        tips = [
+          'Commencez par le portail, les icônes et le comportement au clic.',
+          'Les actions N1 évoluent selon les réponses déjà données.',
+          'La qualification finale est prête à être copiée.'
+        ];
+      }
+
+      if (selectedSubjects.has('Panne navigateur / application web')) {
+        mode = 'Panne navigateur / application web';
+        text = 'Mode navigateur activé : comparez navigation privée, cache/cookies, autre navigateur et profil.';
+        tips = [
+          'Commencez par l’impact : un seul utilisateur ou plusieurs.',
+          'Les cas SSO, page blanche, boucle de connexion et certificat sont déjà intégrés.',
+          'La qualification avant escalade reprend aussi les contrôles d’environnement.'
+        ];
+      }
+
+      activeModeBadge.textContent = mode;
+      activeModeText.textContent = text;
+      activeModeTips.innerHTML = tips.map(function(item) {
+        return '<div class="mode-card">' + item + '</div>';
+      }).join('');
+    }
+
+    function matchesSearch(text, query) {
+      const tokens = normalize(query).split(' ').filter(Boolean);
+      const normalizedText = normalize(text);
+      return tokens.length > 0 && tokens.every(function(token) { return normalizedText.indexOf(token) !== -1; });
+    }
+
+    function isChecked(incidentId, symptomIndex) {
+      return Boolean((manualSelections[incidentId] && manualSelections[incidentId][symptomIndex]) || (searchSelections[incidentId] && searchSelections[incidentId][symptomIndex]));
+    }
+
+    function getSubjectFilteredIncidents() {
+      if (!selectedSubjects.has('Panne matériels')) return [];
+      return incidents.slice();
+    }
+
+    function getMaterialFilteredIncidents() {
+      const subjectFiltered = getSubjectFilteredIncidents();
+      if (!selectedMaterials.size) return subjectFiltered;
+      return subjectFiltered.filter(function(incident) {
+        return incident.materials.some(function(material) { return selectedMaterials.has(material); });
+      });
+    }
+
+    function getVisibleIncidents() {
+      const materialFiltered = getMaterialFilteredIncidents();
+      if (!incidentFilter.value) return materialFiltered;
+      return materialFiltered.filter(function(incident) { return incident.id === incidentFilter.value; });
+    }
+
+    function renderStaticLists() {
+      goodPracticesList.innerHTML = goodPractices.map(function(item) { return '<li>' + item + '</li>'; }).join('');
+      systematicStepsList.innerHTML = systematicSteps.map(function(item) { return '<li>' + item + '</li>'; }).join('');
+    }
+
+    function toggleSubjectViews() {
+      const materialSelected = selectedSubjects.has('Panne matériels');
+      const citrixSelected = selectedSubjects.has('Panne Citrix');
+      const browserSelected = selectedSubjects.has('Panne navigateur / application web');
+      materialBanner.style.display = materialSelected ? '' : 'none';
+      materialLayout.style.display = materialSelected ? 'grid' : 'none';
+      citrixSection.style.display = citrixSelected ? 'block' : 'none';
+      browserSection.style.display = browserSelected ? 'block' : 'none';
+      updateActiveModeBanner();
+    }
+
+    function renderSubjectFilters() {
+      subjectFilterContainer.innerHTML = subjectOrder.map(function(subject) {
+        return '<label class="chip subject-radio"><input type="radio" name="subjectMode" value="' + subject + '" ' + (selectedSubjects.has(subject) ? 'checked' : '') + '><span>' + subject + '</span></label>';
+      }).join('');
+
+      subjectFilterContainer.querySelectorAll('input[type="radio"]').forEach(function(input) {
+        input.addEventListener('change', function(event) {
+          selectedSubjects = new Set([event.target.value]);
+          renderSubjectFilters();
+          syncIncidentFilter();
+          toggleSubjectViews();
+          updateSearchSelections();
+          renderCitrixDecision();
+          renderBrowserDecision();
+        });
+      });
+    }
+
+    function renderMaterialFilters() {
+      materialFilterContainer.innerHTML = materialOrder.map(function(material) {
+        return '<label class="chip"><input type="checkbox" value="' + material + '" ' + (selectedMaterials.has(material) ? 'checked' : '') + '><span>' + material + '</span></label>';
+      }).join('');
+
+      materialFilterContainer.querySelectorAll('input[type="checkbox"]').forEach(function(input) {
+        input.addEventListener('change', function(event) {
+          if (event.target.checked) selectedMaterials.add(event.target.value);
+          else selectedMaterials.delete(event.target.value);
+          syncIncidentFilter();
+          updateSearchSelections();
+        });
+      });
+    }
+
+    function syncIncidentFilter() {
+      const materialFiltered = getMaterialFilteredIncidents();
+      const allowedIds = new Set(materialFiltered.map(function(incident) { return incident.id; }));
+      if (incidentFilter.value && !allowedIds.has(incidentFilter.value)) incidentFilter.value = '';
+      incidentFilter.innerHTML = '<option value="">Tous les types de panne</option>' + materialFiltered.map(function(incident) {
+        return '<option value="' + incident.id + '">' + incident.family + ' · ' + incident.title + '</option>';
+      }).join('');
+    }
+
+    function renderSymptoms() {
+      const visibleIncidents = getVisibleIncidents();
+      if (!visibleIncidents.length) {
+        symptomContainer.innerHTML = '<div class="empty-state">Aucune panne matérielle ne correspond aux filtres sélectionnés.</div>';
+        return;
+      }
+
+      symptomContainer.innerHTML = visibleIncidents.map(function(incident) {
+        return '<section class="category">'
+          + '<div class="category-header">'
+          + '<div><div class="category-title">' + incident.title + '</div><div class="category-family">' + incident.family + '</div><div class="material-tags">' + incident.materials.map(function(material) { return '<span class="tag">' + material + '</span>'; }).join('') + '</div></div>'
+          + '<span class="badge">' + incident.symptoms.length + ' symptômes</span>'
+          + '</div>'
+          + '<div class="symptom-list">'
+          + incident.symptoms.map(function(symptom, index) {
+              return '<label class="symptom"><input type="checkbox" data-incident-id="' + incident.id + '" data-symptom-index="' + index + '" ' + (isChecked(incident.id, index) ? 'checked' : '') + '><span>' + symptom + '</span></label>';
+            }).join('')
+          + '</div></section>';
+      }).join('');
+
+      symptomContainer.querySelectorAll('input[type="checkbox"]').forEach(function(input) {
+        input.addEventListener('change', function(event) {
+          const incidentId = event.target.dataset.incidentId;
+          const symptomIndex = Number(event.target.dataset.symptomIndex);
+          if (!manualSelections[incidentId]) manualSelections[incidentId] = {};
+          if (event.target.checked) manualSelections[incidentId][symptomIndex] = true;
+          else delete manualSelections[incidentId][symptomIndex];
+          renderResults();
+        });
+      });
+    }
+
+    function getCombinedSelections() {
+      const combined = {};
+      incidents.forEach(function(incident) {
+        const merged = {};
+        const manual = manualSelections[incident.id] || {};
+        const auto = searchSelections[incident.id] || {};
+        Object.keys(manual).forEach(function(key) { merged[key] = true; });
+        Object.keys(auto).forEach(function(key) { merged[key] = true; });
+        if (Object.keys(merged).length) combined[incident.id] = Object.keys(merged).map(Number).sort(function(a, b) { return a - b; });
+      });
+      return combined;
+    }
+
+    function renderResults() {
+      const selections = getCombinedSelections();
+      const visibleIds = new Set(getVisibleIncidents().map(function(incident) { return incident.id; }));
+      const matchedIncidents = incidents.filter(function(incident) {
+        return selections[incident.id] && selections[incident.id].length && visibleIds.has(incident.id);
+      });
+      const selectedCount = matchedIncidents.reduce(function(sum, incident) { return sum + selections[incident.id].length; }, 0);
+
+      if (!matchedIncidents.length) {
+        summaryText.textContent = 'Aucun symptôme sélectionné.';
+        resultsContainer.className = 'empty-state';
+        resultsContainer.innerHTML = 'Sélectionnez des symptômes à gauche pour les pannes matérielles.';
+        return;
+      }
+
+      summaryText.textContent = selectedCount + ' symptôme(s) sélectionné(s) • ' + matchedIncidents.length + ' panne(s) potentielle(s) affichée(s).';
+
+      const materialSummary = matchedIncidents.map(function(incident) {
+        const matchedSymptoms = selections[incident.id].map(function(index) { return incident.symptoms[index]; });
+        return '- ' + incident.title + '\n'
+          + '  Symptômes : ' + matchedSymptoms.join(' ; ') + '\n'
+          + '  Escalade si : ' + incident.escalation.join(' ; ');
+      }).join('\n\n');
+
+      resultsContainer.className = '';
+      resultsContainer.innerHTML = '<section class="result-card copy-card"><h3>Synthèse matériel prête à copier</h3><textarea id="materialCopyText" class="copy-box" readonly>' + escapeHtml(materialSummary) + '</textarea><div class="summary-actions"><button type="button" onclick="copyTextById(\'materialCopyText\', this)">Copier la synthèse</button></div></section>'
+        + matchedIncidents.map(function(incident) {
+          const matchedSymptoms = selections[incident.id].map(function(index) { return incident.symptoms[index]; });
+          return '<article class="result-card">'
+            + '<h3>' + incident.title + '</h3>'
+            + '<div class="result-meta"><span class="tag">' + incident.family + '</span>' + incident.materials.map(function(material) { return '<span class="tag">' + material + '</span>'; }).join('') + '</div>'
+            + '<div class="matched"><strong>Symptômes cochés</strong><ul>' + matchedSymptoms.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></div>'
+            + '<section class="section diagnostic"><h4>Actions de diagnostic N1</h4><ul>' + incident.diagnostic.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>'
+            + '<section class="section escalation"><h4>Escalade si</h4><ul>' + incident.escalation.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>'
+            + '<section class="section ticket"><h4>Informations utiles à relever avant escalade</h4><ul>' + ticketInfo[incident.ticket].map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>'
+            + '<section class="section procedures"><h4>Procédures liées</h4><ul>' + procedures[incident.proc].map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>'
+            + '</article>';
+        }).join('');
+    }
+
+    function updateSearchSelections() {
+      const query = symptomSearch.value;
+      searchSelections = {};
+      if (!normalize(query)) {
+        searchMatchInfo.textContent = 'Aucune recherche active.';
+        renderSymptoms();
+        renderResults();
+        return;
+      }
+
+      let count = 0;
+      getVisibleIncidents().forEach(function(incident) {
+        incident.symptoms.forEach(function(symptom, index) {
+          if (matchesSearch(symptom, query)) {
+            if (!searchSelections[incident.id]) searchSelections[incident.id] = {};
+            searchSelections[incident.id][index] = true;
+            count += 1;
+          }
+        });
+      });
+
+      searchMatchInfo.textContent = count
+        ? count + ' symptôme(s) coché(s) automatiquement via la recherche.'
+        : 'Aucun symptôme visible ne correspond à la recherche.';
+      renderSymptoms();
+      renderResults();
+    }
+
+    function getValue(id) {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    }
+
+    function renderCitrixDecision() {
+      updateDecisionProgress(['citrixPortal','citrixIcons','citrixClick','citrixOthers','citrixWeb','citrixNetwork','citrixRights','citrixMessageType','citrixClose','citrixReset','citrixRestart','citrixReinstall','citrixSource','citrixAppScope','citrixOtherApp'], citrixProgressText, citrixProgressBar);
+      if (!selectedSubjects.has('Panne Citrix')) {
+        citrixOutput.innerHTML = 'Renseignez les réponses ci-dessus pour obtenir l’analyse Citrix.';
+        return;
+      }
+
+      const portal = getValue('citrixPortal');
+      const icons = getValue('citrixIcons');
+      const click = getValue('citrixClick');
+      const others = getValue('citrixOthers');
+      const web = getValue('citrixWeb');
+      const network = getValue('citrixNetwork');
+      const rights = getValue('citrixRights');
+      const messageType = getValue('citrixMessageType');
+      const close = getValue('citrixClose');
+      const reset = getValue('citrixReset');
+      const restart = getValue('citrixRestart');
+      const reinstall = getValue('citrixReinstall');
+      const source = getValue('citrixSource');
+      const appScope = getValue('citrixAppScope');
+      const otherApp = getValue('citrixOtherApp');
+
+      let status = 'Qualification Citrix en cours';
+      const resolution = [];
+      const actions = [];
+      const interpretations = [];
+      const escalation = [];
+
+      if (web === 'ko') {
+        status = 'Hors périmètre Citrix';
+        if (network === 'ok') resolution.push('Internet fonctionne sur un autre réseau : la situation semble liée au réseau initial et non à Citrix.');
+        else resolution.push('Internet ne fonctionne pas : ce n’est pas un incident Citrix. Fin de procédure Citrix.');
+      }
+      if (portal === 'no' && web === 'ok') escalation.push('Le portail Citrix est inaccessible alors qu’Internet fonctionne.');
+      if (others === 'yes') escalation.push('Plusieurs utilisateurs sont touchés au même moment.');
+      if (rights === 'no') actions.push('Vérifier dans l’AD que l’utilisateur dispose bien des groupes attendus dans Groupes_Droits_par_applications.');
+      if (click === 'ica') {
+        actions.push('Ouvrir le fichier .ica téléchargé.');
+        actions.push('Si rien ne se lance pas, faire Clic droit puis Ouvrir avec Citrix Workspace / Citrix Workspace Launcher.');
+      }
+      if (messageType === 'cert') {
+        actions.push('Vérifier la date et l’heure Windows et activer le réglage automatique si besoin.');
+        actions.push('Fermer puis rouvrir le navigateur, puis retester.');
+      }
+      if (click === 'closing') {
+        actions.push('Quitter Workspace.');
+        actions.push('Faire un Reset Workspace.');
+        actions.push('Redémarrer le poste, puis retester.');
+      }
+      if (!close) actions.push('Faire Quitter Workspace + relancer navigateur / Workspace.');
+      if (!reset) actions.push('Faire un Reset Workspace.');
+      if (!restart) actions.push('Redémarrer le poste si le problème persiste.');
+      if (!reinstall && (reset === 'done_ko' || restart === 'done_ko')) actions.push('Réinstaller Citrix Workspace si le reset et le redémarrage n’ont pas résolu la situation.');
+      if (close === 'done_ok') { status = 'Résolu'; resolution.push('Situation résolue après Quitter Workspace + relance.'); }
+      if (reset === 'done_ok') { status = 'Résolu'; resolution.push('Situation résolue après Reset Workspace.'); }
+      if (restart === 'done_ok') { status = 'Résolu'; resolution.push('Situation résolue après redémarrage du poste.'); }
+      if (reinstall === 'done_ok') { status = 'Résolu'; resolution.push('Situation résolue après réinstallation de Citrix Workspace.'); }
+      if (source === 'works_elsewhere') interpretations.push('Si le même compte fonctionne ailleurs, le problème semble local au poste, au navigateur ou à Workspace.');
+      if (source === 'fails_everywhere') interpretations.push('Si le même compte ne fonctionne nulle part, le problème semble lié aux droits, à la plateforme ou à la publication.');
+      if (appScope === 'one' && otherApp === 'yes') interpretations.push('Une seule application est touchée : le problème semble spécifique à l’application ou aux droits associés.');
+      if (appScope === 'all' || otherApp === 'no') interpretations.push('Aucune application ne démarre : le problème semble lié à Workspace, au poste ou à l’accès Citrix.');
+      if (messageType === 'none-resource') escalation.push('Message : Aucune ressource disponible.');
+      if (messageType === 'cannot-complete') escalation.push('Message : Cannot complete your request.');
+      if (messageType === 'access-denied') escalation.push('Message : Accès refusé.');
+      if (messageType === 'app-closes') escalation.push('L’application se ferme immédiatement ou ne démarre jamais.');
+      if (close === 'done_ko' && reset === 'done_ko' && restart === 'done_ko' && reinstall === 'done_ko') escalation.push('Après Quitter Workspace + Reset + redémarrage + réinstallation, c’est toujours KO.');
+      if (escalation.length && status !== 'Résolu' && status !== 'Hors périmètre Citrix') status = 'Escalade N2 recommandée';
+      if (!escalation.length && !resolution.length && status !== 'Hors périmètre Citrix') status = 'Actions N1 à poursuivre';
+
+      const mapClick = { '': 'non renseigné', 'nothing': 'rien', 'ica': 'téléchargement .ica', 'message': 'message d’erreur', 'closing': 'connexion puis fermeture' };
+      const mapSimple = { '': 'non renseigné', 'yes': 'oui', 'no': 'non', 'ok': 'OK', 'ko': 'KO' };
+      const mapSource = { '': 'non testé', 'works_elsewhere': 'OK ailleurs', 'fails_everywhere': 'KO partout' };
+      const mapScope = { '': 'non précisé', 'one': 'une seule application', 'all': 'toutes les applications / aucun bureau' };
+      const mapOtherApp = { '': 'non testé', 'yes': 'oui', 'no': 'non' };
+      const mapAction = { '': 'non fait', 'done_ko': 'fait, toujours KO', 'done_ok': 'fait, résolu' };
+
+      const ticket = [
+        'Utilisateur / login / site : à compléter.',
+        'Portail accessible : ' + (mapSimple[portal] || 'non renseigné') + '.',
+        'Icônes visibles : ' + (mapSimple[icons] || 'non renseigné') + '.',
+        'Au clic : ' + (mapClick[click] || 'non renseigné') + '.',
+        'Droits AD vérifiés : ' + (mapSimple[rights] || 'non renseigné') + '.',
+        'Test web : ' + (mapSimple[web] || 'non testé') + '.',
+        'Autre réseau : ' + (mapSimple[network] || 'non testé') + '.',
+        'Autre poste / autre utilisateur : ' + (mapSource[source] || 'non testé') + '.',
+        'Actions faites : Quitter Workspace = ' + (mapAction[close] || 'non fait') + ', Reset = ' + (mapAction[reset] || 'non fait') + ', Redémarrage = ' + (mapAction[restart] || 'non fait') + ', Réinstallation = ' + (mapAction[reinstall] || 'non fait') + '.',
+        'Cas fréquent / message : ' + (messageType || 'non précisé') + '.',
+        'Application touchée : ' + (mapScope[appScope] || 'non précisé') + '.',
+        'Une autre application Citrix démarre : ' + (mapOtherApp[otherApp] || 'non testé') + '.',
+        'Message exact + capture si possible : à compléter.',
+        'Horodatage des tests : à compléter.'
+      ];
+
+      const citrixCopySummary = [
+        'Statut : ' + status + '.',
+        'Portail accessible : ' + (mapSimple[portal] || 'non renseigné') + '.',
+        'Icônes visibles : ' + (mapSimple[icons] || 'non renseigné') + '.',
+        'Au clic : ' + (mapClick[click] || 'non renseigné') + '.',
+        'Test web : ' + (mapSimple[web] || 'non testé') + '.',
+        'Autre réseau : ' + (mapSimple[network] || 'non testé') + '.',
+        'Droits AD vérifiés : ' + (mapSimple[rights] || 'non renseigné') + '.',
+        'Actions faites : Quitter Workspace=' + (mapAction[close] || 'non fait') + ', Reset=' + (mapAction[reset] || 'non fait') + ', Redémarrage=' + (mapAction[restart] || 'non fait') + ', Réinstallation=' + (mapAction[reinstall] || 'non fait') + '.',
+        'Motifs d’escalade : ' + (escalation.length ? escalation.join(' ; ') : 'aucun pour le moment')
+      ].join('\n');
+
+      let html = '<div class="decision-status">' + status + '</div>';
+      if (resolution.length) html += '<section class="section diagnostic"><h4>Résolution / conclusion</h4><ul>' + resolution.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      if (actions.length) html += '<section class="section diagnostic"><h4>Actions N1 à faire ou compléter</h4><ul>' + actions.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      if (interpretations.length) html += '<section class="section ticket"><h4>Interprétation</h4><ul>' + interpretations.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      if (escalation.length) html += '<section class="section escalation"><h4>Escalader si / motifs d’escalade N2</h4><ul>' + escalation.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      html += '<section class="section procedures"><h4>Finir la qualification / ticket N1</h4><ul>' + ticket.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      html += '<section class="section ticket copy-card"><h4>Synthèse Citrix prête à copier</h4><textarea id="citrixCopyText" class="copy-box" readonly>' + escapeHtml(citrixCopySummary) + '</textarea><div class="summary-actions"><button type="button" onclick="copyTextById(\'citrixCopyText\', this)">Copier la synthèse</button></div></section>';
+      citrixOutput.innerHTML = html;
+    }
+
+    function renderBrowserDecision() {
+      updateDecisionProgress(['browserAppName','browserUrl','browserUsed','browserCase','browserError','browserImpact','browserMultiSites','browserUpdated','browserDateTime','browserPopups','browserVpnProxy','browserReproduce','browserForcedRefresh','browserPrivate','browserCacheCookies','browserOtherBrowser','browserOtherBrowserResult','browserProfileDisconnect','browserNewProfile','browserSyncRetest'], browserProgressText, browserProgressBar);
+      if (!selectedSubjects.has('Panne navigateur / application web')) {
+        browserOutput.innerHTML = 'Renseignez les réponses ci-dessus pour obtenir l’analyse navigateur / application web.';
+        return;
+      }
+
+      const appName = getValue('browserAppName');
+      const url = getValue('browserUrl');
+      const browserUsed = getValue('browserUsed');
+      const browserCase = getValue('browserCase');
+      const browserError = getValue('browserError');
+      const impact = getValue('browserImpact');
+      const multiSites = getValue('browserMultiSites');
+      const updated = getValue('browserUpdated');
+      const dateTime = getValue('browserDateTime');
+      const popups = getValue('browserPopups');
+      const vpnProxy = getValue('browserVpnProxy');
+      const reproduce = getValue('browserReproduce');
+      const forcedRefresh = getValue('browserForcedRefresh');
+      const privateTest = getValue('browserPrivate');
+      const cacheCookies = getValue('browserCacheCookies');
+      const otherBrowser = getValue('browserOtherBrowser');
+      const otherBrowserResult = getValue('browserOtherBrowserResult');
+      const profileDisconnect = getValue('browserProfileDisconnect');
+      const newProfile = getValue('browserNewProfile');
+      const syncRetest = getValue('browserSyncRetest');
+
+      let status = 'Qualification navigateur en cours';
+      const resolution = [];
+      const actions = [];
+      const interpretations = [];
+      const escalation = [];
+
+      if (impact === 'multiple') {
+        status = 'Suspicion service / réseau / application';
+        escalation.push('Plusieurs utilisateurs sont touchés en même temps : suspicion côté réseau, application ou service. Fin de la procédure navigateur.');
+      }
+
+      if (multiSites === 'ko' && impact !== 'multiple') {
+        escalation.push('Plusieurs sites / services sont en défaut : suspicion plus forte côté réseau, poste ou accès global.');
+      }
+
+      if (updated === 'no') actions.push('Mettre à jour le navigateur puis retester.');
+      if (dateTime === 'no') actions.push('Corriger la date / heure du poste puis retester.');
+      if (popups === 'no') actions.push('Autoriser les pop-ups si l’application en a besoin.');
+      if (vpnProxy === 'yes') actions.push('Vérifier si le VPN ou le proxy peut gêner l’accès.');
+      if (reproduce === 'yes' && !forcedRefresh) actions.push('Faire un rechargement forcé : Windows Ctrl + F5 ou Ctrl + Shift + R ; Mac Cmd + Shift + R.');
+
+      if (browserCase === 'sso') {
+        actions.push('Vérifier si la redirection SSO s’ouvre correctement et si l’authentification revient bien sur l’application.');
+        if (popups === 'no') actions.push('Le SSO peut nécessiter les pop-ups ou une fenêtre de redirection.');
+        if (privateTest === 'ok') interpretations.push('Le SSO fonctionne en navigation privée : suspicion cache, cookies ou session de connexion corrompue.');
+      }
+      if (browserCase === 'blank') {
+        actions.push('Pour une page blanche, faire d’abord rechargement forcé, navigation privée, puis suppression du cache du site.');
+      }
+      if (browserCase === 'loop') {
+        actions.push('Pour une boucle de connexion, supprimer les cookies du site et retester en navigation privée.');
+        if (dateTime === 'no') actions.push('Une date / heure incorrecte peut provoquer une boucle de connexion.');
+      }
+      if (browserCase === 'cert') {
+        actions.push('Pour une erreur certificat, vérifier la date / heure du poste et noter le message exact affiché.');
+      }
+      if (browserCase === 'popup') {
+        actions.push('Pour un blocage pop-up, autoriser les fenêtres contextuelles pour le site concerné puis retester.');
+      }
+
+      if (forcedRefresh === 'ok') {
+        status = 'Résolu';
+        resolution.push('La situation est résolue après rechargement forcé.');
+      }
+      if (privateTest === 'ok') {
+        interpretations.push('Le fonctionnement en navigation privée indique un incident lié au cache et/ou aux cookies.');
+        if (!cacheCookies) actions.push('Supprimer les données du site concerné, puis à défaut vider cache et cookies du navigateur, fermer et rouvrir le navigateur, puis retester.');
+      }
+      if (cacheCookies === 'ok') {
+        status = 'Résolu';
+        resolution.push('La situation est résolue après suppression du cache et/ou des cookies.');
+      }
+
+      if (!otherBrowser && cacheCookies === 'ko') actions.push('Tester l’application dans un second navigateur disponible.');
+      if (otherBrowser && !otherBrowserResult) actions.push('Noter si le test dans ' + otherBrowser + ' est OK ou KO.');
+      if (otherBrowserResult === 'ok') {
+        interpretations.push('Le fonctionnement sur un autre navigateur indique un incident lié au navigateur initial.');
+      }
+      if (otherBrowserResult === 'ko' && impact !== 'multiple') {
+        interpretations.push('Le défaut sur plusieurs navigateurs renforce la suspicion côté application, compte ou réseau.');
+      }
+
+      if (profileDisconnect === 'ok') {
+        interpretations.push('Le test après déconnexion du profil Chrome indique un problème lié au profil navigateur.');
+        if (!newProfile) actions.push('Créer un nouveau profil Chrome, refaire le test, puis récupérer les favoris depuis le profil initial si nécessaire.');
+      }
+      if (newProfile === 'ok') {
+        status = 'Résolu';
+        resolution.push('La situation est résolue avec un nouveau profil Chrome.');
+        actions.push('Récupérer les favoris dans %appdata% pour les remettre dans le nouveau profil.');
+        actions.push('Synchroniser le compte, puis refaire le test.');
+      }
+      if (syncRetest === 'ok') {
+        status = 'Résolu';
+        resolution.push('La situation reste résolue après synchronisation du compte dans le nouveau profil.');
+      }
+      if (syncRetest === 'ko') {
+        escalation.push('Le problème revient après synchronisation du compte dans le nouveau profil.');
+      }
+
+      if (forcedRefresh === 'ko' && privateTest === 'ko' && cacheCookies === 'ko' && otherBrowserResult === 'ko') {
+        escalation.push('Le défaut persiste après rechargement forcé, navigation privée, suppression cache/cookies et test sur un autre navigateur.');
+      }
+      if (profileDisconnect === 'ko' && newProfile === 'ko') {
+        escalation.push('Le test profil Chrome ne résout pas l’incident.');
+      }
+
+      if (escalation.length && status !== 'Résolu') status = 'Escalade selon la matrice';
+      if (!escalation.length && !resolution.length && impact !== 'multiple') status = 'Actions N1 à poursuivre';
+
+      const mapSimple = {
+        '': 'non renseigné', 'yes': 'oui', 'no': 'non', 'ok': 'OK', 'ko': 'KO', 'na': 'non concerné',
+        'single': 'un seul utilisateur', 'multiple': 'plusieurs utilisateurs',
+        'chrome': 'Chrome', 'edge': 'Edge', 'firefox': 'Firefox', 'safari': 'Safari', 'other': 'Autre',
+        'sso': 'Authentification SSO', 'blank': 'Page blanche', 'loop': 'Boucle de connexion', 'cert': 'Erreur certificat / page sécurisée', 'popup': 'Blocage pop-up',
+      };
+
+      const testedBrowsers = [];
+      if (browserUsed) testedBrowsers.push(mapSimple[browserUsed] || browserUsed);
+      if (otherBrowser) testedBrowsers.push(mapSimple[otherBrowser] || otherBrowser);
+
+      const ticket = [
+        'Nom de l’application : ' + (appName || 'à compléter') + '.',
+        'URL utilisée : ' + (url || 'à compléter') + '.',
+        'Navigateur utilisé : ' + (mapSimple[browserUsed] || 'non renseigné') + '.',
+        'Cas précis observé : ' + (mapSimple[browserCase] || 'non précisé') + '.',
+        'Message d’erreur exact / symptôme : ' + (browserError || 'à compléter') + '.',
+        'Impact : ' + (mapSimple[impact] || 'non renseigné') + '.',
+        'Premier test plusieurs sites / services : ' + (mapSimple[multiSites] || 'non renseigné') + '.',
+        'Navigateur à jour : ' + (mapSimple[updated] || 'non renseigné') + '.',
+        'Date / heure du poste correctes : ' + (mapSimple[dateTime] || 'non renseigné') + '.',
+        'Pop-ups autorisés : ' + (mapSimple[popups] || 'non renseigné') + '.',
+        'Présence VPN / proxy : ' + (mapSimple[vpnProxy] || 'non renseigné') + '.',
+        'Navigateurs testés : ' + (testedBrowsers.length ? testedBrowsers.join(', ') : 'à compléter') + '.',
+        'Résultat en navigation privée : ' + (mapSimple[privateTest] || 'non testé') + '.',
+        'Résultat après suppression cache/cookies : ' + (mapSimple[cacheCookies] || 'non fait') + '.',
+        'Résultat sur autre navigateur : ' + (mapSimple[otherBrowserResult] || 'non testé') + '.',
+        'Test après déconnexion du profil Chrome : ' + (mapSimple[profileDisconnect] || 'non testé') + '.',
+        'Test nouveau profil : ' + (mapSimple[newProfile] || 'non testé') + '.',
+        'Retest après synchronisation du compte : ' + (mapSimple[syncRetest] || 'non testé') + '.',
+        'Horodatage des tests : à compléter.'
+      ];
+
+      const browserCopySummary = [
+        'Statut : ' + status + '.',
+        'Application : ' + (appName || 'à compléter') + '.',
+        'URL : ' + (url || 'à compléter') + '.',
+        'Navigateur utilisé : ' + (mapSimple[browserUsed] || 'non renseigné') + '.',
+        'Cas observé : ' + (mapSimple[browserCase] || 'non précisé') + '.',
+        'Impact : ' + (mapSimple[impact] || 'non renseigné') + '.',
+        'Premier test plusieurs sites / services : ' + (mapSimple[multiSites] || 'non renseigné') + '.',
+        'Environnement : navigateur à jour=' + (mapSimple[updated] || 'non renseigné') + ', date/heure=' + (mapSimple[dateTime] || 'non renseigné') + ', pop-ups=' + (mapSimple[popups] || 'non renseigné') + ', VPN/proxy=' + (mapSimple[vpnProxy] || 'non renseigné') + '.',
+        'Navigation privée : ' + (mapSimple[privateTest] || 'non testé') + '.',
+        'Cache/cookies : ' + (mapSimple[cacheCookies] || 'non fait') + '.',
+        'Autre navigateur : ' + (mapSimple[otherBrowser] || 'non testé') + ' / résultat=' + (mapSimple[otherBrowserResult] || 'non testé') + '.',
+        'Profil Chrome : déconnexion=' + (mapSimple[profileDisconnect] || 'non testé') + ', nouveau profil=' + (mapSimple[newProfile] || 'non testé') + ', sync=' + (mapSimple[syncRetest] || 'non testé') + '.',
+        'Motifs d’escalade : ' + (escalation.length ? escalation.join(' ; ') : 'aucun pour le moment')
+      ].join('\n');
+
+      let html = '<div class="decision-status">' + status + '</div>';
+      if (resolution.length) html += '<section class="section diagnostic"><h4>Résolution / conclusion</h4><ul>' + resolution.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      if (actions.length) html += '<section class="section diagnostic"><h4>Actions N1 à faire ou compléter</h4><ul>' + actions.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      if (interpretations.length) html += '<section class="section ticket"><h4>Interprétation</h4><ul>' + interpretations.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      if (escalation.length) html += '<section class="section escalation"><h4>Escalade / suspicion forte</h4><ul>' + escalation.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      html += '<section class="section procedures"><h4>Qualifier avant escalade</h4><ul>' + ticket.map(function(item) { return '<li>' + item + '</li>'; }).join('') + '</ul></section>';
+      html += '<section class="section ticket copy-card"><h4>Synthèse navigateur prête à copier</h4><textarea id="browserCopyText" class="copy-box" readonly>' + escapeHtml(browserCopySummary) + '</textarea><div class="summary-actions"><button type="button" onclick="copyTextById(\'browserCopyText\', this)">Copier la synthèse</button></div></section>';
+      browserOutput.innerHTML = html;
+    }
+
+    function bindCitrixInputs() {
+      ['citrixPortal','citrixIcons','citrixClick','citrixOthers','citrixWeb','citrixNetwork','citrixRights','citrixMessageType','citrixClose','citrixReset','citrixRestart','citrixReinstall','citrixSource','citrixAppScope','citrixOtherApp'].forEach(function(id) {
+        document.getElementById(id).addEventListener('change', renderCitrixDecision);
+      });
+      document.getElementById('resetCitrixBtn').addEventListener('click', function() {
+        ['citrixPortal','citrixIcons','citrixClick','citrixOthers','citrixWeb','citrixNetwork','citrixRights','citrixMessageType','citrixClose','citrixReset','citrixRestart','citrixReinstall','citrixSource','citrixAppScope','citrixOtherApp'].forEach(function(id) {
+          document.getElementById(id).value = '';
+        });
+        renderCitrixDecision();
+      });
+    }
+
+    function bindBrowserInputs() {
+      ['browserAppName','browserUrl','browserUsed','browserCase','browserError','browserImpact','browserMultiSites','browserUpdated','browserDateTime','browserPopups','browserVpnProxy','browserReproduce','browserForcedRefresh','browserPrivate','browserCacheCookies','browserOtherBrowser','browserOtherBrowserResult','browserProfileDisconnect','browserNewProfile','browserSyncRetest'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', renderBrowserDecision);
+        document.getElementById(id).addEventListener('change', renderBrowserDecision);
+      });
+      document.getElementById('resetBrowserBtn').addEventListener('click', function() {
+        ['browserAppName','browserUrl','browserError'].forEach(function(id) { document.getElementById(id).value = ''; });
+        ['browserUsed','browserCase','browserImpact','browserMultiSites','browserUpdated','browserDateTime','browserPopups','browserVpnProxy','browserReproduce','browserForcedRefresh','browserPrivate','browserCacheCookies','browserOtherBrowser','browserOtherBrowserResult','browserProfileDisconnect','browserNewProfile','browserSyncRetest'].forEach(function(id) { document.getElementById(id).value = ''; });
+        renderBrowserDecision();
+      });
+    }
+
+    clearBtn.addEventListener('click', function() {
+      Object.keys(manualSelections).forEach(function(key) { delete manualSelections[key]; });
+      searchSelections = {};
+      selectedSubjects = new Set(['Panne matériels']);
+      selectedMaterials = new Set();
+      symptomSearch.value = '';
+      incidentFilter.value = '';
+      ['citrixPortal','citrixIcons','citrixClick','citrixOthers','citrixWeb','citrixNetwork','citrixRights','citrixMessageType','citrixClose','citrixReset','citrixRestart','citrixReinstall','citrixSource','citrixAppScope','citrixOtherApp'].forEach(function(id) { document.getElementById(id).value = ''; });
+      ['browserAppName','browserUrl','browserError'].forEach(function(id) { document.getElementById(id).value = ''; });
+      ['browserUsed','browserCase','browserImpact','browserMultiSites','browserUpdated','browserDateTime','browserPopups','browserVpnProxy','browserReproduce','browserForcedRefresh','browserPrivate','browserCacheCookies','browserOtherBrowser','browserOtherBrowserResult','browserProfileDisconnect','browserNewProfile','browserSyncRetest'].forEach(function(id) { document.getElementById(id).value = ''; });
+      renderSubjectFilters();
+      renderMaterialFilters();
+      syncIncidentFilter();
+      toggleSubjectViews();
+      renderSymptoms();
+      renderResults();
+      renderCitrixDecision();
+      renderBrowserDecision();
+    });
+
+    expandAllBtn.addEventListener('click', function() {
+      getVisibleIncidents().forEach(function(incident) {
+        if (!manualSelections[incident.id]) manualSelections[incident.id] = {};
+        incident.symptoms.forEach(function(_, index) { manualSelections[incident.id][index] = true; });
+      });
+      renderSymptoms();
+      renderResults();
+    });
+
+    symptomSearch.addEventListener('input', updateSearchSelections);
+    clearSearchBtn.addEventListener('click', function() {
+      symptomSearch.value = '';
+      updateSearchSelections();
+    });
+    incidentFilter.addEventListener('change', updateSearchSelections);
+
+    renderStaticLists();
+    renderSubjectFilters();
+    renderMaterialFilters();
+    syncIncidentFilter();
+    bindCitrixInputs();
+    bindBrowserInputs();
+    toggleSubjectViews();
+    renderSymptoms();
+    renderResults();
+    renderCitrixDecision();
+    renderBrowserDecision();
+  </script>
+</body>
+</html>

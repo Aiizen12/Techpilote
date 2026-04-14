@@ -17,6 +17,7 @@ from techpilot.pages.quetes import quetes_page
 from techpilot.pages.notes_window import notes_window_page
 from techpilot.pages.profil import profil_page
 from techpilot.pages.suivi_doc import suivi_doc_page
+from techpilot.pages.outils import outils_page
 
 # Initialisation DB
 init_db()
@@ -55,3 +56,4 @@ app.add_page(quetes_page,        route="/quetes")
 app.add_page(notes_window_page,  route="/notes-window")
 app.add_page(profil_page,        route="/profil")
 app.add_page(suivi_doc_page,     route="/suivi-doc")
+app.add_page(outils_page,        route="/outils")
