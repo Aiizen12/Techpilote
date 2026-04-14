@@ -18,6 +18,7 @@ PERM_META = {
     "tickets_manage":     {"label": "Tickets",         "desc": "Créer et gérer les incidents",            "icon": "shield-alert",  "color": "#ef4444"},
     "import_excel":       {"label": "Import Excel",    "desc": "Importer des fichiers Excel",             "icon": "file-up",       "color": "#f59e0b"},
     "permissions_manage": {"label": "Permissions",     "desc": "Gérer les droits des techniciens",        "icon": "shield",        "color": "#6366f1"},
+    "escalade_proc_edit": {"label": "Procédures N1",   "desc": "Ajouter / modifier les procédures N1 sur les fiches escalade", "icon": "pencil", "color": "#22c55e"},
 }
 
 

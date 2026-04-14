@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.escalade import EscaladeState
 from techpilot.state.models import EscaladeEntry
+from techpilot.state.auth import AuthState
 
 TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
@@ -195,47 +196,148 @@ def entry_modal() -> rx.Component:
             ),
 
             # ── Procédure N1 ──────────────────────────────────────────────
-            rx.cond(
-                EscaladeState.has_procedure,
-                rx.box(
-                    rx.hstack(
-                        rx.box(
-                            rx.icon("clipboard-list", size=13, color="#22c55e"),
-                            background="rgba(34,197,94,0.12)", border_radius="6px",
-                            padding="4px", display="flex",
-                            align_items="center", justify_content="center",
-                        ),
-                        rx.text("Procédure N1", color="#22c55e", font_size="0.8rem", font_weight="700"),
-                        spacing="2", align="center", margin_bottom="0.65rem",
+            rx.box(
+                # En-tête avec bouton édition
+                rx.hstack(
+                    rx.box(
+                        rx.icon("clipboard-list", size=13, color="#22c55e"),
+                        background="rgba(34,197,94,0.12)", border_radius="6px",
+                        padding="4px", display="flex",
+                        align_items="center", justify_content="center",
                     ),
-                    rx.vstack(
-                        rx.foreach(
-                            EscaladeState.selected_entry.procedure_n1,
-                            lambda step: rx.hstack(
-                                rx.box(
-                                    rx.icon("circle-check", size=13, color="#22c55e"),
-                                    min_width="18px", flex_shrink="0", padding_top="2px",
+                    rx.text("Procédure N1", color="#22c55e", font_size="0.8rem", font_weight="700"),
+                    rx.spacer(),
+                    rx.cond(
+                        AuthState.can_edit_procedure,
+                        rx.cond(
+                            EscaladeState.editing_procedure,
+                            # Boutons save / annuler
+                            rx.hstack(
+                                rx.button(
+                                    rx.icon("check", size=12), "Sauvegarder",
+                                    on_click=EscaladeState.save_procedure,
+                                    size="1",
+                                    style={
+                                        "background": "rgba(34,197,94,0.15)",
+                                        "color": "#22c55e",
+                                        "border": "1px solid rgba(34,197,94,0.3)",
+                                        "border_radius": "6px",
+                                        "cursor": "pointer",
+                                        "font_size": "0.72rem",
+                                        "padding": "3px 8px",
+                                    },
                                 ),
-                                rx.text(
-                                    step,
-                                    color=TEXT,
-                                    font_size="0.82rem",
-                                    line_height="1.55",
+                                rx.button(
+                                    rx.icon("x", size=12), "Annuler",
+                                    on_click=EscaladeState.cancel_edit_procedure,
+                                    size="1",
+                                    style={
+                                        "background": "rgba(148,163,184,0.1)",
+                                        "color": MUTED,
+                                        "border": f"1px solid {BORDER}",
+                                        "border_radius": "6px",
+                                        "cursor": "pointer",
+                                        "font_size": "0.72rem",
+                                        "padding": "3px 8px",
+                                    },
                                 ),
-                                spacing="2",
-                                align="start",
-                                width="100%",
+                                spacing="1",
+                            ),
+                            # Bouton crayon (lecture)
+                            rx.button(
+                                rx.icon("pencil", size=12),
+                                rx.cond(
+                                    EscaladeState.has_procedure,
+                                    "Modifier",
+                                    "Ajouter",
+                                ),
+                                on_click=EscaladeState.start_edit_procedure,
+                                size="1",
+                                style={
+                                    "background": "rgba(99,102,241,0.12)",
+                                    "color": "#6366f1",
+                                    "border": "1px solid rgba(99,102,241,0.25)",
+                                    "border_radius": "6px",
+                                    "cursor": "pointer",
+                                    "font_size": "0.72rem",
+                                    "padding": "3px 8px",
+                                },
                             ),
                         ),
-                        spacing="2",
-                        width="100%",
                     ),
-                    background="rgba(34,197,94,0.04)",
-                    border="1px solid rgba(34,197,94,0.18)",
-                    border_left="3px solid #22c55e",
-                    border_radius="10px",
-                    padding="12px 14px",
-                    margin_top="0.75rem",
+                    align="center", width="100%", margin_bottom="0.65rem",
+                ),
+                # Mode édition : textarea
+                rx.cond(
+                    EscaladeState.editing_procedure,
+                    rx.vstack(
+                        rx.text(
+                            "Une étape par ligne",
+                            color=MUTED, font_size="0.7rem", margin_bottom="4px",
+                        ),
+                        rx.text_area(
+                            value=EscaladeState.edit_steps_text,
+                            on_change=EscaladeState.set_edit_steps_text,
+                            placeholder="Étape 1\nÉtape 2\n...",
+                            rows="10",
+                            style={
+                                "width": "100%",
+                                "background": "#0d1117",
+                                "color": TEXT,
+                                "border": "1px solid rgba(99,102,241,0.35)",
+                                "border_radius": "8px",
+                                "padding": "10px 12px",
+                                "font_size": "0.82rem",
+                                "line_height": "1.6",
+                                "resize": "vertical",
+                                "font_family": "inherit",
+                            },
+                        ),
+                        width="100%", spacing="1",
+                    ),
+                    # Mode lecture : liste des étapes (ou vide)
+                    rx.cond(
+                        EscaladeState.has_procedure,
+                        rx.vstack(
+                            rx.foreach(
+                                EscaladeState.selected_entry.procedure_n1,
+                                lambda step: rx.hstack(
+                                    rx.box(
+                                        rx.icon("circle-check", size=13, color="#22c55e"),
+                                        min_width="18px", flex_shrink="0", padding_top="2px",
+                                    ),
+                                    rx.text(
+                                        step,
+                                        color=TEXT,
+                                        font_size="0.82rem",
+                                        line_height="1.55",
+                                    ),
+                                    spacing="2", align="start", width="100%",
+                                ),
+                            ),
+                            spacing="2", width="100%",
+                        ),
+                        # Pas de procédure + pas en édition → message vide (visible seulement manager/perm)
+                        rx.cond(
+                            AuthState.can_edit_procedure,
+                            rx.text(
+                                "Aucune procédure N1 pour cette fiche. Cliquez sur « Ajouter » pour en créer une.",
+                                color=MUTED, font_size="0.78rem", font_style="italic",
+                            ),
+                        ),
+                    ),
+                ),
+                background="rgba(34,197,94,0.04)",
+                border="1px solid rgba(34,197,94,0.18)",
+                border_left="3px solid #22c55e",
+                border_radius="10px",
+                padding="12px 14px",
+                margin_top="0.75rem",
+                # Masquer le bloc entier si pas de procédure ET pas de droit d'édition
+                display=rx.cond(
+                    EscaladeState.has_procedure | AuthState.can_edit_procedure,
+                    "block",
+                    "none",
                 ),
             ),
 

@@ -20,6 +20,7 @@ DEFAULT_PERMS = {
     "tickets_manage": True,
     "import_excel": False,
     "permissions_manage": False,
+    "escalade_proc_edit": False,
 }
 
 
@@ -72,6 +73,10 @@ class AuthState(rx.State):
     @rx.var
     def is_manager(self) -> bool:
         return self.user_role == "manager"
+
+    @rx.var
+    def can_edit_procedure(self) -> bool:
+        return self.permissions.get("escalade_proc_edit", False)
 
     @rx.var
     def permissions(self) -> dict:

@@ -1,6 +1,6 @@
 import reflex as rx
 import base64
-from techpilot.db.database import load_db
+from techpilot.db.database import load_db, save_db
 from techpilot.state.models import EscaladeEntry
 
 # ── Procédures N1 — réseau / hardware (source : docs procédures internes) ─────
@@ -159,6 +159,10 @@ class EscaladeState(rx.State):
     arbre_expanded: str = ""
     arbre_entries: list[EscaladeEntry] = []
 
+    # ── Édition procédure ─────────────────────────────────────────────────
+    editing_procedure: bool = False
+    edit_steps_text: str = ""   # étapes séparées par \n
+
     # ── Chargement ────────────────────────────────────────────────────────
 
     def load_data(self):
@@ -278,8 +282,14 @@ class EscaladeState(rx.State):
         self._filter()
 
     @staticmethod
-    def _find_procedure(perimetre: str, typologie: str) -> list[str]:
-        """Exact match d'abord, puis sous-chaîne insensible à la casse."""
+    def _find_procedure(perimetre: str, typologie: str, db: dict | None = None) -> list[str]:
+        """Procédures custom DB en priorité, puis PROCEDURE_MAP exact, puis fuzzy."""
+        if db is None:
+            db = load_db()
+        key = f"{perimetre}|{typologie}"
+        custom = (db.get("procedures_custom") or {}).get(key)
+        if custom:
+            return custom
         exact = PROCEDURE_MAP.get((perimetre, typologie), [])
         if exact:
             return exact
@@ -290,7 +300,9 @@ class EscaladeState(rx.State):
         return []
 
     def open_entry(self, entry: EscaladeEntry):
-        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie)
+        db = load_db()
+        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie, db)
+        self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
             perimetre=entry.perimetre,
             typologie=entry.typologie,
@@ -309,6 +321,44 @@ class EscaladeState(rx.State):
 
     def close_modal(self):
         self.show_modal = False
+        self.editing_procedure = False
+
+    # ── Édition procédure ─────────────────────────────────────────────────
+
+    def start_edit_procedure(self):
+        self.edit_steps_text = "\n".join(self.selected_entry.procedure_n1)
+        self.editing_procedure = True
+
+    def cancel_edit_procedure(self):
+        self.editing_procedure = False
+
+    def set_edit_steps_text(self, val: str):
+        self.edit_steps_text = val
+
+    def save_procedure(self):
+        steps = [s.strip() for s in self.edit_steps_text.split("\n") if s.strip()]
+        key = f"{self.selected_entry.perimetre}|{self.selected_entry.typologie}"
+        db = load_db()
+        if "procedures_custom" not in db:
+            db["procedures_custom"] = {}
+        db["procedures_custom"][key] = steps
+        save_db(db)
+        self.selected_entry = EscaladeEntry(
+            perimetre=self.selected_entry.perimetre,
+            typologie=self.selected_entry.typologie,
+            categorie_fresh=self.selected_entry.categorie_fresh,
+            traitement_n1=self.selected_entry.traitement_n1,
+            wp=self.selected_entry.wp,
+            interlocuteur=self.selected_entry.interlocuteur,
+            traitement_n2n3=self.selected_entry.traitement_n2n3,
+            wp_n2=self.selected_entry.wp_n2,
+            referents=self.selected_entry.referents,
+            conditions_escalade=self.selected_entry.conditions_escalade,
+            notes=self.selected_entry.notes,
+            procedure_n1=steps,
+        )
+        self.editing_procedure = False
+        yield rx.toast.success("Procédure sauvegardée.")
 
     def toggle_favori(self):
         key = self.selected_entry.perimetre + "|" + self.selected_entry.typologie
@@ -318,7 +368,9 @@ class EscaladeState(rx.State):
             self.favoris = [*self.favoris, self.selected_entry]
 
     def open_favori(self, entry: EscaladeEntry):
-        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie)
+        db = load_db()
+        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie, db)
+        self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
             perimetre=entry.perimetre,
             typologie=entry.typologie,
