@@ -86,6 +86,8 @@ class TechniciensState(rx.State):
         save_db(db)
         self.show_form = False
         self.load()
+        action = "modifié" if self.edit_id else "créé"
+        yield rx.toast.success(f"Technicien {action} avec succès.")
 
     async def toggle_active(self, tid: str):
         auth = await self.get_state(AuthState)
@@ -95,6 +97,7 @@ class TechniciensState(rx.State):
                 t["active"] = not t.get("active", True)
                 new_status = "activé" if t["active"] else "désactivé"
                 log_activity(auth.user_nom, "UPDATE", "technicien", f"{t.get('nom', tid)} {new_status}")
+                yield rx.toast.info(f"{t.get('nom', '')} {new_status}.")
         save_db(db)
         self.load()
 

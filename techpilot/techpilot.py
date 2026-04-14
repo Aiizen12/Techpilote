@@ -15,6 +15,7 @@ from techpilot.pages.audit import audit_page
 from techpilot.pages.import_excel import import_excel_page
 from techpilot.pages.quetes import quetes_page
 from techpilot.pages.notes_window import notes_window_page
+from techpilot.pages.profil import profil_page
 
 # Initialisation DB
 init_db()
@@ -51,3 +52,4 @@ app.add_page(audit_page,       route="/audit")
 app.add_page(import_excel_page, route="/import-excel")
 app.add_page(quetes_page,        route="/quetes")
 app.add_page(notes_window_page,  route="/notes-window")
+app.add_page(profil_page,        route="/profil")

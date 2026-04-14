@@ -281,19 +281,29 @@ def sidebar_content(mobile: bool = False) -> rx.Component:
         # User section
         rx.box(
             rx.hstack(
-                rx.box(
-                    rx.text(AuthState.user_nom[:2].upper(), color="white",
-                            font_weight="700", font_size="0.72rem"),
-                    background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
-                    border_radius="50%", width="30px", height="30px",
-                    display="flex", align_items="center", justify_content="center",
-                    flex_shrink="0",
-                ),
-                rx.vstack(
-                    rx.text(AuthState.user_nom, color=TEXT, font_size="0.8rem", font_weight="600"),
-                    rx.text(AuthState.user_role, color=MUTED, font_size="0.68rem", text_transform="capitalize"),
-                    spacing="0", align="start", flex="1",
-                    overflow="hidden", min_width="0",
+                rx.link(
+                    rx.hstack(
+                        rx.box(
+                            rx.text(AuthState.user_nom[:2].upper(), color="white",
+                                    font_weight="700", font_size="0.72rem"),
+                            background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                            border_radius="50%", width="30px", height="30px",
+                            display="flex", align_items="center", justify_content="center",
+                            flex_shrink="0",
+                        ),
+                        rx.vstack(
+                            rx.text(AuthState.user_nom, color=TEXT, font_size="0.8rem", font_weight="600"),
+                            rx.text(AuthState.user_role, color=MUTED, font_size="0.68rem", text_transform="capitalize"),
+                            spacing="0", align="start",
+                            overflow="hidden", min_width="0",
+                        ),
+                        spacing="2", align="center",
+                    ),
+                    href="/profil",
+                    text_decoration="none",
+                    flex="1",
+                    overflow="hidden",
+                    _hover={"opacity": "0.8"},
                 ),
                 rx.icon_button(
                     rx.icon("log-out", size=15),
@@ -500,4 +510,6 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
         ),
 
         on_mount=[AuthState.check_auth, NotificationState.load],
-    )
+    ),
+    rx.toast.provider(position="bottom-right", duration=3000),
+)

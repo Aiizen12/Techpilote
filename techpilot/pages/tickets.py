@@ -130,6 +130,7 @@ class TicketsState(rx.State):
         log_activity(auth.user_nom, "CREATE", "ticket", f"Incident: {titre}")
         self.show_form = False
         self.load()
+        yield rx.toast.success(f"Incident « {titre} » déclaré.")
 
     async def resolve(self, tid: str):
         auth = await self.get_state(AuthState)
@@ -140,6 +141,7 @@ class TicketsState(rx.State):
                 t["date_resolution"]   = datetime.utcnow().isoformat()
                 t["date_modification"] = datetime.utcnow().isoformat()
                 log_activity(auth.user_nom, "UPDATE", "ticket", f"Résolu: {t.get('titre', tid[:8])}")
+                yield rx.toast.success("Incident marqué comme résolu.")
         save_db(db)
         self.load()
 
@@ -151,6 +153,7 @@ class TicketsState(rx.State):
         save_db(db)
         if ticket:
             log_activity(auth.user_nom, "DELETE", "ticket", f"Supprimé: {ticket.get('titre', tid[:8])}")
+            yield rx.toast.warning(f"Incident « {ticket.get('titre', '')} » supprimé.")
         self.load()
 
     def export_csv(self):
