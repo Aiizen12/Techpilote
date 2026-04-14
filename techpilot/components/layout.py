@@ -509,7 +509,7 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
             transition="margin-left 0.22s cubic-bezier(0.4,0,0.2,1)",
         ),
 
+        rx.toast.provider(position="bottom-right", duration=3000),
+
         on_mount=[AuthState.check_auth, NotificationState.load],
-    ),
-    rx.toast.provider(position="bottom-right", duration=3000),
-)
+    )
