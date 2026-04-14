@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>N1 – Réseau – Prise en charge des incidents</title>
+  <style>
+    :root {
+      --bg: #080b14;
+      --card: #111524;
+      --card2: #0d1021;
+      --border: #1c2138;
+      --primary: #6366f1;
+      --primary-light: rgba(99,102,241,0.15);
+      --primary-hover: #818cf8;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --success: #10b981;
+      --success-light: rgba(16,185,129,0.1);
+      --danger: #ef4444;
+      --danger-light: rgba(239,68,68,0.1);
+      --warning: #f59e0b;
+      --warning-light: rgba(245,158,11,0.1);
+      --cyan: #06b6d4;
+      --cyan-light: rgba(6,182,212,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .hero {
+      background: linear-gradient(135deg, #1a1c3a 0%, #2d2f6e 50%, #3730a3 100%);
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h1 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .hero p { color: var(--muted); font-size: 0.8rem; }
+    .hero .badges { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+    }
+    .badge-primary { background: var(--primary-light); color: var(--primary-hover); border: 1px solid rgba(99,102,241,0.3); }
+    .badge-cyan { background: var(--cyan-light); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+    .badge-success { background: var(--success-light); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+    .section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .section-header {
+      display: flex; align-items: center; gap: 10px; padding: 13px 16px;
+      cursor: pointer; border-bottom: 1px solid var(--border); user-select: none;
+    }
+    .section-header:hover { background: rgba(255,255,255,0.02); }
+    .section-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+    }
+    .section-title { font-weight: 600; font-size: 0.88rem; flex: 1; }
+    .section-chevron { color: var(--muted); transition: transform 0.2s; font-size: 11px; }
+    .section.collapsed .section-chevron { transform: rotate(-90deg); }
+    .section-body { padding: 14px 16px; }
+    .section.collapsed .section-body { display: none; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tab {
+      display: flex; align-items: center; gap: 6px; padding: 7px 14px;
+      border-radius: 8px; border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; font-size: 0.82rem; font-weight: 500;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .tab:hover { border-color: rgba(99,102,241,0.4); color: var(--text); }
+    .tab.active { background: var(--primary-light); border-color: rgba(99,102,241,0.5); color: var(--primary-hover); }
+    .step { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .step-header { display: flex; align-items: flex-start; gap: 10px; padding: 11px 13px; cursor: pointer; }
+    .step-header:hover { background: rgba(255,255,255,0.025); }
+    .step-num {
+      width: 24px; height: 24px; border-radius: 50%; background: var(--primary-light);
+      border: 1px solid rgba(99,102,241,0.3); color: var(--primary-hover);
+      font-size: 0.68rem; font-weight: 700; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+    .step-text { flex: 1; font-size: 0.84rem; font-weight: 500; }
+    .step-content { padding: 0 13px 12px 47px; }
+    .checklist { display: flex; flex-direction: column; gap: 7px; }
+    .check-item {
+      display: flex; align-items: flex-start; gap: 9px; cursor: pointer;
+      padding: 7px 9px; border-radius: 7px; border: 1px solid transparent; transition: all 0.15s;
+    }
+    .check-item:hover { background: rgba(255,255,255,0.03); border-color: var(--border); }
+    .check-item.checked { background: rgba(16,185,129,0.06); border-color: rgba(16,185,129,0.2); }
+    .check-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+    .check-label { font-size: 0.82rem; line-height: 1.5; }
+    .check-item.checked .check-label { color: var(--muted); text-decoration: line-through; }
+    .question-item {
+      padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: 7px; display: flex; align-items: flex-start; gap: 9px;
+    }
+    .q-num {
+      width: 20px; height: 20px; border-radius: 50%; background: var(--cyan-light);
+      border: 1px solid rgba(6,182,212,0.2); color: var(--cyan); font-size: 0.65rem;
+      font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+    }
+    .q-text { font-size: 0.82rem; flex: 1; }
+    .q-hint { font-size: 0.74rem; color: var(--muted); font-style: italic; margin-top: 3px; }
+    .copy-btn {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 9px 13px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--card2); cursor: pointer; margin-bottom: 7px; transition: all 0.15s;
+      width: 100%; font-family: inherit;
+    }
+    .copy-btn:hover { border-color: rgba(99,102,241,0.4); background: var(--primary-light); }
+    .copy-btn-text { font-size: 0.81rem; color: var(--text); flex: 1; text-align: left; }
+    .copy-icon {
+      width: 22px; height: 22px; border-radius: 5px; background: rgba(99,102,241,0.15);
+      display: flex; align-items: center; justify-content: center; font-size: 11px;
+      flex-shrink: 0; color: var(--primary-hover);
+    }
+    .copy-btn.copied { border-color: rgba(16,185,129,0.4); background: var(--success-light); }
+    .copy-btn.copied .copy-icon { background: rgba(16,185,129,0.15); color: var(--success); }
+    .criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .criteria-grid { grid-template-columns: 1fr; } }
+    .criteria-card { padding: 12px; border-radius: 8px; border: 1px solid; }
+    .criteria-card.resolve { border-color: rgba(16,185,129,0.2); background: var(--success-light); }
+    .criteria-card.escalate { border-color: rgba(239,68,68,0.2); background: var(--danger-light); }
+    .criteria-card h4 { font-size: 0.79rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .criteria-card.resolve h4 { color: var(--success); }
+    .criteria-card.escalate h4 { color: var(--danger); }
+    .criteria-card ul { list-style: none; padding: 0; }
+    .criteria-card ul li { font-size: 0.77rem; color: var(--muted); padding: 2px 0; display: flex; gap: 6px; align-items: flex-start; }
+    .criteria-card ul li::before { content: '•'; flex-shrink: 0; }
+    .criteria-card.resolve ul li::before { color: var(--success); }
+    .criteria-card.escalate ul li::before { color: var(--danger); }
+    .qual-form { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 10px; }
+    @media (max-width: 600px) { .qual-form { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.73rem; color: var(--muted); font-weight: 500; }
+    .form-group input, .form-group select, .form-group textarea {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); padding: 7px 9px; font-size: 0.81rem; font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: rgba(99,102,241,0.5); }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .form-group textarea { resize: vertical; min-height: 65px; }
+    .form-group select option { background: var(--card2); }
+    .actions-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .action-pill {
+      display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+      border-radius: 20px; border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; font-size: 0.71rem; font-weight: 500;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .action-pill:hover { border-color: rgba(99,102,241,0.3); color: var(--text); }
+    .action-pill.active { background: var(--primary-light); border-color: rgba(99,102,241,0.4); color: var(--primary-hover); }
+    .generate-btn {
+      width: 100%; padding: 10px; background: var(--primary); border: none;
+      border-radius: 8px; color: white; font-size: 0.84rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: background 0.15s; margin-top: 8px;
+    }
+    .generate-btn:hover { background: #4f46e5; }
+    .output-box {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; font-size: 0.79rem; font-family: 'Courier New', monospace;
+      white-space: pre-wrap; color: var(--text); margin-top: 10px; max-height: 280px;
+      overflow-y: auto; display: none;
+    }
+    .output-box.visible { display: block; }
+    .copy-output-btn {
+      width: 100%; padding: 8px; background: transparent;
+      border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; color: var(--success);
+      font-size: 0.79rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all 0.15s; margin-top: 6px; display: none;
+    }
+    .copy-output-btn.visible { display: block; }
+    .copy-output-btn:hover { background: var(--success-light); }
+    .alert {
+      padding: 9px 13px; border-radius: 8px; font-size: 0.79rem; margin-bottom: 9px;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .alert-warning { background: var(--warning-light); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; }
+    .alert-info { background: var(--cyan-light); border: 1px solid rgba(6,182,212,0.3); color: var(--cyan); }
+    .sub-section { margin-top: 9px; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.015); }
+    .sub-section h5 { font-size: 0.78rem; font-weight: 600; color: var(--primary-hover); margin-bottom: 7px; }
+    .situation-panel { display: none; }
+    .situation-panel.active { display: block; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 11px 0; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2d3155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🌐 N1 – Réseau – Prise en charge des incidents</h1>
+  <p>Guide interactif de diagnostic réseau pour le support N1</p>
+  <div class="badges">
+    <span class="badge badge-primary">N1</span>
+    <span class="badge badge-cyan">Réseau</span>
+    <span class="badge badge-success">v1.0 — 13/04/2026</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Réponses prédéfinies -->
+  <div class="section" id="sec-reponses">
+    <div class="section-header" onclick="toggleSection('sec-reponses')">
+      <div class="section-icon" style="background:rgba(99,102,241,0.1);color:#818cf8;">📋</div>
+      <span class="section-title">Réponses prédéfinies disponibles</span>
+      <span class="section-chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:0.77rem;color:var(--muted);margin-bottom:11px;">Cliquer pour copier dans le presse-papiers :</p>
+      <div id="reponses-list"></div>
+    </div>
+  </div>
+
+  <!-- Questions de qualification -->
+  <div class="section" id="sec-questions">
+    <div class="section-header" onclick="toggleSection('sec-questions')">
+      <div class="section-icon" style="background:rgba(6,182,212,0.1);color:#06b6d4;">❓</div>
+      <span class="section-title">Questions de qualification</span>
+      <span class="section-chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="alert alert-info">
+        <span>ℹ️</span>
+        <span>Poser les questions dans cet ordre, sans sauter d'étape.</span>
+      </div>
+      <div id="questions-list"></div>
+    </div>
+  </div>
+
+  <!-- Actions N1 -->
+  <div class="section" id="sec-actions">
+    <div class="section-header" onclick="toggleSection('sec-actions')">
+      <div class="section-icon" style="background:rgba(249,115,22,0.1);color:#fb923c;">⚡</div>
+      <span class="section-title">Actions N1 — Diagnostic guidé</span>
+      <span class="section-chevron">▼</span>
+    </div>
+    <div class="section-body">
+
+      <div class="tabs">
+        <button class="tab active" onclick="selectSituation('general', this)">🔍 Vérification générale</button>
+        <button class="tab" onclick="selectSituation('wifi', this)">📶 Cas Wi-Fi</button>
+        <button class="tab" onclick="selectSituation('cable', this)">🔌 Cas câble réseau</button>
+        <button class="tab" onclick="selectSituation('domaine', this)">🏢 Domaine / entité</button>
+      </div>
+
+      <!-- Étapes A+B -->
+      <div class="situation-panel active" id="panel-general">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">A</div>
+            <div class="step-text">Étape A — Vérification générale</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Plusieurs utilisateurs impactés ? → suspecter incident général ou local site/réseau. Vérifier infos côté SPOC support Actual avant de poursuivre.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Un seul utilisateur impacté → poursuivre le diagnostic du poste.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">L'utilisateur a changé de bureau/étage/agence/entité récemment ? → vérifier qu'il tente de se connecter au bon réseau correspondant à son site et son entité.</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">B</div>
+            <div class="step-text">Étape B — Contrôle de base du poste</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Wi-Fi désactivé ou mode avion actif ? → demander d'activer le Wi-Fi / désactiver le mode avion.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Vérifier que le câble est bien enfoncé (côté poste ET côté prise murale).</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Tester une autre prise murale et un autre câble si disponible.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Faire les màj système + redémarrer le poste.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)">
+                <span class="check-label">Si le réseau revient après vérification → valider l'accès et passer l'incident au statut résolu.</span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape C: Wi-Fi -->
+      <div class="situation-panel" id="panel-wifi">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">C1</div>
+            <div class="step-text">Aucun réseau Wi-Fi n'apparaît</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Désactiver puis réactiver le Wi-Fi</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Quitter le mode avion si actif</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Se déplacer de quelques mètres si possible</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Redémarrer le poste si l'utilisateur peut le faire immédiatement</span></label>
+            </div>
+            <div class="sub-section">
+              <h5>Après redémarrage — si toujours aucun réseau</h5>
+              <div class="checklist">
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Pilote Wi-Fi à réinstaller (si rentre dans le temps de traitement)</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Couverture locale limitée → Sans résolution : <strong>escalader</strong></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">C2</div>
+            <div class="step-text">Des réseaux Wi-Fi apparaissent</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Demander quel réseau est disponible et lequel est normalement utilisé</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Le bon réseau (de l'entité) n'apparaît pas → confirmer le site exact, demander si seuls des réseaux invités/publics/autres entités sont visibles</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Routeur 4G/5G utilisé → tester N1 - Routeur 4G-5G - Diagnostiquer</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Seul réseau non conforme visible → suspicion mauvaise couverture/SSID/incident infra → <strong>escalader</strong></span></label>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">C3</div>
+            <div class="step-text">Le bon Wi-Fi apparaît mais la connexion échoue</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Oublier le réseau concerné</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Se reconnecter au bon réseau</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Ressaisir les identifiants si demandés</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Vérifier que l'utilisateur utilise bien le compte attendu pour son domaine</span></label>
+            </div>
+            <div class="sub-section">
+              <h5>Message d'erreur (mdp incorrect / accès refusé / certificat)</h5>
+              <div class="checklist">
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Vérifier l'entité/domaine de l'utilisateur</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Vérifier le format de l'identifiant utilisé</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Docs liés : N1 – Identifier l'entité et le poste | N1 - Qualys - Utilisation pour les diagnostics</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">C4</div>
+            <div class="step-text">Wi-Fi connecté mais accès ne fonctionne pas</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Ouvrir un site internet courant</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Ouvrir une ressource interne connue (ex : doc dans un lecteur réseau)</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Déconnecter puis reconnecter le Wi-Fi</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Désactiver puis réactiver le Wi-Fi</span></label>
+            </div>
+            <div class="sub-section">
+              <h5>Tests ping (si possible)</h5>
+              <div class="checklist">
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Ping passerelle par défaut → valider connectivité locale</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Ping IP serveur DNS interne → valider accès LAN</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Ping 8.8.8.8 → valider accès Internet (hors résolution DNS)</span></label>
+              </div>
+            </div>
+            <div class="alert alert-warning" style="margin-top:9px;">
+              <span>⚠️</span>
+              <span>Internet OK mais ressources internes KO → orienter vers domaine, droits, VPN. Ni internet ni ressources → redémarrer. Si ça persiste sur le bon Wi-Fi → <strong>escalader</strong>.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape D: Câble -->
+      <div class="situation-panel" id="panel-cable">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">D1</div>
+            <div class="step-text">Le câble est branché mais rien ne se passe</div>
+          </div>
+          <div class="step-content">
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Rebrancher le câble (côté poste et côté prise murale)</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Tester un autre câble si disponible</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Tester une autre prise murale si disponible</span></label>
+            </div>
+            <div class="sub-section">
+              <h5>Selon la suspicion</h5>
+              <div class="checklist">
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Poste suspecté → pilote carte réseau à réinstaller (si rentre dans le temps)</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Câble suspecté → inviter l'utilisateur à se procurer un autre câble (petit matériel achetable)</span></label>
+                <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Prise suspectée → vérifier câble débranché sur switch/baie de brassage, appareil éteint. Demander photo de la baie à ajouter au ticket. Escalade selon matrice.</span></label>
+              </div>
+            </div>
+            <div class="alert alert-warning" style="margin-top:9px;">
+              <span>⚠️</span>
+              <span>Si c'est une prise <strong>électrique</strong> murale → le site fait intervenir un électricien.</span>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">D2</div>
+            <div class="step-text">Un réseau apparaît au branchement</div>
+          </div>
+          <div class="step-content">
+            <p style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;">Demander : « Lors du branchement du câble réseau, quel réseau apparaît ? »</p>
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Réseau = site/entité/usage attendu → faire tester l'accès à un site internet courant et une application SaaS ou ressource métier.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Réseau ≠ attendu → confirmer emplacement/nom exact de la prise, vérifier si changement bureau/salle/bâtiment.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Mauvais réseau persistant → <strong>escalader</strong></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape E: Domaine -->
+      <div class="situation-panel" id="panel-domaine">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">E</div>
+            <div class="step-text">Étape E — Cas domaine / entité</div>
+          </div>
+          <div class="step-content">
+            <div class="alert alert-info">
+              <span>ℹ️</span>
+              <span>Utilisateur hésite sur le bon réseau parmi ceux visibles</span>
+            </div>
+            <div class="checklist">
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Demander : quelle est votre entité ?</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Demander : quel est votre domaine habituel ?</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Demander : sur quel site êtes-vous ?</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Réseau utilisé ≠ celui prévu pour l'entité/site → faire basculer sur le bon réseau et refaire un test d'accès.</span></label>
+              <label class="check-item"><input type="checkbox" onchange="toggleCheck(this)"><span class="check-label">Correspondance entité/domaine/réseau incertaine → <strong>escalader</strong></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Critères de sortie -->
+  <div class="section" id="sec-criteres">
+    <div class="section-header" onclick="toggleSection('sec-criteres')">
+      <div class="section-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">✅</div>
+      <span class="section-title">Critères de sortie</span>
+      <span class="section-chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="criteria-grid">
+        <div class="criteria-card resolve">
+          <h4>✅ Incident résolu si...</h4>
+          <ul>
+            <li>L'utilisateur est connecté au bon réseau pour son site / entité</li>
+            <li>Un test simple d'accès fonctionne</li>
+            <li>L'utilisateur confirme que son usage normal est rétabli</li>
+          </ul>
+        </div>
+        <div class="criteria-card escalate">
+          <h4>🔺 Escalader au N2 si...</h4>
+          <ul>
+            <li>Plusieurs utilisateurs sont impactés</li>
+            <li>Aucun réseau Wi-Fi n'apparaît après vérifications et redémarrage</li>
+            <li>Le bon Wi-Fi n'apparaît pas sur le site concerné</li>
+            <li>Mauvais réseau persistant en Wi-Fi ou en câble</li>
+            <li>Accès impossibles après reconnexion et redémarrage</li>
+            <li>Doute sur correspondance réseau/domaine/entité/site</li>
+            <li>Suspicion prise murale, switch, brassage, borne Wi-Fi ou config infra</li>
+            <li>Diagnostic dépasse 10 min sans retour à la normale</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Générateur de note -->
+  <div class="section" id="sec-qual">
+    <div class="section-header" onclick="toggleSection('sec-qual')">
+      <div class="section-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">📝</div>
+      <span class="section-title">Qualification générique — Générateur de note ticket</span>
+      <span class="section-chevron">▼</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:0.77rem;color:var(--muted);margin-bottom:11px;">Remplir les champs puis générer la note à coller dans Freshservice :</p>
+      <div class="qual-form">
+        <div class="form-group"><label>Nom de l'utilisateur</label><input type="text" id="q-nom" placeholder="Prénom Nom"></div>
+        <div class="form-group"><label>Contact</label><input type="text" id="q-contact" placeholder="Téléphone / email"></div>
+        <div class="form-group"><label>Site</label><input type="text" id="q-site" placeholder="ex: Paris, Lyon..."></div>
+        <div class="form-group"><label>Bureau</label><input type="text" id="q-bureau" placeholder="ex: Étage 3, Salle 12"></div>
+        <div class="form-group"><label>Entité / Domaine</label><input type="text" id="q-entite" placeholder="ex: ACME / corp.local"></div>
+        <div class="form-group"><label>Depuis (heure/date)</label><input type="text" id="q-depuis" placeholder="ex: ce matin, 14h"></div>
+        <div class="form-group">
+          <label>Périmètre impact</label>
+          <select id="q-impact">
+            <option value="Seul">Utilisateur seul impacté</option>
+            <option value="Plusieurs">Plusieurs utilisateurs impactés</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Type de connexion</label>
+          <select id="q-type">
+            <option value="Wi-Fi">Wi-Fi</option>
+            <option value="Câble">Câble réseau</option>
+            <option value="Les deux">Wi-Fi et câble</option>
+          </select>
+        </div>
+        <div class="form-group full-width"><label>Réseaux Wi-Fi visibles</label><input type="text" id="q-reseaux" placeholder="ex: CORP_ACME, Guest_ACME, ..."></div>
+        <div class="form-group full-width"><label>Réseau au branchement câble</label><input type="text" id="q-cable-reseau" placeholder="ex: VLAN_ACME_PARIS"></div>
+        <div class="form-group full-width"><label>Message d'erreur observé</label><input type="text" id="q-erreur" placeholder="ex: Accès refusé, mdp incorrect..."></div>
+      </div>
+      <p style="font-size:0.77rem;color:var(--muted);margin-bottom:7px;">Actions N1 réalisées (cliquer pour sélectionner) :</p>
+      <div class="actions-list" id="actions-pills"></div>
+      <hr class="divider">
+      <div class="qual-form">
+        <div class="form-group full-width"><label>Résultats des tests</label><textarea id="q-resultats" placeholder="ex: Internet fonctionne / ressources internes KO / ping 8.8.8.8 OK..."></textarea></div>
+        <div class="form-group full-width"><label>Motif d'escalade</label><input type="text" id="q-escalade" placeholder="ex: Suspicion de mauvais VLAN, non résolu après actions N1"></div>
+      </div>
+      <button class="generate-btn" onclick="generateQual()">Générer la note de qualification</button>
+      <div class="output-box" id="qual-output"></div>
+      <button class="copy-output-btn" id="copy-qual-btn" onclick="copyOutput()">Copier dans le presse-papiers</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const REPONSES = [
+    "Réseau – lenteurs sur poste",
+    "Réseau – lenteurs sur l'ensemble du site",
+    "Réseau – lenteurs réseaux sur routeur 4G/5G",
+    "Réseau – plus d'accès internet sur un poste",
+    "Réseau – plus d'accès internet sur l'ensemble du site",
+    "Réseau – plus d'accès WIFI sur l'ensemble du site",
+  ];
+
+  const QUESTIONS = [
+    { q: "Quelle est la situation rencontrée ?", hint: "Pas de Wi-Fi ? Wi-Fi connecté mais pas d'accès ? câble branché mais pas de réseau ? lenteur, coupure intermittente ?" },
+    { q: "Êtes-vous le seul impacté ou d'autres personnes autour de vous ont le même incident ?" },
+    { q: "Depuis quand la situation existe-t-elle ?" },
+    { q: "Êtes-vous sur site, en agence, en salle de réunion, à domicile ?" },
+    { q: "Quelle est votre entité ?" },
+    { q: "Êtes-vous habituellement connecté en Wi-Fi ou avec un câble réseau ?" },
+    { q: "Quel réseau Wi-Fi est disponible ?", hint: "Faire lire exactement à l'utilisateur les noms visibles." },
+    { q: "Lors du branchement du câble réseau, quel réseau apparaît ?", hint: "Faire lire exactement le nom affiché, ou demander ce qui change à l'écran." },
+    { q: "L'incident concerne-t-il uniquement ce poste ou également votre téléphone professionnel / un autre poste ?" },
+  ];
+
+  const ACTIONS = [
+    "Wi-Fi vérifié", "Mode avion contrôlé", "Oubli/reconnexion réseau",
+    "Câble rebranché", "Test autre port/câble", "Redémarrage poste",
+    "Test internet", "Test ressource interne", "Ping passerelle",
+    "Ping DNS interne", "Ping 8.8.8.8", "Pilote réinstallé",
+  ];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initReponses();
+    initQuestions();
+    initActionsPills();
+  });
+
+  function initReponses() {
+    const c = document.getElementById('reponses-list');
+    REPONSES.forEach(r => {
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.innerHTML = '<span class="copy-btn-text">' + r + '</span><span class="copy-icon">📋</span>';
+      btn.onclick = () => copyText(r, btn);
+      c.appendChild(btn);
+    });
+  }
+
+  function initQuestions() {
+    const c = document.getElementById('questions-list');
+    QUESTIONS.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = 'question-item';
+      div.innerHTML =
+        '<div class="q-num">' + (i + 1) + '</div>' +
+        '<div><div class="q-text">' + item.q + '</div>' +
+        (item.hint ? '<div class="q-hint">' + item.hint + '</div>' : '') +
+        '</div>';
+      c.appendChild(div);
+    });
+  }
+
+  function initActionsPills() {
+    const c = document.getElementById('actions-pills');
+    ACTIONS.forEach(a => {
+      const btn = document.createElement('button');
+      btn.className = 'action-pill';
+      btn.textContent = a;
+      btn.dataset.action = a;
+      btn.onclick = () => btn.classList.toggle('active');
+      c.appendChild(btn);
+    });
+  }
+
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  function selectSituation(name, el) {
+    document.querySelectorAll('.situation-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    el.classList.add('active');
+  }
+
+  function toggleCheck(checkbox) {
+    checkbox.closest('.check-item').classList.toggle('checked', checkbox.checked);
+  }
+
+  function copyText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      const icon = btn.querySelector('.copy-icon');
+      btn.classList.add('copied');
+      icon.textContent = '✓';
+      setTimeout(() => { btn.classList.remove('copied'); icon.textContent = '📋'; }, 1500);
+    });
+  }
+
+  function generateQual() {
+    const get = id => document.getElementById(id).value.trim() || '—';
+    const selectedActions = Array.from(document.querySelectorAll('.action-pill.active')).map(b => b.dataset.action);
+    const erreur = get('q-erreur');
+
+    const note = '=== QUALIFICATION RÉSEAU ===\n\n' +
+      'Utilisateur :\n' +
+      '• Nom : ' + get('q-nom') + '\n' +
+      '• Contact : ' + get('q-contact') + '\n' +
+      '• Site : ' + get('q-site') + ' — Bureau : ' + get('q-bureau') + '\n' +
+      '• Entité / Domaine : ' + get('q-entite') + '\n\n' +
+      'Incident :\n' +
+      '• Perte d\'accès réseau (' + get('q-type') + ') depuis ' + get('q-depuis') + '.\n' +
+      '• ' + document.getElementById('q-impact').value + '.\n\n' +
+      'Constat :\n' +
+      '• Réseaux Wi-Fi visibles : ' + get('q-reseaux') + '\n' +
+      '• Au branchement du câble, réseau affiché : ' + get('q-cable-reseau') + '\n\n' +
+      'Actions N1 réalisées :\n' +
+      (selectedActions.length > 0 ? selectedActions.map(a => '• ' + a).join('\n') : '• (aucune sélectionnée)') + '\n\n' +
+      'Résultats :\n' +
+      get('q-resultats') +
+      (erreur !== '—' ? '\n• Message observé : ' + erreur : '') + '\n\n' +
+      'Motif d\'escalade :\n' +
+      get('q-escalade');
+
+    const output = document.getElementById('qual-output');
+    output.textContent = note;
+    output.classList.add('visible');
+    document.getElementById('copy-qual-btn').classList.add('visible');
+  }
+
+  function copyOutput() {
+    const text = document.getElementById('qual-output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-qual-btn');
+      btn.textContent = '✓ Copié !';
+      setTimeout(() => { btn.textContent = 'Copier dans le presse-papiers'; }, 1500);
+    });
+  }
+</script>
+</body>
+</html>
