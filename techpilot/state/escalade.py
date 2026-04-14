@@ -15,7 +15,7 @@ PROCEDURE_MAP: dict[tuple[str, str], list[str]] = {
         "Collecter avant escalade : nom agence, code agence, heure de début, nb utilisateurs, modèle routeur.",
         "Escalader à Support DSI Exploitation avec ces infos. Indiquer BT-Blue si réseau opérateur BT.",
     ],
-    ("Réseau", "Lenteurs poste"): [
+    ("Réseau", "Lenteurs réseau sur un poste"): [
         "Récupérer le nom du poste : clic droit sur « Ce PC » > Propriétés, ou taper hostname en cmd.",
         "Ouvrir le Gestionnaire des tâches (Ctrl+Shift+Esc) > onglet Performances.",
         "Capturer une screenshot : CPU %, RAM utilisée (Go), Disque à 100 % ?",
@@ -194,9 +194,20 @@ class EscaladeState(rx.State):
         self.page = p
         self._filter()
 
+    @staticmethod
+    def _find_procedure(perimetre: str, typologie: str) -> list[str]:
+        """Exact match d'abord, puis sous-chaîne insensible à la casse."""
+        exact = PROCEDURE_MAP.get((perimetre, typologie), [])
+        if exact:
+            return exact
+        t_lower = typologie.lower()
+        for (p, t), steps in PROCEDURE_MAP.items():
+            if p == perimetre and (t.lower() in t_lower or t_lower in t.lower()):
+                return steps
+        return []
+
     def open_entry(self, entry: EscaladeEntry):
-        key = (entry.perimetre, entry.typologie)
-        steps = PROCEDURE_MAP.get(key, [])
+        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie)
         self.selected_entry = EscaladeEntry(
             perimetre=entry.perimetre,
             typologie=entry.typologie,
@@ -224,8 +235,7 @@ class EscaladeState(rx.State):
             self.favoris = [*self.favoris, self.selected_entry]
 
     def open_favori(self, entry: EscaladeEntry):
-        key = (entry.perimetre, entry.typologie)
-        steps = PROCEDURE_MAP.get(key, [])
+        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie)
         self.selected_entry = EscaladeEntry(
             perimetre=entry.perimetre,
             typologie=entry.typologie,
