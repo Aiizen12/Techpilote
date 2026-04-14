@@ -7,6 +7,7 @@ import reflex as rx
 from jose import JWTError, jwt
 
 from techpilot.db.database import load_db, save_db
+from techpilot.db.activity import log_activity
 
 JWT_SECRET = os.getenv("JWT_SECRET", "techpilot-jwt-secret-fallback")
 JWT_ALGORITHM = "HS256"
@@ -106,6 +107,7 @@ class AuthState(rx.State):
                 ok = password == DEFAULT_MANAGER_PASSWORD
             if not ok:
                 self.login_error = "Mot de passe incorrect"
+                log_activity("manager", "LOGIN_FAIL", "auth", "Mot de passe incorrect")
                 return
             self.token = _make_token("manager", "manager", "Responsable")
             self.user_id = "manager"
@@ -113,6 +115,7 @@ class AuthState(rx.State):
             self.user_nom = "Responsable"
             self.require_password_change = require_change
             self.login_password = ""
+            log_activity("Responsable", "LOGIN", "auth", "Connexion manager")
             return rx.redirect("/dashboard")
 
         tech = next(
@@ -124,12 +127,14 @@ class AuthState(rx.State):
         )
         if not tech:
             self.login_error = "Utilisateur non trouvé"
+            log_activity(user_id, "LOGIN_FAIL", "auth", "Utilisateur non trouvé")
             return
         if not tech.get("password_hash"):
             self.login_error = "Aucun mot de passe défini. Contactez votre responsable."
             return
         if not _verify(password, tech["password_hash"], tech["password_salt"]):
             self.login_error = "Mot de passe incorrect"
+            log_activity(tech.get("nom", user_id), "LOGIN_FAIL", "auth", "Mot de passe incorrect")
             return
 
         self.token = _make_token(str(tech["id"]), "tech", tech.get("nom", ""))
@@ -137,9 +142,11 @@ class AuthState(rx.State):
         self.user_role = "tech"
         self.user_nom = tech.get("nom", "")
         self.login_password = ""
+        log_activity(tech.get("nom", ""), "LOGIN", "auth", "Connexion technicien")
         return rx.redirect("/dashboard")
 
     def logout(self):
+        log_activity(self.user_nom or "?", "LOGOUT", "auth", "Déconnexion")
         self.token = ""
         self.user_id = ""
         self.user_role = ""

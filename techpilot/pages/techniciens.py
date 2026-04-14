@@ -2,6 +2,8 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import TechnicienItem
+from techpilot.state.auth import AuthState
+from techpilot.db.activity import log_activity
 import uuid
 import secrets
 import hashlib
@@ -55,7 +57,8 @@ class TechniciensState(rx.State):
     def set_field(self, f: str, v: str):
         self.form = {**self.form, f: v}
 
-    def save(self):
+    async def save(self):
+        auth = await self.get_state(AuthState)
         db = load_db()
         new_password = self.form.get("new_password", "").strip()
         fields = {k: v for k, v in self.form.items() if k != "new_password"}
@@ -69,6 +72,7 @@ class TechniciensState(rx.State):
                     h = hashlib.pbkdf2_hmac("sha512", new_password.encode(), salt.encode(), 100000, dklen=64).hex()
                     db["technicians"][idx]["password_hash"] = h
                     db["technicians"][idx]["password_salt"] = salt
+                log_activity(auth.user_nom, "UPDATE", "technicien", f"Modifié: {fields.get('nom', self.edit_id)}")
         else:
             new_tech = {"id": str(uuid.uuid4()), **fields, "active": True, "permissions": {}}
             if new_password:
@@ -77,16 +81,20 @@ class TechniciensState(rx.State):
                 new_tech["password_hash"] = h
                 new_tech["password_salt"] = salt
             db["technicians"].append(new_tech)
+            log_activity(auth.user_nom, "CREATE", "technicien", f"Créé: {fields.get('nom', '')}")
 
         save_db(db)
         self.show_form = False
         self.load()
 
-    def toggle_active(self, tid: str):
+    async def toggle_active(self, tid: str):
+        auth = await self.get_state(AuthState)
         db = load_db()
         for t in db["technicians"]:
             if str(t.get("id")) == tid:
                 t["active"] = not t.get("active", True)
+                new_status = "activé" if t["active"] else "désactivé"
+                log_activity(auth.user_nom, "UPDATE", "technicien", f"{t.get('nom', tid)} {new_status}")
         save_db(db)
         self.load()
 

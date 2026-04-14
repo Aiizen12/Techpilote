@@ -2,6 +2,8 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import TicketItem
+from techpilot.state.auth import AuthState
+from techpilot.db.activity import log_activity
 import uuid
 import base64
 from datetime import datetime
@@ -101,15 +103,17 @@ class TicketsState(rx.State):
                 nom = t.get("nom") or ""
         self.form = {**self.form, "technicien_id": tid, "technicien_nom": nom}
 
-    def create(self):
+    async def create(self):
         if not self.form.get("titre"):
             return
+        auth = await self.get_state(AuthState)
         db = load_db()
         if "tickets" not in db:
             db["tickets"] = []
+        titre = self.form.get("titre", "")
         db["tickets"].append({
             "id": str(uuid.uuid4()),
-            "titre":          self.form.get("titre", ""),
+            "titre":          titre,
             "ticket_pere":    self.form.get("ticket_pere", ""),
             "description":    self.form.get("description", ""),
             "impact":         self.form.get("impact", "normale"),
@@ -123,23 +127,30 @@ class TicketsState(rx.State):
             "date_resolution":    None,
         })
         save_db(db)
+        log_activity(auth.user_nom, "CREATE", "ticket", f"Incident: {titre}")
         self.show_form = False
         self.load()
 
-    def resolve(self, tid: str):
+    async def resolve(self, tid: str):
+        auth = await self.get_state(AuthState)
         db = load_db()
         for t in db.get("tickets") or []:
             if t.get("id") == tid:
                 t["etat"] = "resolu"
                 t["date_resolution"]   = datetime.utcnow().isoformat()
                 t["date_modification"] = datetime.utcnow().isoformat()
+                log_activity(auth.user_nom, "UPDATE", "ticket", f"Résolu: {t.get('titre', tid[:8])}")
         save_db(db)
         self.load()
 
-    def delete(self, tid: str):
+    async def delete(self, tid: str):
+        auth = await self.get_state(AuthState)
         db = load_db()
+        ticket = next((t for t in (db.get("tickets") or []) if t.get("id") == tid), None)
         db["tickets"] = [t for t in (db.get("tickets") or []) if t.get("id") != tid]
         save_db(db)
+        if ticket:
+            log_activity(auth.user_nom, "DELETE", "ticket", f"Supprimé: {ticket.get('titre', tid[:8])}")
         self.load()
 
     def export_csv(self):
