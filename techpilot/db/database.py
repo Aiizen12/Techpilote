@@ -13,6 +13,8 @@ DEFAULT_DB = {
         {"id": "4", "nom": "Cédric",   "matricule": "518", "active": True, "permissions": {}},
         {"id": "5", "nom": "Thaïs",    "matricule": "432", "active": True, "permissions": {}},
         {"id": "6", "nom": "Alistair", "matricule": "556", "active": True, "permissions": {}},
+        {"id": "7", "nom": "Tiphaine", "matricule": "590", "active": True, "permissions": {}},
+        {"id": "8", "nom": "Sabrina",  "matricule": "",    "active": True, "permissions": {}},
     ],
     "planning": [],
     "astreintes": [
@@ -56,6 +58,18 @@ def init_db():
         _collection.insert_one({"_id": "main", **DEFAULT_DB})
         doc = _collection.find_one({"_id": "main"})
     _cache = {k: v for k, v in doc.items() if k != "_id"}
+
+    # Ajoute les techniciens du DEFAULT_DB manquants dans la DB existante
+    existing_ids = {str(t.get("id")) for t in _cache.get("technicians", [])}
+    missing = [t for t in DEFAULT_DB["technicians"] if str(t.get("id")) not in existing_ids]
+    if missing:
+        _cache.setdefault("technicians", []).extend(missing)
+        _collection.update_one(
+            {"_id": "main"},
+            {"$set": {"technicians": _cache["technicians"]}},
+        )
+        print(f"[DB] Techniciens ajoutés : {[t['nom'] for t in missing]}")
+
     print(f"[DB] MongoDB connecté — {len(_cache.get('technicians', []))} techniciens")
 
 
