@@ -12,7 +12,7 @@ CARD_BG = "#111524"
 BORDER  = "#1c2138"
 PRIMARY = "#6366f1"
 
-TECH_NAMES = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Alistair"]
+TECH_NAMES = ["Bastian", "Adrien", "Mirgaël", "Cédric", "Thaïs", "Tiphaine", "Sabrina", "Alistair"]
 
 COLOR_MATRIX  = "#9333ea"
 COLOR_PLANNING = "#059669"
