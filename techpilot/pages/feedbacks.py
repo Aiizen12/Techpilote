@@ -134,7 +134,7 @@ def feedback_card(f: FeedbackItem) -> rx.Component:
                     rx.select(
                         STATUTS, value=f["statut"],
                         on_change=lambda v: FeedbacksState.update_statut(f["id"], v),
-                        background="#1c2138", color=TEXT, border=f"1px solid {BORDER}",
+                        background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}",
                         border_radius="6px", font_size="0.75rem", width="110px",
                     ),
                 ),
@@ -149,7 +149,7 @@ def feedback_card(f: FeedbackItem) -> rx.Component:
 def feedbacks_content() -> rx.Component:
     return rx.vstack(
         rx.hstack(
-            rx.select(STATUTS, placeholder="Tous les statuts", value=FeedbacksState.filter_statut, on_change=FeedbacksState.set_filter, background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.select(STATUTS, placeholder="Tous les statuts", value=FeedbacksState.filter_statut, on_change=FeedbacksState.set_filter, background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px"),
             rx.cond(
                 FeedbacksState.filter_statut != "",
                 rx.icon_button(rx.icon("x", size=14), on_click=FeedbacksState.clear_filter, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", size="2", cursor="pointer", _hover={"color": TEXT}),
@@ -163,11 +163,11 @@ def feedbacks_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouveau feedback", color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Titre *", value=FeedbacksState.form["titre"], on_change=lambda v: FeedbacksState.set_field("titre", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.text_area(placeholder="Description", value=FeedbacksState.form["description"], on_change=lambda v: FeedbacksState.set_field("description", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Titre *", value=FeedbacksState.form["titre"], on_change=lambda v: FeedbacksState.set_field("titre", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.text_area(placeholder="Description", value=FeedbacksState.form["description"], on_change=lambda v: FeedbacksState.set_field("description", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.hstack(
-                        rx.select(TYPES, value=FeedbacksState.form["type"], on_change=lambda v: FeedbacksState.set_field("type", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
-                        rx.select(["basse", "normale", "haute", "critique"], value=FeedbacksState.form["priorite"], on_change=lambda v: FeedbacksState.set_field("priorite", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px"),
+                        rx.select(TYPES, value=FeedbacksState.form["type"], on_change=lambda v: FeedbacksState.set_field("type", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px"),
+                        rx.select(["basse", "normale", "haute", "critique"], value=FeedbacksState.form["priorite"], on_change=lambda v: FeedbacksState.set_field("priorite", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px"),
                         spacing="3", width="100%",
                     ),
                     rx.hstack(

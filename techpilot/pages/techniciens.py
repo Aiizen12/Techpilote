@@ -163,9 +163,9 @@ def techniciens_content() -> rx.Component:
             rx.dialog.content(
                 rx.dialog.title(rx.text(rx.cond(TechniciensState.edit_id != "", "Modifier le technicien", "Nouveau technicien"), color=TEXT, font_weight="700")),
                 rx.vstack(
-                    rx.input(placeholder="Nom *", value=TechniciensState.form["nom"], on_change=lambda v: TechniciensState.set_field("nom", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.input(placeholder="Matricule", value=TechniciensState.form["matricule"], on_change=lambda v: TechniciensState.set_field("matricule", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
-                    rx.input(placeholder="Email", value=TechniciensState.form["email"], on_change=lambda v: TechniciensState.set_field("email", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Nom *", value=TechniciensState.form["nom"], on_change=lambda v: TechniciensState.set_field("nom", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Matricule", value=TechniciensState.form["matricule"], on_change=lambda v: TechniciensState.set_field("matricule", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    rx.input(placeholder="Email", value=TechniciensState.form["email"], on_change=lambda v: TechniciensState.set_field("email", v), background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     # Séparateur mot de passe
                     rx.box(
                         rx.hstack(
