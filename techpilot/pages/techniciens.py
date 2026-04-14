@@ -3,6 +3,8 @@ from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import TechnicienItem
 import uuid
+import secrets
+import hashlib
 
 TEXT = "#f1f5f9"; MUTED = "#94a3b8"; CARD_BG = "#111524"; BORDER = "#1c2138"; PRIMARY = "#6366f1"
 
@@ -13,7 +15,7 @@ class TechniciensState(rx.State):
     technicians: list[TechnicienItem] = []
     show_form: bool = False
     edit_id: str = ""
-    form: dict = {"nom": "", "matricule": "", "email": "", "color": "#6366f1"}
+    form: dict = {"nom": "", "matricule": "", "email": "", "color": "#6366f1", "new_password": ""}
 
     def load(self):
         self.technicians = [
@@ -30,7 +32,7 @@ class TechniciensState(rx.State):
 
     def open_create(self):
         self.edit_id = ""
-        self.form = {"nom": "", "matricule": "", "email": "", "color": PRIMARY}
+        self.form = {"nom": "", "matricule": "", "email": "", "color": PRIMARY, "new_password": ""}
         self.show_form = True
 
     def open_edit(self, tech_id: str):
@@ -43,6 +45,7 @@ class TechniciensState(rx.State):
                 "matricule": tech.get("matricule", ""),
                 "email": tech.get("email", ""),
                 "color": tech.get("color", PRIMARY),
+                "new_password": "",
             }
             self.show_form = True
 
@@ -54,12 +57,27 @@ class TechniciensState(rx.State):
 
     def save(self):
         db = load_db()
+        new_password = self.form.get("new_password", "").strip()
+        fields = {k: v for k, v in self.form.items() if k != "new_password"}
+
         if self.edit_id:
             idx = next((i for i, t in enumerate(db["technicians"]) if str(t.get("id")) == self.edit_id), -1)
             if idx != -1:
-                db["technicians"][idx] = {**db["technicians"][idx], **self.form}
+                db["technicians"][idx] = {**db["technicians"][idx], **fields}
+                if new_password:
+                    salt = secrets.token_hex(16)
+                    h = hashlib.pbkdf2_hmac("sha512", new_password.encode(), salt.encode(), 100000, dklen=64).hex()
+                    db["technicians"][idx]["password_hash"] = h
+                    db["technicians"][idx]["password_salt"] = salt
         else:
-            db["technicians"].append({"id": str(uuid.uuid4()), **self.form, "active": True, "permissions": {}})
+            new_tech = {"id": str(uuid.uuid4()), **fields, "active": True, "permissions": {}}
+            if new_password:
+                salt = secrets.token_hex(16)
+                h = hashlib.pbkdf2_hmac("sha512", new_password.encode(), salt.encode(), 100000, dklen=64).hex()
+                new_tech["password_hash"] = h
+                new_tech["password_salt"] = salt
+            db["technicians"].append(new_tech)
+
         save_db(db)
         self.show_form = False
         self.load()
@@ -137,6 +155,37 @@ def techniciens_content() -> rx.Component:
                     rx.input(placeholder="Nom *", value=TechniciensState.form["nom"], on_change=lambda v: TechniciensState.set_field("nom", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.input(placeholder="Matricule", value=TechniciensState.form["matricule"], on_change=lambda v: TechniciensState.set_field("matricule", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
                     rx.input(placeholder="Email", value=TechniciensState.form["email"], on_change=lambda v: TechniciensState.set_field("email", v), background="#1c2138", color=TEXT, border=f"1px solid {BORDER}", border_radius="8px", width="100%"),
+                    # Séparateur mot de passe
+                    rx.box(
+                        rx.hstack(
+                            rx.divider(border_color=BORDER, flex="1"),
+                            rx.text("Mot de passe", color=MUTED, font_size="0.72rem",
+                                    font_weight="600", letter_spacing="0.05em", white_space="nowrap"),
+                            rx.divider(border_color=BORDER, flex="1"),
+                            spacing="2", align="center", width="100%",
+                        ),
+                    ),
+                    rx.input(
+                        placeholder=rx.cond(
+                            TechniciensState.edit_id != "",
+                            "Nouveau mot de passe (laisser vide = inchangé)",
+                            "Mot de passe",
+                        ),
+                        value=TechniciensState.form["new_password"],
+                        on_change=lambda v: TechniciensState.set_field("new_password", v),
+                        type="password",
+                        background="#1c2138", color=TEXT,
+                        border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                    ),
+                    rx.cond(
+                        TechniciensState.edit_id != "",
+                        rx.hstack(
+                            rx.icon("info", size=12, color=MUTED),
+                            rx.text("Laisser vide pour conserver le mot de passe actuel",
+                                    color=MUTED, font_size="0.72rem"),
+                            spacing="1", align="center",
+                        ),
+                    ),
                     rx.hstack(
                         rx.button("Annuler", on_click=TechniciensState.close, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button("Enregistrer", on_click=TechniciensState.save, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", cursor="pointer"),
