@@ -516,7 +516,7 @@ def _sheet_procedures() -> rx.Component:
                     },
                 ),
                 rx.select.content(
-                    rx.select.item("Tous", value=""),
+                    rx.select.item("Tous", value="_all"),
                     rx.foreach(
                         SuiviDocState.proc_perimetres,
                         lambda p: rx.select.item(p, value=p),
