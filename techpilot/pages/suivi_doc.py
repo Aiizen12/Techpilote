@@ -783,12 +783,46 @@ def _sheet_procedures() -> rx.Component:
     )
 
 
+# ── Contenu onglet (réutilisable dans Documents) ──────────────────────────────
+
+def suivi_tab_content() -> rx.Component:
+    """Contenu de l'onglet Suivi, sans page_layout — à intégrer dans documents_page."""
+    return rx.vstack(
+        # Sous-onglets
+        rx.hstack(
+            _tab_btn("Amélioration Desk",    "notebook-pen",  "amelioration"),
+            _tab_btn("Suivi des Procédures", "list-checks",   "procedures"),
+            spacing="2",
+        ),
+
+        # Contenu sous-onglet
+        rx.box(
+            rx.cond(
+                SuiviDocState.tab == "amelioration",
+                _sheet_amelioration(),
+                _sheet_procedures(),
+            ),
+            background="#0d1117",
+            border=f"1px solid {BORDER}",
+            border_radius="14px",
+            padding="1.25rem",
+            width="100%",
+        ),
+
+        # Modals
+        _form_modal(),
+        _confirm_delete_modal(),
+        _proc_form_modal(),
+
+        spacing="5", width="100%",
+    )
+
+
 # ── Page principale ────────────────────────────────────────────────────────────
 
 def suivi_doc_page() -> rx.Component:
     return page_layout(
         rx.vstack(
-            # Titre
             rx.hstack(
                 rx.vstack(
                     rx.hstack(
@@ -804,33 +838,7 @@ def suivi_doc_page() -> rx.Component:
                 ),
                 spacing="3", align="start", width="100%",
             ),
-
-            # Onglets
-            rx.hstack(
-                _tab_btn("Amélioration Desk",    "notebook-pen",  "amelioration"),
-                _tab_btn("Suivi des Procédures", "list-checks",   "procedures"),
-                spacing="2",
-            ),
-
-            # Contenu onglet
-            rx.box(
-                rx.cond(
-                    SuiviDocState.tab == "amelioration",
-                    _sheet_amelioration(),
-                    _sheet_procedures(),
-                ),
-                background="#0d1117",
-                border=f"1px solid {BORDER}",
-                border_radius="14px",
-                padding="1.25rem",
-                width="100%",
-            ),
-
-            # Modals
-            _form_modal(),
-            _confirm_delete_modal(),
-            _proc_form_modal(),
-
+            suivi_tab_content(),
             spacing="5", width="100%",
             on_mount=SuiviDocState.load,
         ),
