@@ -100,6 +100,12 @@ class GabaritItem(rx.Base):
     contenu: str = ""
     date_creation: str = ""
     auteur_nom: str = ""
+    is_custom: bool = False
+
+
+class GabaritColumn(rx.Base):
+    category: str = ""
+    items: list[GabaritItem] = []
 
 
 class DocGroup(rx.Base):
