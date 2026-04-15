@@ -3,6 +3,7 @@ from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
 from techpilot.state.models import DocumentItem, DocGroup, GabaritItem, GabaritColumn
+from techpilot.gabarits_data import GABARIT_CATEGORIES_DEFAULT, PREDEFINED_GABARITS as _PREDEFINED_GABARITS
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -14,28 +15,7 @@ BORDER = "rgba(255,255,255,0.07)"
 PRIMARY = "#6366f1"
 
 CATEGORIES = ["Général", "Procédures", "Groupes de droits", "Formations", "Référentiels", "Autre"]
-GABARIT_CATEGORIES = ["Ticket", "Mail", "Note", "Escalade", "Autre"]
-
-_PREDEFINED_GABARITS = [
-    {"id": "__pre_1", "categorie": "Ticket", "titre": "Ticket générique – Incident logiciel",
-     "contenu": "Objet : [NOM APPLICATION] – Incident\n\nUtilisateur :\nMatricule :\nSite / Agence :\nDate et heure de début :\n\nDescription du problème :\n\n\nMessage d'erreur (si applicable) :\n\n\nActions déjà réalisées :\n- Redémarrage poste : Oui / Non\n- Reconnexion application : Oui / Non\n- Autre :\n\nImpact : Utilisateur seul / Plusieurs utilisateurs / Site entier\n\nCaptures d'écran : Oui / Non"},
-    {"id": "__pre_2", "categorie": "Ticket", "titre": "Ticket – Réinitialisation mot de passe",
-     "contenu": "Objet : Réinitialisation mot de passe – [NOM UTILISATEUR]\n\nUtilisateur :\nMatricule :\nSite :\nApplication concernée :\n\nMotif de la demande :\n☐ Mot de passe oublié\n☐ Compte verrouillé\n☐ Expiration\n\nIdentité vérifiée : Oui / Non\nMoyen de vérification :\n\nAction réalisée :\n☐ Réinitialisation effectuée\n☐ Déverrouillage compte\n☐ Escalade N2 – Motif : "},
-    {"id": "__pre_3", "categorie": "Ticket", "titre": "Ticket – Demande d'accès / droits",
-     "contenu": "Objet : Demande d'accès – [APPLICATION / RESSOURCE]\n\nDemandeur :\nMatricule :\nManager validant la demande :\nDate de validation manager :\n\nAccès demandé :\nApplication / Partage réseau / Groupe AD :\nNiveau d'accès : Lecture / Écriture / Admin\n\nJustification métier :\n\nDélai souhaité :\n\nPièce jointe (mail de validation) : Oui / Non"},
-    {"id": "__pre_4", "categorie": "Escalade", "titre": "Ticket – Panne matériel (escalade N2)",
-     "contenu": "Objet : Panne matériel – [TYPE ÉQUIPEMENT] – [SITE]\n\nUtilisateur :\nMatricule :\nSite :\nÉquipement concerné :\nN° de série / Référence :\n\nPanne constatée :\n\n\nDiagnostic N1 effectué :\n- Redémarrage : Oui / Non – Résultat :\n- Vérification câbles : Oui / Non\n- Test sur autre prise / port : Oui / Non\n- Autre :\n\nÉquipement de remplacement disponible sur site : Oui / Non\n\n→ Escalade N2 requise pour intervention sur site."},
-    {"id": "__pre_5", "categorie": "Mail", "titre": "Mail – Confirmation prise en charge",
-     "contenu": "Objet : Prise en charge de votre demande – Ticket #[NUMÉRO]\n\nBonjour [Prénom],\n\nNous avons bien reçu votre demande concernant [DESCRIPTION COURTE DU PROBLÈME].\n\nVotre ticket a été enregistré sous le numéro #[NUMÉRO] et est actuellement en cours de traitement par notre équipe helpdesk.\n\nNous reviendrons vers vous dans les meilleurs délais.\n\nCordialement,\n[Votre prénom]\nHelpdesk N1"},
-    {"id": "__pre_6", "categorie": "Mail", "titre": "Mail – Demande d'informations complémentaires",
-     "contenu": "Objet : Informations complémentaires – Ticket #[NUMÉRO]\n\nBonjour [Prénom],\n\nAfin de traiter au mieux votre demande concernant [DESCRIPTION COURTE], nous aurions besoin des informations suivantes :\n\n1.\n2.\n3.\n\nPourriez-vous nous fournir ces éléments afin que nous puissions avancer sur votre ticket ?\n\nMerci d'avance,\n[Votre prénom]\nHelpdesk N1"},
-    {"id": "__pre_7", "categorie": "Mail", "titre": "Mail – Résolution et clôture ticket",
-     "contenu": "Objet : Résolution – Ticket #[NUMÉRO]\n\nBonjour [Prénom],\n\nNous revenons vers vous concernant votre incident du [DATE].\n\nLa situation a été résolue de la façon suivante :\n[DÉCRIRE LA SOLUTION APPLIQUÉE]\n\nN'hésitez pas à nous recontacter si le problème venait à réapparaître ou si vous avez d'autres questions.\n\nBien cordialement,\n[Votre prénom]\nHelpdesk N1"},
-    {"id": "__pre_8", "categorie": "Escalade", "titre": "Note – Escalade vers N2",
-     "contenu": "[NOTE INTERNE – ESCALADE N2]\n\nTicket traité en N1 – Escalade nécessaire.\n\nDiagnostic N1 :\n-\n-\n\nRaison de l'escalade :\n\n\nInterlocuteur N2 contacté :\nDate / Heure contact :\nRéférence escalade :\n\nActions en attente :"},
-    {"id": "__pre_9", "categorie": "Note", "titre": "Note – Suivi intervention en cours",
-     "contenu": "[SUIVI INTERVENTION]\n\nDate :\nTechnicien :\n\nStatut : En cours / En attente utilisateur / En attente N2\n\nDernière action effectuée :\n\n\nProchaine étape :\n\n\nDate de relance prévue :"},
-]
+GABARIT_CATEGORIES = GABARIT_CATEGORIES_DEFAULT
 SOUS_CATEGORIES = [
     "SI - Téléphonie",
     "SI - Sécurité",
