@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gabarits N1</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg:           #080b14;
+      --card:         #111524;
+      --border:       #1c2138;
+      --border2:      #243050;
+      --text:         #f1f5f9;
+      --muted:        #94a3b8;
+      --primary:      #6366f1;
+      --primary-soft: rgba(99,102,241,0.12);
+      --primary-b:    rgba(99,102,241,0.35);
+      --green:        #22c55e;
+      --green-soft:   rgba(34,197,94,0.1);
+      --shadow:       0 8px 32px rgba(0,0,0,0.6);
+      --radius:       14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* ── Hero ──────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #1a3a2f 0%, #166534 50%, #15803d 100%);
+      border: 1px solid rgba(34,197,94,0.35);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50px; right: -50px;
+      width: 180px; height: 180px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+    }
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: rgba(255,255,255,0.75);
+      font-size: 0.85rem;
+    }
+
+    /* ── Catégorie ─────────────────────────────────────────────── */
+    .category-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 24px 0 10px;
+    }
+    .category-title:first-of-type { margin-top: 0; }
+
+    /* ── Gabarit card ──────────────────────────────────────────── */
+    .gabarit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .gabarit-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s;
+    }
+    .gabarit-card:hover { border-color: var(--primary-b); }
+
+    .gabarit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      gap: 12px;
+    }
+    .gabarit-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+    .gabarit-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--primary-soft);
+      border: 1px solid var(--primary-b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .gabarit-icon svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--primary);
+    }
+    .gabarit-title {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gabarit-tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .tag-ticket  { color: #6366f1; border-color: rgba(99,102,241,0.4);  background: rgba(99,102,241,0.08); }
+    .tag-mail    { color: #06b6d4; border-color: rgba(6,182,212,0.4);   background: rgba(6,182,212,0.08); }
+    .tag-note    { color: #f97316; border-color: rgba(249,115,22,0.4);  background: rgba(249,115,22,0.08); }
+    .tag-escalade { color: #a855f7; border-color: rgba(168,85,247,0.4); background: rgba(168,85,247,0.08); }
+
+    .gabarit-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-copy {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-copy:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-soft);
+      transform: none;
+    }
+    .btn-copy.copied {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-soft);
+    }
+    .btn-copy svg { width: 12px; height: 12px; }
+
+    .chevron {
+      width: 16px;
+      height: 16px;
+      stroke: var(--muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .gabarit-card.open .chevron { transform: rotate(180deg); }
+
+    .gabarit-body {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 0;
+    }
+    .gabarit-card.open .gabarit-body { display: block; }
+
+    .gabarit-preview {
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+      background: rgba(0,0,0,0.25);
+      border-radius: 0 0 12px 12px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .gabarit-preview::-webkit-scrollbar { width: 4px; }
+    .gabarit-preview::-webkit-scrollbar-track { background: transparent; }
+    .gabarit-preview::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <h1>📋 Gabarits N1</h1>
+    <p>Modèles de tickets, mails et notes prêts à copier-coller.</p>
+  </div>
+
+  <div id="gabarit-list"></div>
+
+</div>
+
+<script>
+const GABARITS = [
+  {
+    categorie: "Tickets",
+    items: [
+      {
+        titre: "Ticket générique – Incident logiciel",
+        tag: "ticket",
+        contenu: `Objet : [NOM APPLICATION] – Incident
+
+Utilisateur :
+Matricule :
+Site / Agence :
+Date et heure de début :
+
+Description du problème :
+
+
+Message d'erreur (si applicable) :
+
+
+Actions déjà réalisées :
+- Redémarrage poste : Oui / Non
+- Reconnexion application : Oui / Non
+- Autre :
+
+Impact : Utilisateur seul / Plusieurs utilisateurs / Site entier
+
+Captures d'écran : Oui / Non`
+      },
+      {
+        titre: "Ticket – Réinitialisation mot de passe",
+        tag: "ticket",
+        contenu: `Objet : Réinitialisation mot de passe – [NOM UTILISATEUR]
+
+Utilisateur :
+Matricule :
+Site :
+Application concernée :
+
+Motif de la demande :
+☐ Mot de passe oublié
+☐ Compte verrouillé
+☐ Expiration
+
+Identité vérifiée : Oui / Non
+Moyen de vérification :
+
+Action réalisée :
+☐ Réinitialisation effectuée
+☐ Déverrouillage compte
+☐ Escalade N2 – Motif : `
+      },
+      {
+        titre: "Ticket – Demande d'accès / droits",
+        tag: "ticket",
+        contenu: `Objet : Demande d'accès – [APPLICATION / RESSOURCE]
+
+Demandeur :
+Matricule :
+Manager validant la demande :
+Date de validation manager :
+
+Accès demandé :
+Application / Partage réseau / Groupe AD :
+Niveau d'accès : Lecture / Écriture / Admin
+
+Justification métier :
+
+Délai souhaité :
+
+Pièce jointe (mail de validation) : Oui / Non`
+      },
+      {
+        titre: "Ticket – Panne matériel (escalade N2)",
+        tag: "escalade",
+        contenu: `Objet : Panne matériel – [TYPE ÉQUIPEMENT] – [SITE]
+
+Utilisateur :
+Matricule :
+Site :
+Équipement concerné :
+N° de série / Référence :
+
+Panne constatée :
+
+
+Diagnostic N1 effectué :
+- Redémarrage : Oui / Non – Résultat :
+- Vérification câbles : Oui / Non
+- Test sur autre prise / port : Oui / Non
+- Autre :
+
+Équipement de remplacement disponible sur site : Oui / Non
+
+→ Escalade N2 requise pour intervention sur site.`
+      },
+    ]
+  },
+  {
+    categorie: "Mails utilisateurs",
+    items: [
+      {
+        titre: "Mail – Confirmation prise en charge",
+        tag: "mail",
+        contenu: `Objet : Prise en charge de votre demande – Ticket #[NUMÉRO]
+
+Bonjour [Prénom],
+
+Nous avons bien reçu votre demande concernant [DESCRIPTION COURTE DU PROBLÈME].
+
+Votre ticket a été enregistré sous le numéro **#[NUMÉRO]** et est actuellement en cours de traitement par notre équipe helpdesk.
+
+Nous reviendrons vers vous dans les meilleurs délais.
+
+Cordialement,
+[Votre prénom]
+Helpdesk N1`
+      },
+      {
+        titre: "Mail – Demande d'informations complémentaires",
+        tag: "mail",
+        contenu: `Objet : Informations complémentaires – Ticket #[NUMÉRO]
+
+Bonjour [Prénom],
+
+Afin de traiter au mieux votre demande concernant [DESCRIPTION COURTE], nous aurions besoin des informations suivantes :
+
+1.
+2.
+3.
+
+Pourriez-vous nous fournir ces éléments afin que nous puissions avancer sur votre ticket ?
+
+Merci d'avance,
+[Votre prénom]
+Helpdesk N1`
+      },
+      {
+        titre: "Mail – Résolution et clôture ticket",
+        tag: "mail",
+        contenu: `Objet : Résolution – Ticket #[NUMÉRO]
+
+Bonjour [Prénom],
+
+Nous revenons vers vous concernant votre incident du [DATE].
+
+La situation a été résolue de la façon suivante :
+[DÉCRIRE LA SOLUTION APPLIQUÉE]
+
+N'hésitez pas à nous recontacter si le problème venait à réapparaître ou si vous avez d'autres questions.
+
+Bien cordialement,
+[Votre prénom]
+Helpdesk N1`
+      },
+    ]
+  },
+  {
+    categorie: "Notes internes",
+    items: [
+      {
+        titre: "Note – Escalade vers N2",
+        tag: "escalade",
+        contenu: `[NOTE INTERNE – ESCALADE N2]
+
+Ticket traité en N1 – Escalade nécessaire.
+
+Diagnostic N1 :
+-
+-
+
+Raison de l'escalade :
+
+
+Interlocuteur N2 contacté :
+Date / Heure contact :
+Référence escalade :
+
+Actions en attente :`
+      },
+      {
+        titre: "Note – Suivi intervention en cours",
+        tag: "note",
+        contenu: `[SUIVI INTERVENTION]
+
+Date :
+Technicien :
+
+Statut : En cours / En attente utilisateur / En attente N2
+
+Dernière action effectuée :
+
+
+Prochaine étape :
+
+
+Date de relance prévue :`
+      },
+    ]
+  }
+];
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copié !';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier';
+    }, 2000);
+  });
+}
+
+function toggleCard(card) {
+  card.classList.toggle('open');
+}
+
+function buildList() {
+  const container = document.getElementById('gabarit-list');
+  GABARITS.forEach(cat => {
+    const title = document.createElement('div');
+    title.className = 'category-title';
+    title.textContent = cat.categorie;
+    container.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'gabarit-list';
+
+    cat.items.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'gabarit-card';
+
+      const header = document.createElement('div');
+      header.className = 'gabarit-header';
+      header.onclick = () => toggleCard(card);
+
+      const left = document.createElement('div');
+      left.className = 'gabarit-header-left';
+
+      const icon = document.createElement('div');
+      icon.className = 'gabarit-icon';
+      icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+
+      const titleEl = document.createElement('span');
+      titleEl.className = 'gabarit-title';
+      titleEl.textContent = g.titre;
+
+      const tag = document.createElement('span');
+      tag.className = `gabarit-tag tag-${g.tag}`;
+      tag.textContent = g.tag.charAt(0).toUpperCase() + g.tag.slice(1);
+
+      left.appendChild(icon);
+      left.appendChild(titleEl);
+      left.appendChild(tag);
+
+      const actions = document.createElement('div');
+      actions.className = 'gabarit-actions';
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn-copy';
+      copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier`;
+      copyBtn.onclick = (e) => { e.stopPropagation(); copyText(g.contenu, copyBtn); };
+
+      const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevron.setAttribute('viewBox', '0 0 24 24');
+      chevron.setAttribute('fill', 'none');
+      chevron.setAttribute('stroke', 'currentColor');
+      chevron.setAttribute('stroke-width', '2');
+      chevron.setAttribute('stroke-linecap', 'round');
+      chevron.setAttribute('stroke-linejoin', 'round');
+      chevron.classList.add('chevron');
+      const chPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      chPath.setAttribute('points', '6 9 12 15 18 9');
+      chevron.appendChild(chPath);
+
+      actions.appendChild(copyBtn);
+      actions.appendChild(chevron);
+
+      header.appendChild(left);
+      header.appendChild(actions);
+
+      const body = document.createElement('div');
+      body.className = 'gabarit-body';
+
+      const preview = document.createElement('div');
+      preview.className = 'gabarit-preview';
+      preview.textContent = g.contenu;
+
+      body.appendChild(preview);
+      card.appendChild(header);
+      card.appendChild(body);
+      list.appendChild(card);
+    });
+
+    container.appendChild(list);
+  });
+}
+
+buildList();
+</script>
+</body>
+</html>
