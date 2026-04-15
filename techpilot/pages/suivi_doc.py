@@ -261,33 +261,34 @@ def _confirm_delete_modal() -> rx.Component:
 
 # ── Modal sélection document ──────────────────────────────────────────────────
 
-def _doc_picker_modal() -> rx.Component:
-    def _doc_item(doc: dict) -> rx.Component:
-        return rx.hstack(
-            rx.icon("file-text", size=14, color="#a5b4fc", flex_shrink="0"),
-            rx.vstack(
-                rx.text(doc["nom"], color=TEXT, font_size="0.82rem", font_weight="500",
-                        white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
-                rx.text(doc["url"], color=MUTED, font_size="0.68rem",
-                        white_space="nowrap", overflow="hidden", text_overflow="ellipsis",
-                        max_width="340px"),
-                spacing="0", align="start", flex="1", min_width="0",
-            ),
-            rx.button(
-                "Lier",
-                on_click=SuiviDocState.link_doc_to_proc(doc["id"], doc["nom"], doc["url"]),
-                background="rgba(99,102,241,0.15)", color="#a5b4fc",
-                border="1px solid rgba(99,102,241,0.35)", border_radius="7px",
-                font_size="0.75rem", font_weight="600", padding="3px 10px",
-                cursor="pointer", flex_shrink="0",
-                _hover={"background": "rgba(99,102,241,0.3)"},
-            ),
-            spacing="3", align="center", width="100%",
-            padding="8px 12px",
-            border_bottom=f"1px solid {BORDER}",
-            _hover={"background": "rgba(255,255,255,0.025)"},
-        )
+def _doc_picker_item(doc: dict) -> rx.Component:
+    return rx.hstack(
+        rx.icon("file-text", size=14, color="#a5b4fc", flex_shrink="0"),
+        rx.vstack(
+            rx.text(doc["nom"], color=TEXT, font_size="0.82rem", font_weight="500",
+                    white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
+            rx.text(doc["url"], color=MUTED, font_size="0.68rem",
+                    white_space="nowrap", overflow="hidden", text_overflow="ellipsis",
+                    max_width="340px"),
+            spacing="0", align="start", flex="1", min_width="0",
+        ),
+        rx.button(
+            "Lier",
+            on_click=SuiviDocState.link_doc_to_proc(doc["id"], doc["nom"], doc["url"]),
+            background="rgba(99,102,241,0.15)", color="#a5b4fc",
+            border="1px solid rgba(99,102,241,0.35)", border_radius="7px",
+            font_size="0.75rem", font_weight="600", padding="3px 10px",
+            cursor="pointer", flex_shrink="0",
+            _hover={"background": "rgba(99,102,241,0.3)"},
+        ),
+        spacing="3", align="center", width="100%",
+        padding="8px 12px",
+        border_bottom=f"1px solid {BORDER}",
+        _hover={"background": "rgba(255,255,255,0.025)"},
+    )
 
+
+def _doc_picker_modal() -> rx.Component:
     return rx.dialog.root(
         rx.dialog.content(
             rx.box(
@@ -325,7 +326,7 @@ def _doc_picker_modal() -> rx.Component:
                         padding="2rem", text_align="center",
                     ),
                     rx.box(
-                        rx.foreach(SuiviDocState.available_proc_docs, _doc_item),
+                        rx.foreach(SuiviDocState.available_proc_docs, _doc_picker_item),
                         max_height="360px",
                         overflow_y="auto",
                         width="100%",
