@@ -64,9 +64,14 @@ class DocumentsState(rx.State):
     current_tab: str = "documents"
     escalade_count: int = 0
     gabarit_columns: list[GabaritColumn] = []
+    gabarit_categories: list[str] = ["Ticket", "Mail", "Note", "Escalade", "Autre"]
     show_gabarit_form: bool = False
     gabarit_form: dict = {"titre": "", "categorie": "Ticket", "contenu": ""}
     editing_gabarit_id: str = ""
+    editing_col_cat: str = ""
+    editing_col_new_name: str = ""
+    show_add_cat_input: bool = False
+    new_cat_name: str = ""
 
     def set_tab(self, tab: str):
         self.current_tab = tab
@@ -113,9 +118,15 @@ class DocumentsState(rx.State):
 
     def load_gabarits(self):
         db = load_db()
+        saved_cats = db.get("gabarit_categories")
+        if saved_cats is None:
+            saved_cats = list(GABARIT_CATEGORIES)
+            db["gabarit_categories"] = saved_cats
+            save_db(db)
+        self.gabarit_categories = saved_cats
         hidden = set(db.get("hidden_predefined") or [])
         custom = sorted(db.get("gabarits") or [], key=lambda g: g.get("date_creation") or "", reverse=True)
-        columns: dict[str, list] = {cat: [] for cat in GABARIT_CATEGORIES}
+        columns: dict[str, list] = {cat: [] for cat in saved_cats}
         for g in _PREDEFINED_GABARITS:
             if g.get("id") in hidden:
                 continue
@@ -142,7 +153,7 @@ class DocumentsState(rx.State):
                 auteur_nom=g.get("auteur_nom") or "",
                 is_custom=True,
             ))
-        all_cats = list(GABARIT_CATEGORIES)
+        all_cats = list(saved_cats)
         for cat in columns:
             if cat not in all_cats:
                 all_cats.append(cat)
@@ -150,6 +161,55 @@ class DocumentsState(rx.State):
             GabaritColumn(category=cat, items=columns.get(cat, []))
             for cat in all_cats
         ]
+
+    def start_edit_col(self, cat: str):
+        self.editing_col_cat = cat
+        self.editing_col_new_name = cat
+
+    def set_edit_col_name(self, v: str):
+        self.editing_col_new_name = v
+
+    def save_col_rename(self):
+        new_name = self.editing_col_new_name.strip()
+        if not new_name or new_name == self.editing_col_cat:
+            self.editing_col_cat = ""
+            return
+        db = load_db()
+        cats = db.get("gabarit_categories") or list(GABARIT_CATEGORIES)
+        if self.editing_col_cat in cats:
+            cats[cats.index(self.editing_col_cat)] = new_name
+        db["gabarit_categories"] = cats
+        for g in db.get("gabarits", []):
+            if g.get("categorie") == self.editing_col_cat:
+                g["categorie"] = new_name
+        save_db(db)
+        self.editing_col_cat = ""
+        self.load_gabarits()
+
+    def cancel_col_edit(self):
+        self.editing_col_cat = ""
+        self.editing_col_new_name = ""
+
+    def set_new_cat_name(self, v: str):
+        self.new_cat_name = v
+
+    def toggle_add_cat(self):
+        self.show_add_cat_input = not self.show_add_cat_input
+        self.new_cat_name = ""
+
+    def add_category(self):
+        name = self.new_cat_name.strip()
+        if not name:
+            return
+        db = load_db()
+        cats = db.get("gabarit_categories") or list(GABARIT_CATEGORIES)
+        if name not in cats:
+            cats.append(name)
+        db["gabarit_categories"] = cats
+        self.new_cat_name = ""
+        self.show_add_cat_input = False
+        save_db(db)
+        self.load_gabarits()
 
     def open_gabarit_form(self):
         self.gabarit_form = {"titre": "", "categorie": "Ticket", "contenu": ""}
@@ -506,37 +566,10 @@ def _gabarit_dialog() -> rx.Component:
                         background="#1e2035", color=TEXT,
                         border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
                     ),
-                    rx.hstack(
-                        *[
-                            rx.button(
-                                cat,
-                                on_click=DocumentsState.set_gabarit_field("categorie", cat),
-                                background=rx.cond(
-                                    DocumentsState.gabarit_form["categorie"] == cat,
-                                    "rgba(99,102,241,0.3)",
-                                    "rgba(255,255,255,0.05)",
-                                ),
-                                color=rx.cond(
-                                    DocumentsState.gabarit_form["categorie"] == cat,
-                                    "#a5b4fc",
-                                    MUTED,
-                                ),
-                                border=rx.cond(
-                                    DocumentsState.gabarit_form["categorie"] == cat,
-                                    "1px solid rgba(99,102,241,0.5)",
-                                    f"1px solid {BORDER}",
-                                ),
-                                border_radius="999px",
-                                font_size="0.72rem",
-                                font_weight="600",
-                                padding="0.2rem 0.65rem",
-                                cursor="pointer",
-                                _hover={"background": "rgba(99,102,241,0.2)", "color": "#a5b4fc"},
-                            )
-                            for cat in GABARIT_CATEGORIES
-                        ],
-                        spacing="2",
+                    rx.flex(
+                        rx.foreach(DocumentsState.gabarit_categories, _cat_chip),
                         flex_wrap="wrap",
+                        gap="2",
                     ),
                     spacing="2", align="start", width="100%",
                 ),
@@ -659,33 +692,155 @@ def gabarit_kanban_card(g: GabaritItem) -> rx.Component:
     )
 
 
+def _cat_chip(cat: str) -> rx.Component:
+    return rx.button(
+        cat,
+        on_click=DocumentsState.set_gabarit_field("categorie", cat),
+        background=rx.cond(
+            DocumentsState.gabarit_form["categorie"] == cat,
+            "rgba(99,102,241,0.3)", "rgba(255,255,255,0.05)",
+        ),
+        color=rx.cond(
+            DocumentsState.gabarit_form["categorie"] == cat, "#a5b4fc", MUTED,
+        ),
+        border=rx.cond(
+            DocumentsState.gabarit_form["categorie"] == cat,
+            "1px solid rgba(99,102,241,0.5)", f"1px solid {BORDER}",
+        ),
+        border_radius="999px",
+        font_size="0.72rem",
+        font_weight="600",
+        padding="0.2rem 0.65rem",
+        cursor="pointer",
+        _hover={"background": "rgba(99,102,241,0.2)", "color": "#a5b4fc"},
+    )
+
+
+def add_category_column() -> rx.Component:
+    return rx.box(
+        rx.cond(
+            DocumentsState.show_add_cat_input,
+            rx.vstack(
+                rx.text("Nouvelle catégorie", color=MUTED, font_size="0.75rem", font_weight="700",
+                        text_transform="uppercase", letter_spacing="0.05em"),
+                rx.input(
+                    placeholder="Nom de la catégorie…",
+                    value=DocumentsState.new_cat_name,
+                    on_change=DocumentsState.set_new_cat_name,
+                    background="#1e2035", color=TEXT,
+                    border="1px solid rgba(99,102,241,0.4)", border_radius="8px",
+                    font_size="0.82rem", width="100%",
+                ),
+                rx.hstack(
+                    rx.button(
+                        "Annuler",
+                        on_click=DocumentsState.toggle_add_cat,
+                        background="transparent", color=MUTED,
+                        border=f"1px solid {BORDER}", border_radius="7px",
+                        font_size="0.75rem", cursor="pointer",
+                    ),
+                    rx.button(
+                        rx.icon("plus", size=13), "Créer",
+                        on_click=DocumentsState.add_category,
+                        background="rgba(99,102,241,0.2)", color="#a5b4fc",
+                        border="1px solid rgba(99,102,241,0.4)", border_radius="7px",
+                        font_size="0.75rem", font_weight="700", spacing="1", cursor="pointer",
+                        _hover={"background": "rgba(99,102,241,0.35)"},
+                    ),
+                    spacing="2", justify="end", width="100%",
+                ),
+                spacing="3",
+                background="rgba(255,255,255,0.015)",
+                border=f"1px solid rgba(99,102,241,0.3)",
+                border_radius="12px",
+                padding="0.875rem",
+                width="190px",
+                min_width="190px",
+            ),
+            rx.box(
+                rx.vstack(
+                    rx.icon("plus", size=20, color=MUTED),
+                    rx.text("Nouvelle catégorie", color=MUTED, font_size="0.78rem", font_weight="600"),
+                    spacing="2", align="center",
+                ),
+                on_click=DocumentsState.toggle_add_cat,
+                background="transparent",
+                border=f"2px dashed {BORDER}",
+                border_radius="12px",
+                padding="1.5rem 1rem",
+                width="160px",
+                min_width="160px",
+                display="flex",
+                align_items="center",
+                justify_content="center",
+                cursor="pointer",
+                transition="all 0.15s",
+                _hover={"border_color": "rgba(99,102,241,0.4)", "color": "#a5b4fc"},
+            ),
+        ),
+        flex_shrink="0",
+    )
+
+
 def gabarit_kanban_column(col: GabaritColumn) -> rx.Component:
     return rx.vstack(
-        rx.hstack(
-            rx.text(col["category"], font_weight="700", font_size="0.82rem", color=TEXT),
-            rx.box(
-                rx.text(col["items"].length().to_string(),
-                        font_size="0.7rem", font_weight="700", color=MUTED),
-                background="rgba(255,255,255,0.06)",
-                border_radius="999px",
-                padding="1px 8px",
+        # En-tête : mode normal ou mode édition
+        rx.cond(
+            DocumentsState.editing_col_cat == col["category"],
+            # Mode édition
+            rx.hstack(
+                rx.input(
+                    value=DocumentsState.editing_col_new_name,
+                    on_change=DocumentsState.set_edit_col_name,
+                    background="#1e2035", color=TEXT,
+                    border="1px solid rgba(99,102,241,0.5)",
+                    border_radius="6px", font_size="0.82rem", font_weight="700",
+                    flex="1", size="1",
+                ),
+                rx.icon_button(
+                    rx.icon("check", size=12),
+                    on_click=DocumentsState.save_col_rename,
+                    background="rgba(34,197,94,0.12)", color="#22c55e",
+                    border="1px solid rgba(34,197,94,0.3)",
+                    size="1", border_radius="6px", cursor="pointer",
+                ),
+                rx.icon_button(
+                    rx.icon("x", size=12),
+                    on_click=DocumentsState.cancel_col_edit,
+                    background="transparent", color=MUTED, border="none",
+                    size="1", cursor="pointer",
+                ),
+                spacing="1", align="center", width="100%",
+                padding_bottom="0.6rem", border_bottom=f"1px solid {BORDER}",
             ),
-            rx.spacer(),
-            rx.icon_button(
-                rx.icon("plus", size=13),
-                on_click=DocumentsState.open_gabarit_form_with_cat(col["category"]),
-                background="transparent",
-                color=MUTED,
-                border=f"1px solid {BORDER}",
-                size="1",
-                border_radius="6px",
-                cursor="pointer",
-                _hover={"background": "rgba(99,102,241,0.15)", "color": "#a5b4fc",
-                        "border_color": "rgba(99,102,241,0.4)"},
+            # Mode normal
+            rx.hstack(
+                rx.text(col["category"], font_weight="700", font_size="0.82rem", color=TEXT),
+                rx.box(
+                    rx.text(col["items"].length().to_string(),
+                            font_size="0.7rem", font_weight="700", color=MUTED),
+                    background="rgba(255,255,255,0.06)",
+                    border_radius="999px", padding="1px 8px",
+                ),
+                rx.spacer(),
+                rx.icon_button(
+                    rx.icon("plus", size=13),
+                    on_click=DocumentsState.open_gabarit_form_with_cat(col["category"]),
+                    background="transparent", color=MUTED, border=f"1px solid {BORDER}",
+                    size="1", border_radius="6px", cursor="pointer",
+                    _hover={"background": "rgba(99,102,241,0.15)", "color": "#a5b4fc",
+                            "border_color": "rgba(99,102,241,0.4)"},
+                ),
+                rx.icon_button(
+                    rx.icon("pencil", size=12),
+                    on_click=DocumentsState.start_edit_col(col["category"]),
+                    background="transparent", color=MUTED, border="none",
+                    size="1", cursor="pointer",
+                    _hover={"color": "#a5b4fc", "background": "rgba(99,102,241,0.1)"},
+                ),
+                spacing="1", align="center", width="100%",
+                padding_bottom="0.6rem", border_bottom=f"1px solid {BORDER}",
             ),
-            spacing="2", align="center", width="100%",
-            padding_bottom="0.6rem",
-            border_bottom=f"1px solid {BORDER}",
         ),
         rx.vstack(
             rx.foreach(col["items"], gabarit_kanban_card),
@@ -738,9 +893,12 @@ def gabarits_tab_view() -> rx.Component:
         # Kanban board
         rx.hstack(
             rx.foreach(DocumentsState.gabarit_columns, gabarit_kanban_column),
+            add_category_column(),
             spacing="3",
             align="start",
             width="100%",
+            overflow_x="auto",
+            padding_bottom="0.5rem",
         ),
         _gabarit_dialog(),
         spacing="4",
