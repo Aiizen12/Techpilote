@@ -207,3 +207,9 @@ class PendingValidation(rx.Base):
     xp: int = 0
     user_id: str = ""
     user_nom: str = ""
+
+
+class DocPickerItem(rx.Base):
+    id: str = ""
+    nom: str = ""
+    url: str = ""

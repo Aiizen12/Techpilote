@@ -5,7 +5,7 @@ import reflex as rx
 
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
-from techpilot.state.models import AmeliorationItem, ProcSuiviRow
+from techpilot.state.models import AmeliorationItem, ProcSuiviRow, DocPickerItem
 from techpilot.state.escalade import PROCEDURE_MAP
 
 CATEGORIES  = ["Process", "UX", "Technique", "Formation", "Autre"]
@@ -51,7 +51,7 @@ class SuiviDocState(rx.State):
     # ── Liaison document ↔ procédure ──────────────────────────────────────
     show_doc_picker: bool = False
     doc_picker_key: str = ""          # "perimetre|typologie"
-    available_proc_docs: list[dict] = []
+    available_proc_docs: list[DocPickerItem] = []
 
     # ── Chargement ────────────────────────────────────────────────────────
 
@@ -363,7 +363,7 @@ class SuiviDocState(rx.State):
             key=lambda d: d.get("nom_original") or "",
         )
         self.available_proc_docs = [
-            {"id": d.get("id", ""), "nom": d.get("nom_original", ""), "url": d.get("url", "")}
+            DocPickerItem(id=d.get("id", ""), nom=d.get("nom_original", ""), url=d.get("url", ""))
             for d in docs
         ]
         self.show_doc_picker = True

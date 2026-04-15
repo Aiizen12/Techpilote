@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.auth import AuthState
 from techpilot.state.suivi_doc import SuiviDocState, CATEGORIES, PRIORITES, STATUTS_AM
+from techpilot.state.models import DocPickerItem
 
 TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
@@ -261,20 +262,20 @@ def _confirm_delete_modal() -> rx.Component:
 
 # ── Modal sélection document ──────────────────────────────────────────────────
 
-def _doc_picker_item(doc: dict) -> rx.Component:
+def _doc_picker_item(doc: DocPickerItem) -> rx.Component:
     return rx.hstack(
         rx.icon("file-text", size=14, color="#a5b4fc", flex_shrink="0"),
         rx.vstack(
-            rx.text(doc["nom"], color=TEXT, font_size="0.82rem", font_weight="500",
+            rx.text(doc.nom, color=TEXT, font_size="0.82rem", font_weight="500",
                     white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
-            rx.text(doc["url"], color=MUTED, font_size="0.68rem",
+            rx.text(doc.url, color=MUTED, font_size="0.68rem",
                     white_space="nowrap", overflow="hidden", text_overflow="ellipsis",
                     max_width="340px"),
             spacing="0", align="start", flex="1", min_width="0",
         ),
         rx.button(
             "Lier",
-            on_click=SuiviDocState.link_doc_to_proc(doc["id"], doc["nom"], doc["url"]),
+            on_click=SuiviDocState.link_doc_to_proc(doc.id, doc.nom, doc.url),
             background="rgba(99,102,241,0.15)", color="#a5b4fc",
             border="1px solid rgba(99,102,241,0.35)", border_radius="7px",
             font_size="0.75rem", font_weight="600", padding="3px 10px",
