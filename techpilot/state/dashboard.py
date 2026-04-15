@@ -6,7 +6,7 @@ import reflex as rx
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import (
     AstreinteEntry, PlanningRow,
-    TechPresence, QuickLink,
+    TechPresence, QuickLink, ActualiteItem,
 )
 
 DEFAULT_TECH_COLORS = [
@@ -37,6 +37,18 @@ class DashboardState(rx.State):
     show_link_form: bool = False
     link_form_nom: str = ""
     link_form_url: str = ""
+
+    # Actualités widget
+    actualites_widget: list[ActualiteItem] = []
+
+    # Widget visibility
+    w_kpis: bool = True
+    w_presence: bool = True
+    w_trends: bool = True
+    w_planning: bool = True
+    w_notes_links: bool = True
+    w_actualites: bool = True
+    show_config_panel: bool = False
 
     # Meta
     today_label: str = ""
@@ -157,6 +169,35 @@ class DashboardState(rx.State):
             for lk in (db.get("quick_links") or [])
         ]
 
+        # Widget config
+        cfg = db.get("dashboard_config") or {}
+        self.w_kpis       = cfg.get("kpis", True)
+        self.w_presence   = cfg.get("presence", True)
+        self.w_trends     = cfg.get("trends", True)
+        self.w_planning   = cfg.get("planning", True)
+        self.w_notes_links = cfg.get("notes_links", True)
+        self.w_actualites = cfg.get("actualites", True)
+
+        # Actualités widget (5 dernières, épinglées en premier)
+        actu_items = db.get("actualites") or []
+        actu_sorted = sorted(actu_items, key=lambda a: (
+            not a.get("epingle", False),
+            -(datetime.fromisoformat(a["date_creation"]).timestamp()
+              if a.get("date_creation") else 0)
+        ))
+        self.actualites_widget = [
+            ActualiteItem(
+                id=str(a.get("id") or ""),
+                titre=a.get("titre") or "",
+                contenu=a.get("contenu") or "",
+                type=a.get("type") or "",
+                epingle=bool(a.get("epingle", False)),
+                auteur_nom=a.get("auteur_nom") or "",
+                date_creation=a.get("date_creation") or "",
+            )
+            for a in actu_sorted[:5]
+        ]
+
     # ── Notes rapides ─────────────────────────────────────────────────────────
 
     def set_quick_notes(self, val: str):
@@ -205,3 +246,44 @@ class DashboardState(rx.State):
         db["quick_links"] = [lk for lk in (db.get("quick_links") or []) if str(lk.get("id")) != lid]
         save_db(db)
         self.load_data()
+
+    # ── Config dashboard ──────────────────────────────────────────────────────
+
+    def toggle_config_panel(self):
+        self.show_config_panel = not self.show_config_panel
+
+    def _save_config(self):
+        db = load_db()
+        db["dashboard_config"] = {
+            "kpis":       self.w_kpis,
+            "presence":   self.w_presence,
+            "trends":     self.w_trends,
+            "planning":   self.w_planning,
+            "notes_links": self.w_notes_links,
+            "actualites": self.w_actualites,
+        }
+        save_db(db)
+
+    def toggle_w_kpis(self):
+        self.w_kpis = not self.w_kpis
+        self._save_config()
+
+    def toggle_w_presence(self):
+        self.w_presence = not self.w_presence
+        self._save_config()
+
+    def toggle_w_trends(self):
+        self.w_trends = not self.w_trends
+        self._save_config()
+
+    def toggle_w_planning(self):
+        self.w_planning = not self.w_planning
+        self._save_config()
+
+    def toggle_w_notes_links(self):
+        self.w_notes_links = not self.w_notes_links
+        self._save_config()
+
+    def toggle_w_actualites(self):
+        self.w_actualites = not self.w_actualites
+        self._save_config()
