@@ -66,6 +66,7 @@ class DocumentsState(rx.State):
     gabarit_columns: list[GabaritColumn] = []
     show_gabarit_form: bool = False
     gabarit_form: dict = {"titre": "", "categorie": "Ticket", "contenu": ""}
+    editing_gabarit_id: str = ""
 
     def set_tab(self, tab: str):
         self.current_tab = tab
@@ -112,9 +113,12 @@ class DocumentsState(rx.State):
 
     def load_gabarits(self):
         db = load_db()
+        hidden = set(db.get("hidden_predefined") or [])
         custom = sorted(db.get("gabarits") or [], key=lambda g: g.get("date_creation") or "", reverse=True)
         columns: dict[str, list] = {cat: [] for cat in GABARIT_CATEGORIES}
         for g in _PREDEFINED_GABARITS:
+            if g.get("id") in hidden:
+                continue
             cat = g.get("categorie") or "Autre"
             if cat not in columns:
                 columns[cat] = []
@@ -138,46 +142,90 @@ class DocumentsState(rx.State):
                 auteur_nom=g.get("auteur_nom") or "",
                 is_custom=True,
             ))
+        all_cats = list(GABARIT_CATEGORIES)
+        for cat in columns:
+            if cat not in all_cats:
+                all_cats.append(cat)
         self.gabarit_columns = [
-            GabaritColumn(category=cat, items=items)
-            for cat, items in columns.items()
+            GabaritColumn(category=cat, items=columns.get(cat, []))
+            for cat in all_cats
         ]
 
     def open_gabarit_form(self):
         self.gabarit_form = {"titre": "", "categorie": "Ticket", "contenu": ""}
+        self.editing_gabarit_id = ""
         self.show_gabarit_form = True
 
     def open_gabarit_form_with_cat(self, cat: str):
         self.gabarit_form = {"titre": "", "categorie": cat, "contenu": ""}
+        self.editing_gabarit_id = ""
+        self.show_gabarit_form = True
+
+    def open_edit_gabarit_form(self, gid: str, titre: str, categorie: str, contenu: str):
+        self.gabarit_form = {"titre": titre, "categorie": categorie, "contenu": contenu}
+        self.editing_gabarit_id = gid
         self.show_gabarit_form = True
 
     def close_gabarit_form(self):
+        self.editing_gabarit_id = ""
         self.show_gabarit_form = False
 
     def set_gabarit_field(self, f: str, v: str):
         self.gabarit_form = {**self.gabarit_form, f: v}
 
-    def create_gabarit(self):
+    def save_gabarit(self):
         if not self.gabarit_form.get("titre") or not self.gabarit_form.get("contenu"):
             return
         db = load_db()
-        if "gabarits" not in db:
-            db["gabarits"] = []
-        db["gabarits"].append({
-            "id": str(uuid.uuid4()),
-            "titre": self.gabarit_form.get("titre") or "",
-            "categorie": self.gabarit_form.get("categorie") or "Ticket",
-            "contenu": self.gabarit_form.get("contenu") or "",
-            "date_creation": datetime.utcnow().isoformat(),
-            "auteur_nom": "",
-        })
+        cat = self.gabarit_form.get("categorie") or "Autre"
+        if self.editing_gabarit_id and self.editing_gabarit_id.startswith("__pre_"):
+            # Masquer le prédéfini + créer une copie modifiée
+            hidden = db.get("hidden_predefined") or []
+            if self.editing_gabarit_id not in hidden:
+                hidden.append(self.editing_gabarit_id)
+            db["hidden_predefined"] = hidden
+            if "gabarits" not in db:
+                db["gabarits"] = []
+            db["gabarits"].append({
+                "id": str(uuid.uuid4()),
+                "titre": self.gabarit_form.get("titre") or "",
+                "categorie": cat,
+                "contenu": self.gabarit_form.get("contenu") or "",
+                "date_creation": datetime.utcnow().isoformat(),
+                "auteur_nom": "",
+            })
+        elif self.editing_gabarit_id:
+            for g in db.get("gabarits", []):
+                if g.get("id") == self.editing_gabarit_id:
+                    g["titre"] = self.gabarit_form.get("titre") or g["titre"]
+                    g["categorie"] = cat
+                    g["contenu"] = self.gabarit_form.get("contenu") or g["contenu"]
+                    break
+        else:
+            if "gabarits" not in db:
+                db["gabarits"] = []
+            db["gabarits"].append({
+                "id": str(uuid.uuid4()),
+                "titre": self.gabarit_form.get("titre") or "",
+                "categorie": cat,
+                "contenu": self.gabarit_form.get("contenu") or "",
+                "date_creation": datetime.utcnow().isoformat(),
+                "auteur_nom": "",
+            })
         save_db(db)
+        self.editing_gabarit_id = ""
         self.show_gabarit_form = False
         self.load_gabarits()
 
     def delete_gabarit(self, gid: str):
         db = load_db()
-        db["gabarits"] = [g for g in db.get("gabarits", []) if g.get("id") != gid]
+        if gid.startswith("__pre_"):
+            hidden = db.get("hidden_predefined") or []
+            if gid not in hidden:
+                hidden.append(gid)
+            db["hidden_predefined"] = hidden
+        else:
+            db["gabarits"] = [g for g in db.get("gabarits", []) if g.get("id") != gid]
         save_db(db)
         self.load_gabarits()
 
@@ -407,13 +455,21 @@ def _gabarit_dialog() -> rx.Component:
             rx.box(
                 rx.hstack(
                     rx.box(
-                        rx.icon("file-plus", size=18, color="white"),
+                        rx.cond(
+                            DocumentsState.editing_gabarit_id != "",
+                            rx.icon("pencil", size=18, color="white"),
+                            rx.icon("file-plus", size=18, color="white"),
+                        ),
                         background="rgba(255,255,255,0.2)", border_radius="10px", padding="8px",
                         display="flex", align_items="center", justify_content="center",
                     ),
                     rx.vstack(
-                        rx.text("Nouveau gabarit", color="white", font_size="1rem", font_weight="700"),
-                        rx.text("Créer un modèle réutilisable", color="rgba(255,255,255,0.7)", font_size="0.72rem"),
+                        rx.cond(
+                            DocumentsState.editing_gabarit_id != "",
+                            rx.text("Modifier le gabarit", color="white", font_size="1rem", font_weight="700"),
+                            rx.text("Nouveau gabarit", color="white", font_size="1rem", font_weight="700"),
+                        ),
+                        rx.text("Titre · Catégorie · Contenu", color="rgba(255,255,255,0.65)", font_size="0.72rem"),
                         spacing="0", align="start",
                     ),
                     spacing="3", align="center",
@@ -424,6 +480,7 @@ def _gabarit_dialog() -> rx.Component:
                 margin="-24px -24px 0 -24px",
             ),
             rx.vstack(
+                # Titre
                 rx.vstack(
                     rx.hstack(
                         rx.text("TITRE", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
@@ -439,17 +496,51 @@ def _gabarit_dialog() -> rx.Component:
                     ),
                     spacing="1", align="start", width="100%",
                 ),
+                # Catégorie — texte libre + chips rapides
                 rx.vstack(
                     rx.text("CATÉGORIE", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
-                    rx.select(
-                        GABARIT_CATEGORIES,
+                    rx.input(
+                        placeholder="Ticket, Mail, Note, Escalade ou nouvelle catégorie…",
                         value=DocumentsState.gabarit_form["categorie"],
                         on_change=lambda v: DocumentsState.set_gabarit_field("categorie", v),
                         background="#1e2035", color=TEXT,
-                        border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
+                        border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
                     ),
-                    spacing="1", align="start", width="100%",
+                    rx.hstack(
+                        *[
+                            rx.button(
+                                cat,
+                                on_click=DocumentsState.set_gabarit_field("categorie", cat),
+                                background=rx.cond(
+                                    DocumentsState.gabarit_form["categorie"] == cat,
+                                    "rgba(99,102,241,0.3)",
+                                    "rgba(255,255,255,0.05)",
+                                ),
+                                color=rx.cond(
+                                    DocumentsState.gabarit_form["categorie"] == cat,
+                                    "#a5b4fc",
+                                    MUTED,
+                                ),
+                                border=rx.cond(
+                                    DocumentsState.gabarit_form["categorie"] == cat,
+                                    "1px solid rgba(99,102,241,0.5)",
+                                    f"1px solid {BORDER}",
+                                ),
+                                border_radius="999px",
+                                font_size="0.72rem",
+                                font_weight="600",
+                                padding="0.2rem 0.65rem",
+                                cursor="pointer",
+                                _hover={"background": "rgba(99,102,241,0.2)", "color": "#a5b4fc"},
+                            )
+                            for cat in GABARIT_CATEGORIES
+                        ],
+                        spacing="2",
+                        flex_wrap="wrap",
+                    ),
+                    spacing="2", align="start", width="100%",
                 ),
+                # Contenu
                 rx.vstack(
                     rx.hstack(
                         rx.text("CONTENU", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
@@ -468,6 +559,7 @@ def _gabarit_dialog() -> rx.Component:
                     ),
                     spacing="1", align="start", width="100%",
                 ),
+                # Actions
                 rx.hstack(
                     rx.button(
                         "Annuler",
@@ -477,8 +569,12 @@ def _gabarit_dialog() -> rx.Component:
                     ),
                     rx.button(
                         rx.icon("save", size=15),
-                        "Enregistrer",
-                        on_click=DocumentsState.create_gabarit,
+                        rx.cond(
+                            DocumentsState.editing_gabarit_id != "",
+                            "Mettre à jour",
+                            "Enregistrer",
+                        ),
+                        on_click=DocumentsState.save_gabarit,
                         background="linear-gradient(135deg, #1e1b4b, #4338ca)",
                         color="white", border_radius="8px", cursor="pointer",
                         font_weight="700", spacing="2",
@@ -524,21 +620,29 @@ def gabarit_kanban_card(g: GabaritItem) -> rx.Component:
                     cursor="pointer",
                     _hover={"color": "#22c55e", "background": "rgba(34,197,94,0.12)"},
                 ),
-                rx.cond(
-                    g["is_custom"],
-                    rx.icon_button(
-                        rx.icon("trash-2", size=12),
-                        on_click=DocumentsState.delete_gabarit(g["id"]),
-                        background="rgba(239,68,68,0.08)",
-                        color="#ef4444",
-                        border="1px solid rgba(239,68,68,0.25)",
-                        size="1",
-                        border_radius="6px",
-                        cursor="pointer",
-                        _hover={"background": "rgba(239,68,68,0.2)", "border_color": "rgba(239,68,68,0.5)"},
+                rx.icon_button(
+                    rx.icon("pencil", size=12),
+                    on_click=DocumentsState.open_edit_gabarit_form(
+                        g["id"], g["titre"], g["categorie"], g["contenu"]
                     ),
+                    background="transparent",
+                    color=MUTED,
+                    border="none",
+                    size="1",
+                    cursor="pointer",
+                    _hover={"color": "#a5b4fc", "background": "rgba(99,102,241,0.12)"},
                 ),
-                spacing="1",
+                rx.icon_button(
+                    rx.icon("trash-2", size=12),
+                    on_click=DocumentsState.delete_gabarit(g["id"]),
+                    background="transparent",
+                    color=MUTED,
+                    border="none",
+                    size="1",
+                    cursor="pointer",
+                    _hover={"color": "#ef4444", "background": "rgba(239,68,68,0.12)"},
+                ),
+                spacing="0",
                 flex_shrink="0",
             ),
             spacing="2",
