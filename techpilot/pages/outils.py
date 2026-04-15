@@ -9,7 +9,7 @@ BORDER  = "#1c2138"
 def outils_page() -> rx.Component:
     return page_layout(
         rx.el.iframe(
-            src="/tools.html",
+            src="/diagnostic.html",
             width="100%",
             style={
                 "height": "calc(100vh - 130px)",
