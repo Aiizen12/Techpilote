@@ -39,6 +39,10 @@ class DocumentsState(rx.State):
     filter_sous_cat: str = ""
     show_link_form: bool = False
     link_form: dict = {"nom": "", "url": "", "categorie": "Procédures", "sous_categorie": "", "description": ""}
+    current_tab: str = "documents"
+
+    def set_tab(self, tab: str):
+        self.current_tab = tab
 
     def load(self):
         db = load_db()
@@ -295,8 +299,59 @@ def internal_sources_section() -> rx.Component:
     )
 
 
+def tab_bar() -> rx.Component:
+    tabs = [
+        ("documents", "folder-open", "Documents"),
+        ("gabarits", "file-text", "Gabarits"),
+    ]
+    return rx.hstack(
+        *[
+            rx.button(
+                rx.icon(icon, size=14),
+                label,
+                on_click=DocumentsState.set_tab(key),
+                background=rx.cond(DocumentsState.current_tab == key, "rgba(99,102,241,0.18)", "transparent"),
+                color=rx.cond(DocumentsState.current_tab == key, "#a5b4fc", MUTED),
+                border=rx.cond(DocumentsState.current_tab == key, "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+                border_radius="8px",
+                font_size="0.8rem",
+                font_weight="600",
+                padding="0.35rem 0.875rem",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(99,102,241,0.1)", "color": "#a5b4fc"},
+            )
+            for key, icon, label in tabs
+        ],
+        spacing="2",
+        padding_bottom="0.5rem",
+        border_bottom=f"1px solid {BORDER}",
+        width="100%",
+    )
+
+
 def documents_content() -> rx.Component:
     return rx.vstack(
+        # Barre d'onglets
+        tab_bar(),
+        # Vue Gabarits
+        rx.cond(
+            DocumentsState.current_tab == "gabarits",
+            rx.el.iframe(
+                src="/gabarit.html",
+                width="100%",
+                style={
+                    "height": "calc(100vh - 160px)",
+                    "border": f"1px solid {BORDER}",
+                    "border_radius": "12px",
+                    "background": "#0d0f1a",
+                },
+            ),
+        ),
+        # Vue Documents
+        rx.cond(
+            DocumentsState.current_tab == "documents",
+            rx.vstack(
         # Header
         rx.hstack(
             rx.vstack(
@@ -541,6 +596,11 @@ def documents_content() -> rx.Component:
             ),
             open=DocumentsState.show_link_form,
         ),
+            spacing="5",
+            width="100%",
+            align="start",
+        ),  # fin rx.vstack documents
+        ),  # fin rx.cond documents
         spacing="5",
         width="100%",
         on_mount=DocumentsState.load,
