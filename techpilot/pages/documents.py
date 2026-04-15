@@ -529,15 +529,16 @@ def gabarit_kanban_card(g: GabaritItem) -> rx.Component:
                     rx.icon_button(
                         rx.icon("trash-2", size=12),
                         on_click=DocumentsState.delete_gabarit(g["id"]),
-                        background="transparent",
-                        color=MUTED,
-                        border="none",
+                        background="rgba(239,68,68,0.08)",
+                        color="#ef4444",
+                        border="1px solid rgba(239,68,68,0.25)",
                         size="1",
+                        border_radius="6px",
                         cursor="pointer",
-                        _hover={"color": "#ef4444", "background": "rgba(239,68,68,0.1)"},
+                        _hover={"background": "rgba(239,68,68,0.2)", "border_color": "rgba(239,68,68,0.5)"},
                     ),
                 ),
-                spacing="0",
+                spacing="1",
                 flex_shrink="0",
             ),
             spacing="2",
@@ -601,6 +602,36 @@ def gabarit_kanban_column(col: GabaritColumn) -> rx.Component:
 
 def gabarits_tab_view() -> rx.Component:
     return rx.vstack(
+        # Header avec bouton d'ajout
+        rx.hstack(
+            rx.vstack(
+                rx.text("Gabarits", color=TEXT, font_weight="700", font_size="1rem"),
+                rx.text("Modèles de tickets, mails et notes prêts à copier",
+                        color=MUTED, font_size="0.78rem"),
+                spacing="0", align="start",
+            ),
+            rx.spacer(),
+            rx.button(
+                rx.icon("plus", size=15),
+                "Nouveau gabarit",
+                on_click=DocumentsState.open_gabarit_form,
+                background="rgba(99,102,241,0.15)",
+                color="#a5b4fc",
+                border="1.5px solid rgba(99,102,241,0.35)",
+                border_radius="10px",
+                font_size="0.82rem",
+                font_weight="600",
+                padding="0.5rem 1.1rem",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(99,102,241,0.28)", "border_color": "rgba(99,102,241,0.6)"},
+            ),
+            width="100%",
+            align="center",
+            padding_bottom="0.75rem",
+            border_bottom=f"1px solid {BORDER}",
+        ),
+        # Kanban board
         rx.hstack(
             rx.foreach(DocumentsState.gabarit_columns, gabarit_kanban_column),
             spacing="3",
