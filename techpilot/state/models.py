@@ -93,6 +93,15 @@ class DocumentItem(rx.Base):
     description: str = ""
 
 
+class GabaritItem(rx.Base):
+    id: str = ""
+    titre: str = ""
+    categorie: str = ""
+    contenu: str = ""
+    date_creation: str = ""
+    auteur_nom: str = ""
+
+
 class DocGroup(rx.Base):
     name: str = ""
     docs: list[DocumentItem] = []

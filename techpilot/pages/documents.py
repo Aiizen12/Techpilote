@@ -2,7 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
-from techpilot.state.models import DocumentItem, DocGroup
+from techpilot.state.models import DocumentItem, DocGroup, GabaritItem
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +14,7 @@ BORDER = "rgba(255,255,255,0.07)"
 PRIMARY = "#6366f1"
 
 CATEGORIES = ["Général", "Procédures", "Groupes de droits", "Formations", "Référentiels", "Autre"]
+GABARIT_CATEGORIES = ["Ticket", "Mail", "Note", "Escalade", "Autre"]
 SOUS_CATEGORIES = [
     "SI - Téléphonie",
     "SI - Sécurité",
@@ -40,11 +41,15 @@ class DocumentsState(rx.State):
     show_link_form: bool = False
     link_form: dict = {"nom": "", "url": "", "categorie": "Procédures", "sous_categorie": "", "description": ""}
     current_tab: str = "documents"
+    custom_gabarits: list[GabaritItem] = []
+    show_gabarit_form: bool = False
+    gabarit_form: dict = {"titre": "", "categorie": "Ticket", "contenu": ""}
 
     def set_tab(self, tab: str):
         self.current_tab = tab
 
     def load(self):
+        self.load_gabarits()
         db = load_db()
         docs = sorted(db.get("documents") or [], key=lambda d: d.get("date_upload") or "", reverse=True)
         if self.filter_cat:
@@ -81,6 +86,58 @@ class DocumentsState(rx.State):
             )
             for key, grp_docs in groups.items()
         ]
+
+    def load_gabarits(self):
+        db = load_db()
+        items = sorted(db.get("gabarits") or [], key=lambda g: g.get("date_creation") or "", reverse=True)
+        self.custom_gabarits = [
+            GabaritItem(
+                id=str(g.get("id") or ""),
+                titre=g.get("titre") or "",
+                categorie=g.get("categorie") or "",
+                contenu=g.get("contenu") or "",
+                date_creation=g.get("date_creation") or "",
+                auteur_nom=g.get("auteur_nom") or "",
+            )
+            for g in items
+        ]
+
+    def open_gabarit_form(self):
+        self.gabarit_form = {"titre": "", "categorie": "Ticket", "contenu": ""}
+        self.show_gabarit_form = True
+
+    def close_gabarit_form(self):
+        self.show_gabarit_form = False
+
+    def set_gabarit_field(self, f: str, v: str):
+        self.gabarit_form = {**self.gabarit_form, f: v}
+
+    def create_gabarit(self):
+        if not self.gabarit_form.get("titre") or not self.gabarit_form.get("contenu"):
+            return
+        db = load_db()
+        if "gabarits" not in db:
+            db["gabarits"] = []
+        db["gabarits"].append({
+            "id": str(uuid.uuid4()),
+            "titre": self.gabarit_form.get("titre") or "",
+            "categorie": self.gabarit_form.get("categorie") or "Ticket",
+            "contenu": self.gabarit_form.get("contenu") or "",
+            "date_creation": datetime.utcnow().isoformat(),
+            "auteur_nom": "",
+        })
+        save_db(db)
+        self.show_gabarit_form = False
+        self.load_gabarits()
+
+    def delete_gabarit(self, gid: str):
+        db = load_db()
+        db["gabarits"] = [g for g in db.get("gabarits", []) if g.get("id") != gid]
+        save_db(db)
+        self.load_gabarits()
+
+    def copy_gabarit(self, contenu: str):
+        yield rx.set_clipboard(contenu)
 
     def set_cat(self, v: str):
         self.filter_cat = v
@@ -299,6 +356,233 @@ def internal_sources_section() -> rx.Component:
     )
 
 
+def gabarit_card(g: GabaritItem) -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            rx.vstack(
+                rx.hstack(
+                    rx.text(g["titre"], font_weight="600", font_size="0.875rem", color=TEXT,
+                            white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
+                    rx.badge(g["categorie"], color_scheme="indigo", variant="soft",
+                             radius="full", font_size="0.65rem", flex_shrink="0"),
+                    spacing="2", align="center", width="100%",
+                ),
+                rx.box(
+                    rx.text(g["contenu"], color=MUTED, font_size="0.78rem",
+                            white_space="pre-wrap", line_height="1.5"),
+                    max_height="52px",
+                    overflow="hidden",
+                    width="100%",
+                ),
+                spacing="2", align="start", flex="1", min_width="0",
+            ),
+            rx.vstack(
+                rx.button(
+                    rx.icon("copy", size=13),
+                    "Copier",
+                    on_click=DocumentsState.copy_gabarit(g["contenu"]),
+                    background="rgba(34,197,94,0.1)",
+                    color="#22c55e",
+                    border="1px solid rgba(34,197,94,0.3)",
+                    border_radius="8px",
+                    font_size="0.75rem",
+                    font_weight="600",
+                    spacing="1",
+                    cursor="pointer",
+                    _hover={"background": "rgba(34,197,94,0.2)"},
+                ),
+                rx.icon_button(
+                    rx.icon("trash-2", size=13),
+                    on_click=DocumentsState.delete_gabarit(g["id"]),
+                    background="transparent",
+                    color=MUTED,
+                    border="none",
+                    size="1",
+                    cursor="pointer",
+                    _hover={"background": "rgba(239,68,68,0.15)", "color": "#ef4444"},
+                ),
+                spacing="2",
+                flex_shrink="0",
+                align="end",
+            ),
+            spacing="3", align="start", width="100%",
+            padding="0.875rem 1.25rem",
+        ),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_radius="12px",
+        overflow="hidden",
+        transition="border-color 0.15s",
+        _hover={"border_color": "rgba(99,102,241,0.3)"},
+    )
+
+
+def gabarits_tab_view() -> rx.Component:
+    return rx.vstack(
+        # Header
+        rx.hstack(
+            rx.text("Mes gabarits", color=MUTED, font_size="0.7rem", font_weight="700",
+                    text_transform="uppercase", letter_spacing="0.07em"),
+            rx.spacer(),
+            rx.button(
+                rx.icon("plus", size=14),
+                "Nouveau gabarit",
+                on_click=DocumentsState.open_gabarit_form,
+                background="rgba(99,102,241,0.15)",
+                color="#a5b4fc",
+                border="1.5px solid rgba(99,102,241,0.3)",
+                border_radius="10px",
+                font_size="0.8rem",
+                font_weight="600",
+                padding="0.45rem 1rem",
+                cursor="pointer",
+                spacing="2",
+                _hover={"background": "rgba(99,102,241,0.25)", "border_color": "rgba(99,102,241,0.5)"},
+            ),
+            width="100%", align="center",
+        ),
+        # Liste des gabarits personnalisés
+        rx.cond(
+            DocumentsState.custom_gabarits.length() == 0,
+            rx.box(
+                rx.vstack(
+                    rx.icon("file-plus", size=36, color=MUTED),
+                    rx.text("Aucun gabarit personnalisé", color=MUTED, font_size="0.875rem"),
+                    rx.text("Créez votre premier gabarit avec le bouton ci-dessus",
+                            color="#334155", font_size="0.78rem"),
+                    spacing="2", align="center",
+                ),
+                background=CARD_BG,
+                border=f"1px solid {BORDER}",
+                border_radius="12px",
+                padding="2.5rem",
+                display="flex",
+                justify_content="center",
+                width="100%",
+            ),
+            rx.vstack(
+                rx.foreach(DocumentsState.custom_gabarits, gabarit_card),
+                spacing="2",
+                width="100%",
+            ),
+        ),
+        # Gabarits prédéfinis (iframe)
+        rx.text("Gabarits prédéfinis", color=MUTED, font_size="0.7rem", font_weight="700",
+                text_transform="uppercase", letter_spacing="0.07em",
+                padding_left="0.25rem", padding_top="0.5rem"),
+        rx.el.iframe(
+            src="/gabarit.html",
+            width="100%",
+            style={
+                "height": "480px",
+                "border": f"1px solid {BORDER}",
+                "border_radius": "12px",
+                "background": "#0d0f1a",
+            },
+        ),
+        # Dialog ajout gabarit
+        rx.dialog.root(
+            rx.dialog.content(
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("file-plus", size=18, color="white"),
+                            background="rgba(255,255,255,0.2)",
+                            border_radius="10px",
+                            padding="8px",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.vstack(
+                            rx.text("Nouveau gabarit", color="white", font_size="1rem", font_weight="700"),
+                            rx.text("Créer un modèle réutilisable",
+                                    color="rgba(255,255,255,0.7)", font_size="0.72rem"),
+                            spacing="0", align="start",
+                        ),
+                        spacing="3", align="center",
+                    ),
+                    background=f"linear-gradient(135deg, #166534, #15803d)",
+                    border_radius="12px 12px 0 0",
+                    padding="1.25rem 1.5rem",
+                    margin="-24px -24px 0 -24px",
+                ),
+                rx.vstack(
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("TITRE", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                            rx.text("*", color="#ef4444", font_size="0.75rem"),
+                            spacing="1",
+                        ),
+                        rx.input(
+                            placeholder="Ex : Mail – Confirmation prise en charge",
+                            value=DocumentsState.gabarit_form["titre"],
+                            on_change=lambda v: DocumentsState.set_gabarit_field("titre", v),
+                            background="#1e2035", color=TEXT,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.vstack(
+                        rx.text("CATÉGORIE", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                        rx.select(
+                            GABARIT_CATEGORIES,
+                            value=DocumentsState.gabarit_form["categorie"],
+                            on_change=lambda v: DocumentsState.set_gabarit_field("categorie", v),
+                            background="#1e2035", color=TEXT,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("CONTENU", color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.07em"),
+                            rx.text("*", color="#ef4444", font_size="0.75rem"),
+                            spacing="1",
+                        ),
+                        rx.text_area(
+                            placeholder="Coller ici le texte du gabarit…",
+                            value=DocumentsState.gabarit_form["contenu"],
+                            on_change=lambda v: DocumentsState.set_gabarit_field("contenu", v),
+                            background="#1e2035", color=TEXT,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", width="100%",
+                            rows="10",
+                            font_family="'Courier New', monospace",
+                            font_size="0.8rem",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.hstack(
+                        rx.button(
+                            "Annuler",
+                            on_click=DocumentsState.close_gabarit_form,
+                            background="transparent", color=MUTED,
+                            border=f"1px solid rgba(255,255,255,0.12)", border_radius="8px", cursor="pointer",
+                        ),
+                        rx.button(
+                            rx.icon("save", size=15),
+                            "Enregistrer",
+                            on_click=DocumentsState.create_gabarit,
+                            background="linear-gradient(135deg, #166534, #15803d)",
+                            color="white", border_radius="8px", cursor="pointer",
+                            font_weight="700", spacing="2",
+                        ),
+                        spacing="3", justify="end", width="100%",
+                    ),
+                    spacing="4", width="100%", padding_top="1.25rem",
+                ),
+                background="#151728",
+                border=f"1px solid rgba(255,255,255,0.1)",
+                border_radius="16px",
+                padding="24px",
+                max_width="540px",
+                overflow="hidden",
+            ),
+            open=DocumentsState.show_gabarit_form,
+        ),
+        spacing="4",
+        width="100%",
+    )
+
+
 def tab_bar() -> rx.Component:
     tabs = [
         ("documents", "folder-open", "Documents"),
@@ -337,16 +621,7 @@ def documents_content() -> rx.Component:
         # Vue Gabarits
         rx.cond(
             DocumentsState.current_tab == "gabarits",
-            rx.el.iframe(
-                src="/gabarit.html",
-                width="100%",
-                style={
-                    "height": "calc(100vh - 160px)",
-                    "border": f"1px solid {BORDER}",
-                    "border_radius": "12px",
-                    "background": "#0d0f1a",
-                },
-            ),
+            gabarits_tab_view(),
         ),
         # Vue Documents
         rx.cond(
