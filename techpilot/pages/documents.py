@@ -41,6 +41,7 @@ class DocumentsState(rx.State):
     show_link_form: bool = False
     link_form: dict = {"nom": "", "url": "", "categorie": "Procédures", "sous_categorie": "", "description": ""}
     current_tab: str = "documents"
+    escalade_count: int = 0
     custom_gabarits: list[GabaritItem] = []
     show_gabarit_form: bool = False
     gabarit_form: dict = {"titre": "", "categorie": "Ticket", "contenu": ""}
@@ -51,6 +52,7 @@ class DocumentsState(rx.State):
     def load(self):
         self.load_gabarits()
         db = load_db()
+        self.escalade_count = len(db.get("escalade") or [])
         docs = sorted(db.get("documents") or [], key=lambda d: d.get("date_upload") or "", reverse=True)
         if self.filter_cat:
             docs = [d for d in docs if d.get("categorie") == self.filter_cat]
@@ -312,7 +314,7 @@ def internal_sources_section() -> rx.Component:
                 ),
                 rx.vstack(
                     rx.text("Matrice d'escalade", color=TEXT, font_weight="600", font_size="0.875rem"),
-                    rx.text("401 règles de routage N1/N2/N3", color=MUTED, font_size="0.75rem"),
+                    rx.text(DocumentsState.escalade_count.to_string() + " règles de routage N1/N2/N3", color=MUTED, font_size="0.75rem"),
                     spacing="0", align="start",
                 ),
                 rx.spacer(),
