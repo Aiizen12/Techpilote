@@ -195,7 +195,9 @@ class ProcSuiviRow(rx.Base):
     typologie: str = ""
     categorie_fresh: str = ""
     has_procedure: bool = False
-    procedure_source: str = ""   # "Intégrée" | "Personnalisée" | ""
+    procedure_source: str = ""   # "Intégrée" | "Personnalisée" | "Document" | ""
+    doc_name: str = ""
+    doc_url: str = ""
 
 
 class PendingValidation(rx.Base):

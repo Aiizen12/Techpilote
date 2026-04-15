@@ -61,7 +61,15 @@ def _proc_badge(has_proc: bool, source: str) -> rx.Component:
             _badge("Oui", "#22c55e", "rgba(34,197,94,0.1)"),
             rx.cond(
                 source != "",
-                rx.text(source, color=MUTED, font_size="0.7rem"),
+                rx.match(
+                    source,
+                    ("Document",     rx.hstack(rx.icon("file-text", size=11, color="#a5b4fc"),
+                                               rx.text("Document", color="#a5b4fc", font_size="0.7rem"),
+                                               spacing="1", align="center")),
+                    ("Intégrée",     rx.text("Intégrée",     color=MUTED, font_size="0.7rem")),
+                    ("Personnalisée",rx.text("Personnalisée", color=MUTED, font_size="0.7rem")),
+                    rx.text(source, color=MUTED, font_size="0.7rem"),
+                ),
             ),
             spacing="2", align="center",
         ),
@@ -248,6 +256,100 @@ def _confirm_delete_modal() -> rx.Component:
             border_radius="12px", padding="1.2rem", max_width="360px",
         ),
         open=SuiviDocState.confirm_delete_id != "",
+    )
+
+
+# ── Modal sélection document ──────────────────────────────────────────────────
+
+def _doc_picker_modal() -> rx.Component:
+    def _doc_item(doc: dict) -> rx.Component:
+        return rx.hstack(
+            rx.icon("file-text", size=14, color="#a5b4fc", flex_shrink="0"),
+            rx.vstack(
+                rx.text(doc["nom"], color=TEXT, font_size="0.82rem", font_weight="500",
+                        white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
+                rx.text(doc["url"], color=MUTED, font_size="0.68rem",
+                        white_space="nowrap", overflow="hidden", text_overflow="ellipsis",
+                        max_width="340px"),
+                spacing="0", align="start", flex="1", min_width="0",
+            ),
+            rx.button(
+                "Lier",
+                on_click=SuiviDocState.link_doc_to_proc(doc["id"], doc["nom"], doc["url"]),
+                background="rgba(99,102,241,0.15)", color="#a5b4fc",
+                border="1px solid rgba(99,102,241,0.35)", border_radius="7px",
+                font_size="0.75rem", font_weight="600", padding="3px 10px",
+                cursor="pointer", flex_shrink="0",
+                _hover={"background": "rgba(99,102,241,0.3)"},
+            ),
+            spacing="3", align="center", width="100%",
+            padding="8px 12px",
+            border_bottom=f"1px solid {BORDER}",
+            _hover={"background": "rgba(255,255,255,0.025)"},
+        )
+
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.box(
+                rx.hstack(
+                    rx.box(
+                        rx.icon("link-2", size=18, color="white"),
+                        background="rgba(255,255,255,0.15)", border_radius="10px",
+                        padding="8px", display="flex", align_items="center",
+                        justify_content="center",
+                    ),
+                    rx.vstack(
+                        rx.text("Lier un document", color="white", font_size="1rem", font_weight="700"),
+                        rx.text("Choisir le document à associer à cette procédure",
+                                color="rgba(255,255,255,0.65)", font_size="0.72rem"),
+                        spacing="0", align="start",
+                    ),
+                    spacing="3", align="center",
+                ),
+                background="linear-gradient(135deg, #1e1b4b, #4338ca)",
+                border_radius="12px 12px 0 0",
+                padding="1.25rem 1.5rem",
+                margin="-24px -24px 0 -24px",
+            ),
+            rx.box(
+                rx.cond(
+                    SuiviDocState.available_proc_docs.length() == 0,
+                    rx.box(
+                        rx.vstack(
+                            rx.icon("folder-open", size=32, color=MUTED),
+                            rx.text("Aucun document disponible.", color=MUTED, font_size="0.85rem"),
+                            rx.text("Ajoutez d'abord des liens dans l'onglet Documents.",
+                                    color=MUTED, font_size="0.75rem"),
+                            spacing="2", align="center",
+                        ),
+                        padding="2rem", text_align="center",
+                    ),
+                    rx.box(
+                        rx.foreach(SuiviDocState.available_proc_docs, _doc_item),
+                        max_height="360px",
+                        overflow_y="auto",
+                        width="100%",
+                    ),
+                ),
+            ),
+            rx.hstack(
+                rx.button(
+                    "Annuler",
+                    on_click=SuiviDocState.close_doc_picker,
+                    background="transparent", color=MUTED,
+                    border=f"1px solid {BORDER}", border_radius="8px",
+                    cursor="pointer", padding="6px 14px",
+                ),
+                justify="end", width="100%", padding_top="0.75rem",
+            ),
+            background="#151728",
+            border=f"1px solid rgba(255,255,255,0.1)",
+            border_radius="16px",
+            padding="24px",
+            max_width="520px",
+            overflow="hidden",
+        ),
+        open=SuiviDocState.show_doc_picker,
     )
 
 
@@ -546,40 +648,94 @@ def _proc_row(row) -> rx.Component:
     return rx.hstack(
         # Périmètre
         rx.text(row.perimetre, color=MUTED, font_size="0.78rem",
-                min_width="120px", max_width="140px",
+                min_width="110px", max_width="130px",
                 style={"white_space": "nowrap", "overflow": "hidden",
                        "text_overflow": "ellipsis"}),
-        # Typologie
-        rx.text(row.typologie, color=TEXT, font_size="0.82rem",
-                flex="1", line_height="1.4"),
+        # Typologie (cliquable pour ouvrir le formulaire procédure)
+        rx.text(
+            row.typologie, color=TEXT, font_size="0.82rem",
+            flex="1", line_height="1.4", cursor="pointer",
+            _hover={"color": "#a5b4fc", "text_decoration": "underline"},
+            on_click=SuiviDocState.open_proc_form(row.perimetre, row.typologie),
+        ),
         # Catégorie FRESH
         rx.text(row.categorie_fresh, color=MUTED, font_size="0.75rem",
-                min_width="120px", max_width="140px",
+                min_width="100px", max_width="120px",
                 style={"white_space": "nowrap", "overflow": "hidden",
                        "text_overflow": "ellipsis"}),
         # Procédure
         rx.box(
             _proc_badge(row.has_procedure, row.procedure_source),
-            min_width="130px",
+            min_width="120px",
+        ),
+        # Document lié
+        rx.box(
+            rx.cond(
+                row.doc_url != "",
+                # Doc lié → afficher le lien + bouton unlink
+                rx.hstack(
+                    rx.link(
+                        rx.hstack(
+                            rx.icon("file-text", size=13, color="#a5b4fc"),
+                            rx.text(
+                                row.doc_name,
+                                color="#a5b4fc", font_size="0.75rem",
+                                max_width="140px",
+                                style={"white_space": "nowrap", "overflow": "hidden",
+                                       "text_overflow": "ellipsis"},
+                            ),
+                            spacing="1", align="center",
+                        ),
+                        href=row.doc_url, target="_blank",
+                        text_decoration="none",
+                        _hover={"opacity": "0.8"},
+                    ),
+                    rx.icon_button(
+                        rx.icon("x", size=11),
+                        on_click=SuiviDocState.unlink_doc_from_proc(row.perimetre, row.typologie),
+                        background="transparent", color=MUTED, border="none",
+                        size="1", cursor="pointer",
+                        _hover={"color": "#ef4444"},
+                    ),
+                    spacing="1", align="center",
+                ),
+                # Pas de doc → bouton lier
+                rx.button(
+                    rx.icon("link-2", size=12),
+                    "Lier",
+                    on_click=SuiviDocState.open_doc_picker(row.perimetre, row.typologie),
+                    background="transparent",
+                    color=MUTED,
+                    border=f"1px solid {BORDER}",
+                    border_radius="6px",
+                    font_size="0.72rem",
+                    padding="2px 8px",
+                    cursor="pointer",
+                    spacing="1",
+                    _hover={"background": "rgba(99,102,241,0.1)", "color": "#a5b4fc",
+                            "border_color": "rgba(99,102,241,0.4)"},
+                ),
+            ),
+            min_width="160px",
         ),
         spacing="3", align="center", width="100%",
         padding="9px 14px",
         border_bottom=f"1px solid {BORDER}",
-        cursor="pointer",
-        _hover={"background": "rgba(99,102,241,0.05)"},
-        on_click=SuiviDocState.open_proc_form(row.perimetre, row.typologie),
+        _hover={"background": "rgba(255,255,255,0.015)"},
     )
 
 
 def _proc_header() -> rx.Component:
     return rx.hstack(
         rx.text("Périmètre",       color=MUTED, font_size="0.72rem", font_weight="700",
-                min_width="120px", max_width="140px"),
+                min_width="110px", max_width="130px"),
         rx.text("Typologie",       color=MUTED, font_size="0.72rem", font_weight="700", flex="1"),
         rx.text("Catégorie FRESH", color=MUTED, font_size="0.72rem", font_weight="700",
-                min_width="120px", max_width="140px"),
+                min_width="100px", max_width="120px"),
         rx.text("Procédure N1",    color=MUTED, font_size="0.72rem", font_weight="700",
-                min_width="130px"),
+                min_width="120px"),
+        rx.text("Document lié",    color=MUTED, font_size="0.72rem", font_weight="700",
+                min_width="160px"),
         spacing="3", width="100%",
         padding="7px 14px",
         border_bottom=f"1px solid {BORDER}",
@@ -813,6 +969,7 @@ def suivi_tab_content() -> rx.Component:
         _form_modal(),
         _confirm_delete_modal(),
         _proc_form_modal(),
+        _doc_picker_modal(),
 
         spacing="5", width="100%",
     )

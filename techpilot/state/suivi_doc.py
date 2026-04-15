@@ -48,6 +48,11 @@ class SuiviDocState(rx.State):
     proc_form_typologie: str = ""
     proc_form_steps_text: str = ""
 
+    # ── Liaison document ↔ procédure ──────────────────────────────────────
+    show_doc_picker: bool = False
+    doc_picker_key: str = ""          # "perimetre|typologie"
+    available_proc_docs: list[dict] = []
+
     # ── Chargement ────────────────────────────────────────────────────────
 
     def load(self):
@@ -193,6 +198,7 @@ class SuiviDocState(rx.State):
     def _load_proc_suivi(self):
         db = load_db()
         custom = db.get("procedures_custom") or {}
+        proc_doc_links = db.get("proc_doc_links") or {}
         all_rows = db.get("escalation_matrix") or []
 
         perimetres = sorted(set(r.get("perimetre", "") for r in all_rows if r.get("perimetre")))
@@ -218,7 +224,14 @@ class SuiviDocState(rx.State):
             c = r.get("categorie_fresh") or ""
             key = f"{p}|{t}"
 
-            if custom.get(key):
+            doc_link = proc_doc_links.get(key) or {}
+            doc_name = doc_link.get("doc_name", "")
+            doc_url  = doc_link.get("doc_url", "")
+
+            if doc_link:
+                has_proc = True
+                source = "Document"
+            elif custom.get(key):
                 has_proc = True
                 source = "Personnalisée"
             elif PROCEDURE_MAP.get((p, t)):
@@ -234,13 +247,13 @@ class SuiviDocState(rx.State):
                 has_proc = found
                 source = "Intégrée" if found else ""
 
-            computed.append((p, t, c, has_proc, source))
+            computed.append((p, t, c, has_proc, source, doc_name, doc_url, key))
 
         # Filter by has_procedure
         if self.proc_filter_has_proc == "oui":
-            computed = [(p, t, c, hp, s) for p, t, c, hp, s in computed if hp]
+            computed = [row for row in computed if row[3]]
         elif self.proc_filter_has_proc == "non":
-            computed = [(p, t, c, hp, s) for p, t, c, hp, s in computed if not hp]
+            computed = [row for row in computed if not row[3]]
 
         self.proc_total = len(computed)
         offset = (self.proc_page - 1) * self.proc_limit
@@ -253,8 +266,10 @@ class SuiviDocState(rx.State):
                 categorie_fresh=c,
                 has_procedure=hp,
                 procedure_source=s,
+                doc_name=dn,
+                doc_url=du,
             )
-            for p, t, c, hp, s in page_rows
+            for p, t, c, hp, s, dn, du, _key in page_rows
         ]
 
     def set_proc_filter_perimetre(self, v: str):
@@ -337,6 +352,51 @@ class SuiviDocState(rx.State):
         self.show_proc_form = False
         self._load_proc_suivi()
         yield rx.toast.info("Procédure personnalisée supprimée.")
+
+    # ── Liaison document ↔ procédure ──────────────────────────────────────
+
+    def open_doc_picker(self, perimetre: str, typologie: str):
+        self.doc_picker_key = f"{perimetre}|{typologie}"
+        db = load_db()
+        docs = sorted(
+            [d for d in (db.get("documents") or []) if d.get("url")],
+            key=lambda d: d.get("nom_original") or "",
+        )
+        self.available_proc_docs = [
+            {"id": d.get("id", ""), "nom": d.get("nom_original", ""), "url": d.get("url", "")}
+            for d in docs
+        ]
+        self.show_doc_picker = True
+
+    def close_doc_picker(self):
+        self.show_doc_picker = False
+        self.doc_picker_key = ""
+
+    def link_doc_to_proc(self, doc_id: str, doc_name: str, doc_url: str):
+        if not self.doc_picker_key:
+            return
+        db = load_db()
+        if "proc_doc_links" not in db:
+            db["proc_doc_links"] = {}
+        db["proc_doc_links"][self.doc_picker_key] = {
+            "doc_id": doc_id,
+            "doc_name": doc_name,
+            "doc_url": doc_url,
+        }
+        save_db(db)
+        self.show_doc_picker = False
+        self.doc_picker_key = ""
+        self._load_proc_suivi()
+
+    def unlink_doc_from_proc(self, perimetre: str, typologie: str):
+        key = f"{perimetre}|{typologie}"
+        db = load_db()
+        links = db.get("proc_doc_links") or {}
+        if key in links:
+            del links[key]
+        db["proc_doc_links"] = links
+        save_db(db)
+        self._load_proc_suivi()
 
     @rx.var
     def proc_total_pages(self) -> int:
