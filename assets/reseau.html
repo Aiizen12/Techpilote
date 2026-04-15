@@ -533,12 +533,114 @@
 
 <script>
   const REPONSES = [
-    "Réseau – lenteurs sur poste",
-    "Réseau – lenteurs sur l'ensemble du site",
-    "Réseau – lenteurs réseaux sur routeur 4G/5G",
-    "Réseau – plus d'accès internet sur un poste",
-    "Réseau – plus d'accès internet sur l'ensemble du site",
-    "Réseau – plus d'accès WIFI sur l'ensemble du site",
+    {
+      titre: "Réseau – Lenteurs sur un poste",
+      contenu: `Site / Poste :
+Utilisateur seul impacté : Oui / Non
+Date d'apparition :
+Type de lenteur : Internet uniquement / Applications métiers
+
+DIAGNOSTIC TECHNIQUE
+Connecté via : Ethernet / Wi-Fi
+Redémarrage poste : OK / KO
+IP valide : Oui / Non
+Vitesse de négociation (Si Ethernet) : 1 Gbps / 100 Mbps / 10 Mbps
+Résultat Speedtest (Débit/Ping) :
+
+TESTS D'ISOLEMENT :
+Test avec un autre câble Ethernet : OK / KO
+Test sur une autre prise murale : OK / KO
+Test sans station d'accueil (si portable) : OK / KO`
+    },
+    {
+      titre: "Réseau – Lenteurs sur l'ensemble du site",
+      contenu: `!! Mettre le titre du ticket "(AGENCE/VILLE) - Lenteurs sur l'ensemble du site" et criticité majeur !!
+Modification, intervention, déménagement sur site effectuée récemment : Oui / Non
+Sur quel environnement sont observées les lenteurs : « Navigation web, Applicatif, Windows »
+Evénement aléatoire / temporaire : Oui/Non
+Si oui, horodatages et période (<48h) :
+Si conditions de reproduction, les notifier :
+Speedtest : - UP : - DOWN : - PING
+Redémarrage des équipements : OK mais ne résout pas / KO
+Contact sur site : {{ticket.requester.name}}, {{ticket.requester.phone}}
+Adresse postale site / agence :`
+    },
+    {
+      titre: "Réseau – Lenteurs réseaux sur routeur 4G/5G",
+      contenu: `Routeur 4G/5G "Incident rencontré : Débit réduit sur l'ensemble de l'implant/agence"
+Vérification sur le fichier "Suivi déploiement routeur 4G/5G Actual" (https://docs.google.com/spreadsheets/d/1FMeYt0dQRoYAXsEtHNosmOlk-PuHtPtgHtePHQGmPJg/edit#gid=0)
+Nom et n° de tel du contact : {{ticket.requester.name}}, {{ticket.requester.phone}}
+Nom du site et type du site : {{ticket.agence}}
+Data consommée : X/Y Go
+Ajout de l'étiquette BT :
+Note : Si la data n'est pas consommée, considérer qu'il s'agit d'un incident technique, et se référer aux templates BT Blue.
+Adresse postale site / agence :
+
+Recharge de la DATA depuis la console BT : OUI / NON
+1ère recharge ou recharge récurrente :
+Si la recharge est récurrente, le forfait doit être redimensionné : Escalade du ticket à Support DSI Administratif
+Note : les forfaits DATA sont re-crédités le 1er du mois, les recharges ne sont pas reportées sur le mois suivant.`
+    },
+    {
+      titre: "Réseau – Plus d'accès Internet sur un poste",
+      contenu: `Site / Agence
+Modification / Intervention / déménagement récent : Oui / Non
+Date de la modification (si oui) :
+Impact utilisateur : Bloquant / Dégradé
+Type de connexion du site / agence : Fibre / 4G-5G
+FAI du site / agence : nom / non connu
+
+Poste
+ID du poste :
+Màj Windows en cours ? màj effectué : OK / KO
+Redémarrage du poste effectué : OK / KO
+Résultat après redémarrage : OK / KO
+
+Réseau
+Ordinateur raccordé au LAN : OK / KO
+Ordinateur raccordé au Wi-Fi : OK / KO
+Quel SSID Wi-Fi ? :
+Adresse IP valide (hors 169.254.x.x) : OK / KO
+Passerelle par défaut joignable : OK / KO
+Ping Internet (8.8.8.8) : OK / KO
+Vitesse de négociation Ethernet (1 Gbps attendu) : OK / KO
+
+Tests
+Test croisé – poste branché sur une prise fonctionnelle : OK / KO
+Test croisé – autre poste branché sur une prise incriminée : OK / KO
+Test croisé – cable actuel branché sur une prise fonctionnelle : OK / KO
+Test croisé – autre cable fonctionnel branché sur la prise incriminée : OK / KO
+Erreur localisée à une prise / emplacement : ID de la prise /emplacement / KO
+Test du compte utilisateur sur un autre poste : OK / KO / Impossible
+Test d'un autre compte utilisateur sur le poste : OK / KO / Impossible
+
+En plus
+Situation aléatoire / temporaire / récurrent : aléatoire / temporaire / récurrent
+Horodatage / période observée :
+Conditions de reproduction identifiées : Oui / Non
+Si oui lesquelles :
+Contact sur site (Nom / Prénom / Téléphone / disponibilités) :
+
+Si toujours KO, escalader suivant l'entité, vérifier la matrice`
+    },
+    {
+      titre: "Réseau – Plus d'accès WIFI sur l'ensemble du site",
+      contenu: `!! Mettre le titre du ticket "(AGENCE/VILLE) - Plus d'accès WIFI sur l'ensemble du site" et criticité majeur !!
+
+Redémarrage de la borne WIFI : Non // Résultat :
+Le wifi s'affiche t'il : Oui / Non // Si oui, sous quel nom :
+Modification, intervention, déménagement sur site effectuée récemment : Oui / Non
+Est-ce que les routeurs sont allumés électriquement : Oui / Non
+Est-ce que les switch sont allumés électriquement : Oui / Non
+Est-ce que le site subit une coupure électrique : Oui / Non
+Est-ce que les équipements du site ont été redémarrés : Oui / Non résultat :
+Evénement aléatoire / temporaire : Oui/Non
+Si oui, horodatages ou période :
+Si conditions de reproduction, les notifier :
+Adresse postale site / agence :
+
+Contact sur site : {{ticket.requester.name}}, {{ticket.requester.phone}}`
+    },
   ];
 
   const QUESTIONS = [
@@ -571,8 +673,8 @@
     REPONSES.forEach(r => {
       const btn = document.createElement('button');
       btn.className = 'copy-btn';
-      btn.innerHTML = '<span class="copy-btn-text">' + r + '</span><span class="copy-icon">📋</span>';
-      btn.onclick = () => copyText(r, btn);
+      btn.innerHTML = '<span class="copy-btn-text">' + r.titre + '</span><span class="copy-icon">📋</span>';
+      btn.onclick = () => copyText(r.contenu, btn);
       c.appendChild(btn);
     });
   }
