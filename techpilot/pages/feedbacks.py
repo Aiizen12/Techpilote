@@ -54,9 +54,10 @@ class FeedbacksState(rx.State):
     def set_field(self, f: str, v: str):
         self.form = {**self.form, f: v}
 
-    def create(self):
+    async def create(self):
         if not self.form.get("titre"):
             return
+        auth = await self.get_state(AuthState)
         db = load_db()
         if "feedbacks" not in db:
             db["feedbacks"] = []
@@ -64,8 +65,8 @@ class FeedbacksState(rx.State):
             "id": str(uuid.uuid4()),
             **self.form,
             "statut": "ouvert",
-            "auteur_id": AuthState.user_id,
-            "auteur_nom": AuthState.user_nom,
+            "auteur_id": auth.user_id,
+            "auteur_nom": auth.user_nom,
             "votes": [],
             "date_creation": datetime.utcnow().isoformat(),
         })
@@ -73,9 +74,10 @@ class FeedbacksState(rx.State):
         self.show_form = False
         self.load()
 
-    def vote(self, fid: str):
+    async def vote(self, fid: str):
+        auth = await self.get_state(AuthState)
+        uid = auth.user_id
         db = load_db()
-        uid = AuthState.user_id
         for f in db.get("feedbacks") or []:
             if f.get("id") == fid:
                 votes = f.get("votes") or []

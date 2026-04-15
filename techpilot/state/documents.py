@@ -285,9 +285,10 @@ class DocumentsState(rx.State):
     def set_link_field(self, f: str, v: str):
         self.link_form = {**self.link_form, f: v}
 
-    def create_link(self):
+    async def create_link(self):
         if not self.link_form.get("nom") or not self.link_form.get("url"):
             return
+        auth = await self.get_state(AuthState)
         db = load_db()
         if "documents" not in db:
             db["documents"] = []
@@ -300,8 +301,8 @@ class DocumentsState(rx.State):
             "categorie": self.link_form.get("categorie") or "Procédures",
             "sous_categorie": self.link_form.get("sous_categorie") or "",
             "description": self.link_form.get("description") or "",
-            "uploade_par_id": AuthState.user_id,
-            "uploade_par_nom": AuthState.user_nom,
+            "uploade_par_id": auth.user_id,
+            "uploade_par_nom": auth.user_nom,
             "date_upload": datetime.utcnow().isoformat(),
         })
         save_db(db)

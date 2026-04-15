@@ -62,17 +62,18 @@ class ActualitesState(rx.State):
     def toggle_form_epingle(self):
         self.form = {**self.form, "epingle": not self.form.get("epingle", False)}
 
-    def create(self):
+    async def create(self):
         if not self.form.get("titre"):
             return
+        auth = await self.get_state(AuthState)
         db = load_db()
         if "actualites" not in db:
             db["actualites"] = []
         db["actualites"].append({
             "id": str(uuid.uuid4()),
             **self.form,
-            "auteur_id":  AuthState.user_id,
-            "auteur_nom": AuthState.user_nom,
+            "auteur_id":  auth.user_id,
+            "auteur_nom": auth.user_nom,
             "date_creation": datetime.utcnow().isoformat(),
         })
         save_db(db)
