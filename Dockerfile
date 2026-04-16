@@ -19,11 +19,18 @@ RUN mkdir -p data/documents data/backups
 ENV PYTHONPATH=/app
 ENV PORT=8080
 
-# Init Reflex (generates .web/ and config)
+# Allow Node.js to use up to 2 GB heap during the frontend build
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+
+# Init Reflex (generates .web/ scaffold and config)
 RUN reflex init
 
-# Pre-build the Next.js frontend with the correct api_url
-RUN reflex export --frontend-only --no-zip || echo "Export warning: continuing"
+# Build the frontend at image-build time (Docker build containers have ~8 GB RAM)
+# The output lands in .web/build/client/ (React Router v7 convention)
+RUN reflex export --frontend-only --no-zip
+
+# Discover where the built index.html ended up and print it for diagnostics
+RUN find /app/.web -name "index.html" 2>/dev/null | head -5 || echo "No index.html found in .web"
 
 # Copy nginx config template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
