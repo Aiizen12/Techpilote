@@ -84,6 +84,19 @@ class AuthState(rx.State):
         return self.permissions.get("doc_edit", False)
 
     @rx.var
+    def can_edit_technicians(self) -> bool:
+        return self.permissions.get("technicians_edit", False)
+
+    @rx.var
+    def can_manage_tickets(self) -> bool:
+        return self.permissions.get("tickets_manage", True)
+
+    def require_manager(self):
+        """Redirige vers /dashboard si l'utilisateur n'est pas manager."""
+        if self.user_role != "manager":
+            return rx.redirect("/dashboard")
+
+    @rx.var
     def permissions(self) -> dict:
         if self.user_role == "manager":
             return {k: True for k in DEFAULT_PERMS}

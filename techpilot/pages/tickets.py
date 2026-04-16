@@ -42,6 +42,18 @@ class TicketsState(rx.State):
     matrix_search: str = ""
     matrix_results: list[MatrixSuggestion] = []
     matrix_selected: MatrixSuggestion = MatrixSuggestion()
+    # Détail ticket
+    show_detail: bool = False
+    detail_ticket: TicketItem = TicketItem()
+
+    def open_detail(self, tid: str):
+        ticket = next((t for t in self.tickets if t.id == tid), None)
+        if ticket:
+            self.detail_ticket = ticket
+            self.show_detail = True
+
+    def close_detail(self):
+        self.show_detail = False
 
     def load(self):
         db = load_db()
@@ -161,6 +173,9 @@ class TicketsState(rx.State):
         if not self.form.get("titre"):
             return
         auth = await self.get_state(AuthState)
+        if not auth.permissions.get("tickets_manage", True):
+            yield rx.toast.error("Vous n'avez pas le droit de créer des incidents.")
+            return
         db = load_db()
         if "tickets" not in db:
             db["tickets"] = []
@@ -193,6 +208,9 @@ class TicketsState(rx.State):
 
     async def resolve(self, tid: str):
         auth = await self.get_state(AuthState)
+        if not auth.permissions.get("tickets_manage", True):
+            yield rx.toast.error("Vous n'avez pas le droit de modifier des incidents.")
+            return
         db = load_db()
         for t in db.get("tickets") or []:
             if t.get("id") == tid:
@@ -206,6 +224,9 @@ class TicketsState(rx.State):
 
     async def delete(self, tid: str):
         auth = await self.get_state(AuthState)
+        if not auth.permissions.get("tickets_manage", True):
+            yield rx.toast.error("Vous n'avez pas le droit de supprimer des incidents.")
+            return
         db = load_db()
         ticket = next((t for t in (db.get("tickets") or []) if t.get("id") == tid), None)
         db["tickets"] = [t for t in (db.get("tickets") or []) if t.get("id") != tid]
@@ -357,63 +378,84 @@ def incident_row(t: TicketItem) -> rx.Component:
 
     return rx.box(
         rx.hstack(
-            rx.cond(
-                t["etat"] == "en_cours",
-                rx.icon("clock", size=16, color=RED),
-                rx.icon("circle-check", size=16, color=GREEN),
-            ),
-            rx.box(
-                rx.text(num_display, color=MUTED, font_size="0.72rem", font_family="monospace"),
-                background="rgba(255,255,255,0.05)",
-                border=f"1px solid {BORDER}",
-                border_radius="4px",
-                padding="2px 6px",
-            ),
-            rx.text(t["titre"], color=TEXT, font_size="0.875rem", font_weight="500", flex="1"),
-            _severity_badge(t["impact"]),
-            rx.cond(
-                t["technicien_nom"] != "",
-                rx.text(t["technicien_nom"], color=MUTED, font_size="0.78rem"),
-                rx.text("Non assigné", color=MUTED, font_size="0.78rem"),
-            ),
-            rx.cond(
-                t["escalade_interlocuteur"] != "",
-                rx.badge(
-                    rx.hstack(
-                        rx.icon("git-branch", size=10),
-                        rx.text("→ " + t["escalade_interlocuteur"],
-                                font_size="0.68rem", max_width="120px",
-                                overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
-                        spacing="1", align="center",
-                    ),
-                    color_scheme="indigo", variant="soft", radius="full",
-                ),
-            ),
-            rx.text(date_display, color=MUTED, font_size="0.78rem"),
+            # Contenu cliquable (flex=1, frère des boutons)
             rx.hstack(
                 rx.cond(
                     t["etat"] == "en_cours",
+                    rx.icon("clock", size=16, color=RED),
+                    rx.icon("circle-check", size=16, color=GREEN),
+                ),
+                rx.box(
+                    rx.text(num_display, color=MUTED, font_size="0.72rem", font_family="monospace"),
+                    background="rgba(255,255,255,0.05)",
+                    border=f"1px solid {BORDER}",
+                    border_radius="4px",
+                    padding="2px 6px",
+                    flex_shrink="0",
+                ),
+                rx.text(t["titre"], color=TEXT, font_size="0.875rem", font_weight="500",
+                        flex="1", min_width="0", overflow="hidden",
+                        text_overflow="ellipsis", white_space="nowrap"),
+                _severity_badge(t["impact"]),
+                rx.cond(
+                    t["technicien_nom"] != "",
+                    rx.text(t["technicien_nom"], color=MUTED, font_size="0.78rem",
+                            white_space="nowrap", flex_shrink="0"),
+                    rx.text("Non assigné", color=MUTED, font_size="0.78rem",
+                            white_space="nowrap", flex_shrink="0"),
+                ),
+                rx.cond(
+                    t["escalade_interlocuteur"] != "",
+                    rx.badge(
+                        rx.hstack(
+                            rx.icon("git-branch", size=10),
+                            rx.text("→ " + t["escalade_interlocuteur"],
+                                    font_size="0.68rem", max_width="100px",
+                                    overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+                            spacing="1", align="center",
+                        ),
+                        color_scheme="indigo", variant="soft", radius="full",
+                        flex_shrink="0",
+                    ),
+                ),
+                rx.text(date_display, color=MUTED, font_size="0.78rem",
+                        white_space="nowrap", flex_shrink="0"),
+                spacing="3",
+                align="center",
+                flex="1",
+                min_width="0",
+                cursor="pointer",
+                on_click=TicketsState.open_detail(t["id"]),
+            ),
+            # Boutons action (frère, pas enfant de la zone cliquable)
+            rx.cond(
+                AuthState.can_manage_tickets,
+                rx.hstack(
+                    rx.cond(
+                        t["etat"] == "en_cours",
+                        rx.icon_button(
+                            rx.icon("circle-check", size=13),
+                            on_click=TicketsState.resolve(t["id"]),
+                            background="transparent",
+                            color=MUTED,
+                            size="1",
+                            cursor="pointer",
+                            _hover={"color": GREEN},
+                            title="Marquer comme résolu",
+                        ),
+                    ),
                     rx.icon_button(
-                        rx.icon("circle-check", size=13),
-                        on_click=TicketsState.resolve(t["id"]),
+                        rx.icon("trash-2", size=13),
+                        on_click=TicketsState.delete(t["id"]),
                         background="transparent",
                         color=MUTED,
                         size="1",
                         cursor="pointer",
-                        _hover={"color": GREEN},
-                        title="Marquer comme résolu",
+                        _hover={"color": RED},
                     ),
+                    spacing="1",
+                    flex_shrink="0",
                 ),
-                rx.icon_button(
-                    rx.icon("trash-2", size=13),
-                    on_click=TicketsState.delete(t["id"]),
-                    background="transparent",
-                    color=MUTED,
-                    size="1",
-                    cursor="pointer",
-                    _hover={"color": RED},
-                ),
-                spacing="1",
             ),
             spacing="3",
             align="center",
@@ -426,7 +468,7 @@ def incident_row(t: TicketItem) -> rx.Component:
         padding="0.85rem 1.1rem",
         width="100%",
         transition="background 0.15s",
-        _hover={"background": "rgba(255,255,255,0.02)"},
+        _hover={"background": "rgba(255,255,255,0.035)"},
     )
 
 
@@ -443,6 +485,172 @@ def _tech_pill(t: dict) -> rx.Component:
             "font_size": "0.75rem", "cursor": "pointer",
             "white_space": "nowrap", "font_weight": "500",
         },
+    )
+
+
+def ticket_detail_dialog() -> rx.Component:
+    t = TicketsState.detail_ticket
+    border_color = rx.cond(t["etat"] == "en_cours", RED, GREEN)
+
+    def _field(label: str, value) -> rx.Component:
+        return rx.vstack(
+            rx.text(label, color=MUTED, font_size="0.68rem", font_weight="700", letter_spacing="0.06em"),
+            rx.text(value, color=TEXT, font_size="0.875rem"),
+            spacing="0", align="start",
+        )
+
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                # ── Header ────────────────────────────────────────────────────
+                rx.hstack(
+                    rx.box(
+                        rx.cond(
+                            t["etat"] == "en_cours",
+                            rx.icon("clock", size=18, color=RED),
+                            rx.icon("circle-check", size=18, color=GREEN),
+                        ),
+                        background=rx.cond(t["etat"] == "en_cours",
+                                           "rgba(239,68,68,0.12)", "rgba(34,197,94,0.12)"),
+                        border_radius="8px", padding="8px",
+                        display="flex", align_items="center", justify_content="center",
+                    ),
+                    rx.vstack(
+                        rx.text(t["titre"], color=TEXT, font_size="1rem", font_weight="700"),
+                        rx.hstack(
+                            rx.box(
+                                rx.text(t["id"][:6].upper(), color=MUTED,
+                                        font_size="0.68rem", font_family="monospace"),
+                                background="rgba(255,255,255,0.05)",
+                                border=f"1px solid {BORDER}",
+                                border_radius="4px", padding="2px 6px",
+                            ),
+                            rx.cond(
+                                t["etat"] == "en_cours",
+                                rx.badge("En cours", color_scheme="red", variant="soft", radius="full"),
+                                rx.badge("Résolu", color_scheme="green", variant="soft", radius="full"),
+                            ),
+                            _severity_badge(t["impact"]),
+                            spacing="2", align="center",
+                        ),
+                        spacing="1", align="start",
+                    ),
+                    rx.spacer(),
+                    rx.icon_button(
+                        rx.icon("x", size=16),
+                        on_click=TicketsState.close_detail,
+                        background="transparent", color=MUTED,
+                        size="2", cursor="pointer",
+                        _hover={"background": "rgba(255,255,255,0.08)"},
+                    ),
+                    spacing="3", align="center", width="100%",
+                ),
+
+                rx.divider(border_color=BORDER),
+
+                # ── Corps ─────────────────────────────────────────────────────
+                rx.cond(
+                    t["description"] != "",
+                    rx.vstack(
+                        rx.text("DESCRIPTION", color=MUTED, font_size="0.68rem",
+                                font_weight="700", letter_spacing="0.06em"),
+                        rx.text(t["description"], color=TEXT, font_size="0.875rem",
+                                white_space="pre-wrap"),
+                        spacing="1", align="start", width="100%",
+                    ),
+                ),
+
+                rx.hstack(
+                    rx.cond(t["perimetre"] != "", _field("PÉRIMÈTRE", t["perimetre"])),
+                    rx.cond(
+                        t["technicien_nom"] != "",
+                        _field("TECHNICIEN", t["technicien_nom"]),
+                        _field("TECHNICIEN", "Non assigné"),
+                    ),
+                    rx.cond(t["ticket_pere"] != "", _field("TICKET PÈRE", t["ticket_pere"])),
+                    spacing="6", align="start", wrap="wrap",
+                ),
+
+                rx.cond(
+                    t["notes"] != "",
+                    rx.vstack(
+                        rx.text("NOTES / ACTIONS MENÉES", color=MUTED, font_size="0.68rem",
+                                font_weight="700", letter_spacing="0.06em"),
+                        rx.box(
+                            rx.text(t["notes"], color=TEXT, font_size="0.875rem",
+                                    white_space="pre-wrap"),
+                            background="rgba(255,255,255,0.03)",
+                            border=f"1px solid {BORDER}",
+                            border_radius="8px", padding="0.75rem",
+                            width="100%",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                ),
+
+                # ── Escalade ──────────────────────────────────────────────────
+                rx.cond(
+                    t["escalade_interlocuteur"] != "",
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("git-branch", size=13, color=PRIMARY),
+                            rx.text("ESCALADE", color=MUTED, font_size="0.68rem",
+                                    font_weight="700", letter_spacing="0.06em"),
+                            spacing="1", align="center",
+                        ),
+                        rx.box(
+                            rx.hstack(
+                                rx.vstack(
+                                    rx.text("Interlocuteur", color=MUTED, font_size="0.65rem",
+                                            font_weight="700", letter_spacing="0.05em"),
+                                    rx.text(t["escalade_interlocuteur"], color=TEXT,
+                                            font_size="0.85rem", font_weight="600"),
+                                    spacing="0", align="start",
+                                ),
+                                rx.cond(
+                                    t["escalade_n2"] != "",
+                                    rx.vstack(
+                                        rx.text("Traitement N2/N3", color=MUTED, font_size="0.65rem",
+                                                font_weight="700", letter_spacing="0.05em"),
+                                        rx.text(t["escalade_n2"], color=TEXT, font_size="0.85rem"),
+                                        spacing="0", align="start",
+                                    ),
+                                ),
+                                rx.cond(
+                                    t["escalade_wp_n2"] != "",
+                                    rx.vstack(
+                                        rx.text("WP N2", color=MUTED, font_size="0.65rem",
+                                                font_weight="700", letter_spacing="0.05em"),
+                                        rx.text(t["escalade_wp_n2"], color=TEXT, font_size="0.85rem"),
+                                        spacing="0", align="start",
+                                    ),
+                                ),
+                                spacing="5", align="start", wrap="wrap",
+                            ),
+                            background="rgba(99,102,241,0.07)",
+                            border=f"1px solid rgba(99,102,241,0.2)",
+                            border_radius="8px", padding="0.75rem",
+                            width="100%",
+                        ),
+                        spacing="2", align="start", width="100%",
+                    ),
+                ),
+
+                rx.text(
+                    rx.cond(t["date_creation"] != "", "Créé le " + t["date_creation"][:10], ""),
+                    color=MUTED, font_size="0.72rem",
+                ),
+
+                spacing="4", width="100%",
+            ),
+            background="#111524",
+            border=f"1px solid {BORDER}",
+            border_top=f"3px solid " + border_color,
+            border_radius="16px",
+            padding="1.5rem",
+            max_width="560px",
+        ),
+        open=TicketsState.show_detail,
     )
 
 
@@ -487,19 +695,22 @@ def tickets_content() -> rx.Component:
                 spacing="2",
                 _hover={"background": "rgba(239,68,68,0.2)"},
             ),
-            rx.button(
-                rx.icon("plus", size=16),
-                "Déclarer un incident",
-                on_click=TicketsState.open_form,
-                background=f"linear-gradient(135deg, {RED}, #b91c1c)",
-                color="white",
-                border_radius="8px",
-                padding="8px 18px",
-                font_size="0.85rem",
-                font_weight="600",
-                cursor="pointer",
-                spacing="2",
-                _hover={"opacity": "0.9"},
+            rx.cond(
+                AuthState.can_manage_tickets,
+                rx.button(
+                    rx.icon("plus", size=16),
+                    "Déclarer un incident",
+                    on_click=TicketsState.open_form,
+                    background=f"linear-gradient(135deg, {RED}, #b91c1c)",
+                    color="white",
+                    border_radius="8px",
+                    padding="8px 18px",
+                    font_size="0.85rem",
+                    font_weight="600",
+                    cursor="pointer",
+                    spacing="2",
+                    _hover={"opacity": "0.9"},
+                ),
             ),
             width="100%",
             align="center",
@@ -905,6 +1116,9 @@ def tickets_content() -> rx.Component:
             ),
             open=TicketsState.show_form,
         ),
+
+        # Dialog détail ticket
+        ticket_detail_dialog(),
 
         spacing="4",
         width="100%",

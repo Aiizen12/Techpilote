@@ -27,6 +27,8 @@ class ActualitesState(rx.State):
     actualites: list[ActualiteItem] = []
     show_form: bool = False
     form: dict = {"titre": "", "contenu": "", "type": "info", "epingle": False}
+    show_detail: bool = False
+    detail_actu: ActualiteItem = ActualiteItem()
 
     def load(self):
         db = load_db()
@@ -48,6 +50,15 @@ class ActualitesState(rx.State):
             )
             for a in items
         ]
+
+    def open_detail(self, aid: str):
+        actu = next((a for a in self.actualites if a.id == aid), None)
+        if actu:
+            self.detail_actu = actu
+            self.show_detail = True
+
+    def close_detail(self):
+        self.show_detail = False
 
     def open_form(self):
         self.form = {"titre": "", "contenu": "", "type": "info", "epingle": False}
@@ -143,67 +154,69 @@ def actu_card(a: ActualiteItem) -> rx.Component:
 
         # Corps
         rx.hstack(
-
-            # Icône type
-            rx.box(
-                rx.icon(_type_icon(a["type"]), size=20, color=_type_color(a["type"])),
-                background=_type_bg(a["type"]),
-                border_radius="10px",
-                width="42px",
-                height="42px",
-                display="flex",
-                align_items="center",
-                justify_content="center",
-                flex_shrink="0",
-            ),
-
-            # Contenu central
-            rx.vstack(
-                # Label type + date
-                rx.hstack(
-                    rx.text(
-                        _type_label(a["type"]),
-                        color=_type_color(a["type"]),
-                        font_size="0.7rem",
-                        font_weight="700",
-                        letter_spacing="0.06em",
-                        text_transform="uppercase",
+            # Contenu cliquable (frère des boutons)
+            rx.hstack(
+                rx.box(
+                    rx.icon(_type_icon(a["type"]), size=20, color=_type_color(a["type"])),
+                    background=_type_bg(a["type"]),
+                    border_radius="10px",
+                    width="42px",
+                    height="42px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                    flex_shrink="0",
+                ),
+                rx.vstack(
+                    rx.hstack(
+                        rx.text(
+                            _type_label(a["type"]),
+                            color=_type_color(a["type"]),
+                            font_size="0.7rem",
+                            font_weight="700",
+                            letter_spacing="0.06em",
+                            text_transform="uppercase",
+                        ),
+                        rx.box(width="1px", height="12px", background=BORDER),
+                        rx.text(a["date_creation"][:10], color=MUTED, font_size="0.75rem"),
+                        spacing="2",
+                        align="center",
                     ),
-                    rx.box(width="1px", height="12px", background=BORDER),
-                    rx.text(a["date_creation"][:10], color=MUTED, font_size="0.75rem"),
-                    spacing="2",
-                    align="center",
-                ),
-                # Titre
-                rx.text(a["titre"], color=TEXT, font_size="1rem", font_weight="700", line_height="1.3"),
-                # Contenu (si présent)
-                rx.cond(
-                    a["contenu"] != "",
-                    rx.text(a["contenu"], color=MUTED, font_size="0.85rem", line_height="1.6"),
-                ),
-                # Footer auteur
-                rx.hstack(
-                    rx.box(
-                        rx.text(_initials(a["auteur_nom"]), color="white", font_size="0.6rem", font_weight="700"),
-                        background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
-                        border_radius="50%",
-                        width="20px",
-                        height="20px",
-                        display="flex",
-                        align_items="center",
-                        justify_content="center",
-                        flex_shrink="0",
+                    rx.text(a["titre"], color=TEXT, font_size="1rem", font_weight="700", line_height="1.3"),
+                    rx.cond(
+                        a["contenu"] != "",
+                        rx.text(a["contenu"], color=MUTED, font_size="0.85rem", line_height="1.6",
+                                overflow="hidden", display="-webkit-box",
+                                style={"-webkit-line-clamp": "2", "-webkit-box-orient": "vertical"}),
                     ),
-                    rx.text("Par " + a["auteur_nom"], color=MUTED, font_size="0.75rem"),
+                    rx.hstack(
+                        rx.box(
+                            rx.text(_initials(a["auteur_nom"]), color="white", font_size="0.6rem", font_weight="700"),
+                            background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                            border_radius="50%",
+                            width="20px",
+                            height="20px",
+                            display="flex",
+                            align_items="center",
+                            justify_content="center",
+                            flex_shrink="0",
+                        ),
+                        rx.text("Par " + a["auteur_nom"], color=MUTED, font_size="0.75rem"),
+                        spacing="2",
+                        align="center",
+                    ),
                     spacing="2",
-                    align="center",
+                    align="start",
+                    flex="1",
                 ),
-                spacing="2",
+                spacing="3",
                 align="start",
                 flex="1",
+                min_width="0",
+                cursor="pointer",
+                on_click=ActualitesState.open_detail(a["id"]),
             ),
-
-            # Actions
+            # Boutons action (frère, pas enfant de la zone cliquable)
             rx.vstack(
                 rx.cond(
                     AuthState.is_manager,
@@ -230,8 +243,8 @@ def actu_card(a: ActualiteItem) -> rx.Component:
                 ),
                 spacing="1",
                 align="end",
+                flex_shrink="0",
             ),
-
             spacing="4",
             align="start",
             padding="1.1rem 1.3rem",
@@ -477,6 +490,113 @@ def actualites_content() -> rx.Component:
                 overflow="hidden",
             ),
             open=ActualitesState.show_form,
+        ),
+
+        # Dialog détail actualité
+        rx.dialog.root(
+            rx.dialog.content(
+                rx.box(
+                    # Bandeau épinglé
+                    rx.cond(
+                        ActualitesState.detail_actu["epingle"],
+                        rx.box(
+                            rx.hstack(
+                                rx.icon("pin", size=12, color="#fbbf24"),
+                                rx.text("Épinglé", color="#fbbf24", font_size="0.7rem", font_weight="600"),
+                                spacing="1", align="center",
+                            ),
+                            background="rgba(251,191,36,0.08)",
+                            border_bottom=f"1px solid rgba(251,191,36,0.2)",
+                            padding="5px 1.2rem",
+                        ),
+                    ),
+                    # Corps
+                    rx.vstack(
+                        # Header type + fermer
+                        rx.hstack(
+                            rx.box(
+                                rx.icon(
+                                    _type_icon(ActualitesState.detail_actu["type"]),
+                                    size=18,
+                                    color=_type_color(ActualitesState.detail_actu["type"]),
+                                ),
+                                background=_type_bg(ActualitesState.detail_actu["type"]),
+                                border_radius="8px", padding="8px",
+                                display="flex", align_items="center", justify_content="center",
+                            ),
+                            rx.vstack(
+                                rx.text(
+                                    _type_label(ActualitesState.detail_actu["type"]),
+                                    color=_type_color(ActualitesState.detail_actu["type"]),
+                                    font_size="0.68rem", font_weight="700",
+                                    letter_spacing="0.06em", text_transform="uppercase",
+                                ),
+                                rx.text(
+                                    ActualitesState.detail_actu["date_creation"][:10],
+                                    color=MUTED, font_size="0.75rem",
+                                ),
+                                spacing="0", align="start",
+                            ),
+                            rx.spacer(),
+                            rx.icon_button(
+                                rx.icon("x", size=16),
+                                on_click=ActualitesState.close_detail,
+                                background="transparent", color=MUTED,
+                                size="2", cursor="pointer",
+                                _hover={"background": "rgba(255,255,255,0.08)"},
+                            ),
+                            spacing="3", align="center", width="100%",
+                        ),
+                        rx.divider(border_color=BORDER),
+                        # Titre
+                        rx.text(
+                            ActualitesState.detail_actu["titre"],
+                            color=TEXT, font_size="1.1rem", font_weight="700", line_height="1.4",
+                        ),
+                        # Contenu
+                        rx.cond(
+                            ActualitesState.detail_actu["contenu"] != "",
+                            rx.text(
+                                ActualitesState.detail_actu["contenu"],
+                                color=MUTED, font_size="0.9rem", line_height="1.7",
+                                white_space="pre-wrap",
+                            ),
+                        ),
+                        # Footer auteur
+                        rx.hstack(
+                            rx.box(
+                                rx.text(
+                                    _initials(ActualitesState.detail_actu["auteur_nom"]),
+                                    color="white", font_size="0.6rem", font_weight="700",
+                                ),
+                                background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                                border_radius="50%",
+                                width="20px", height="20px",
+                                display="flex", align_items="center", justify_content="center",
+                                flex_shrink="0",
+                            ),
+                            rx.text(
+                                "Par " + ActualitesState.detail_actu["auteur_nom"],
+                                color=MUTED, font_size="0.75rem",
+                            ),
+                            spacing="2", align="center",
+                        ),
+                        spacing="4", width="100%",
+                    ),
+                    padding="1.5rem",
+                    background="#111524",
+                    border_radius="16px",
+                    overflow="hidden",
+                ),
+                border_left=f"3px solid " + _type_color(ActualitesState.detail_actu["type"]),
+                background="#111524",
+                border=f"1px solid {BORDER}",
+                border_radius="16px",
+                padding="0",
+                max_width="580px",
+            ),
+            open=ActualitesState.show_detail,
+            on_open_change=ActualitesState.close_detail,
         ),
 
         spacing="4",

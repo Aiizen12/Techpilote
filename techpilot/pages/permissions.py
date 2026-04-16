@@ -38,6 +38,10 @@ class PermissionsState(rx.State):
         ]
 
     async def toggle_perm(self, tech_id: str, perm_key: str):
+        auth = await self.get_state(AuthState)
+        if auth.user_role != "manager":
+            yield rx.toast.error("Seul le manager peut modifier les permissions.")
+            return
         db  = load_db()
         idx = next((i for i, t in enumerate(db["technicians"]) if str(t.get("id")) == tech_id), -1)
         if idx == -1:
@@ -50,13 +54,16 @@ class PermissionsState(rx.State):
         nom   = db["technicians"][idx].get("nom", tech_id)
         label = PERM_META.get(perm_key, {}).get("label", perm_key)
         state = "accordé" if current[perm_key] else "retiré"
-        auth  = await self.get_state(AuthState)
         log_activity(auth.user_nom, "UPDATE", "permissions", f"{nom} — {label} {state}")
 
         yield rx.toast.success(f"{label} {state} pour {nom}.")
         self.load()
 
     async def grant_all(self, tech_id: str):
+        auth = await self.get_state(AuthState)
+        if auth.user_role != "manager":
+            yield rx.toast.error("Seul le manager peut modifier les permissions.")
+            return
         db  = load_db()
         idx = next((i for i, t in enumerate(db["technicians"]) if str(t.get("id")) == tech_id), -1)
         if idx == -1:
@@ -64,12 +71,15 @@ class PermissionsState(rx.State):
         db["technicians"][idx]["permissions"] = {k: True for k in DEFAULT_PERMS}
         save_db(db)
         nom  = db["technicians"][idx].get("nom", tech_id)
-        auth = await self.get_state(AuthState)
         log_activity(auth.user_nom, "UPDATE", "permissions", f"{nom} — tous les droits accordés")
         yield rx.toast.success(f"Tous les droits accordés à {nom}.")
         self.load()
 
     async def revoke_all(self, tech_id: str):
+        auth = await self.get_state(AuthState)
+        if auth.user_role != "manager":
+            yield rx.toast.error("Seul le manager peut modifier les permissions.")
+            return
         db  = load_db()
         idx = next((i for i, t in enumerate(db["technicians"]) if str(t.get("id")) == tech_id), -1)
         if idx == -1:
@@ -77,7 +87,6 @@ class PermissionsState(rx.State):
         db["technicians"][idx]["permissions"] = {k: False for k in DEFAULT_PERMS}
         save_db(db)
         nom  = db["technicians"][idx].get("nom", tech_id)
-        auth = await self.get_state(AuthState)
         log_activity(auth.user_nom, "UPDATE", "permissions", f"{nom} — tous les droits retirés")
         yield rx.toast.warning(f"Tous les droits retirés pour {nom}.")
         self.load()
@@ -278,7 +287,7 @@ def permissions_content() -> rx.Component:
 
         spacing="5",
         width="100%",
-        on_mount=PermissionsState.load,
+        on_mount=[AuthState.require_manager, PermissionsState.load],
     )
 
 

@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db
 from techpilot.state.models import LogEntry
+from techpilot.state.auth import AuthState
 
 TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
@@ -462,7 +463,7 @@ def audit_content() -> rx.Component:
 
         spacing="4",
         width="100%",
-        on_mount=AuditState.load,
+        on_mount=[AuthState.require_manager, AuditState.load],
     )
 
 

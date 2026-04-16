@@ -59,6 +59,9 @@ class TechniciensState(rx.State):
 
     async def save(self):
         auth = await self.get_state(AuthState)
+        if auth.user_role != "manager" and not auth.permissions.get("technicians_edit", False):
+            yield rx.toast.error("Vous n'avez pas le droit de modifier les techniciens.")
+            return
         db = load_db()
         new_password = self.form.get("new_password", "").strip()
         fields = {k: v for k, v in self.form.items() if k != "new_password"}
@@ -91,6 +94,9 @@ class TechniciensState(rx.State):
 
     async def toggle_active(self, tid: str):
         auth = await self.get_state(AuthState)
+        if auth.user_role != "manager" and not auth.permissions.get("technicians_edit", False):
+            yield rx.toast.error("Vous n'avez pas le droit de modifier les techniciens.")
+            return
         db = load_db()
         for t in db["technicians"]:
             if str(t.get("id")) == tid:
@@ -122,22 +128,25 @@ def tech_card(tech: TechnicienItem) -> rx.Component:
             rx.text(tech["nom"], color=TEXT, font_weight="600", font_size="1rem"),
             rx.text("#" + tech["matricule"], color=MUTED, font_size="0.8rem"),
             rx.text(tech["email"], color=MUTED, font_size="0.78rem"),
-            rx.hstack(
-                rx.button(
-                    "Modifier",
-                    on_click=TechniciensState.open_edit(tech["id"]),
-                    background="rgba(99,102,241,0.1)", color=PRIMARY,
-                    border=f"1px solid rgba(99,102,241,0.3)", border_radius="6px",
-                    padding="5px 12px", font_size="0.78rem", cursor="pointer",
+            rx.cond(
+                AuthState.is_manager | AuthState.can_edit_technicians,
+                rx.hstack(
+                    rx.button(
+                        "Modifier",
+                        on_click=TechniciensState.open_edit(tech["id"]),
+                        background="rgba(99,102,241,0.1)", color=PRIMARY,
+                        border=f"1px solid rgba(99,102,241,0.3)", border_radius="6px",
+                        padding="5px 12px", font_size="0.78rem", cursor="pointer",
+                    ),
+                    rx.button(
+                        rx.cond(tech["active"], "Désactiver", "Activer"),
+                        on_click=TechniciensState.toggle_active(tech["id"]),
+                        background="transparent", color=MUTED,
+                        border=f"1px solid {BORDER}", border_radius="6px",
+                        padding="5px 12px", font_size="0.78rem", cursor="pointer",
+                    ),
+                    spacing="2",
                 ),
-                rx.button(
-                    rx.cond(tech["active"], "Désactiver", "Activer"),
-                    on_click=TechniciensState.toggle_active(tech["id"]),
-                    background="transparent", color=MUTED,
-                    border=f"1px solid {BORDER}", border_radius="6px",
-                    padding="5px 12px", font_size="0.78rem", cursor="pointer",
-                ),
-                spacing="2",
             ),
             spacing="2", align="start", width="100%",
         ),
@@ -155,7 +164,10 @@ def techniciens_content() -> rx.Component:
         rx.hstack(
             rx.text(TechniciensState.technicians.length().to_string() + " techniciens", color=MUTED, font_size="0.85rem"),
             rx.spacer(),
-            rx.button(rx.icon("plus", size=16), "Ajouter", on_click=TechniciensState.open_create, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", padding="8px 16px", font_size="0.85rem", cursor="pointer", spacing="2"),
+            rx.cond(
+                AuthState.is_manager | AuthState.can_edit_technicians,
+                rx.button(rx.icon("plus", size=16), "Ajouter", on_click=TechniciensState.open_create, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", padding="8px 16px", font_size="0.85rem", cursor="pointer", spacing="2"),
+            ),
             width="100%", align="center",
         ),
         rx.grid(rx.foreach(TechniciensState.technicians, tech_card), columns="3", spacing="4", width="100%"),

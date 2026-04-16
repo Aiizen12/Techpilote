@@ -682,7 +682,7 @@ def import_excel_content() -> rx.Component:
 
         spacing="5",
         width="100%",
-        on_mount=ImportExcelState.load_counts,
+        on_mount=[AuthState.require_manager, ImportExcelState.load_counts],
     )
 
 
