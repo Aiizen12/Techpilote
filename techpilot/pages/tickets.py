@@ -191,6 +191,8 @@ class TicketsState(rx.State):
             "titre": "", "ticket_pere": "", "description": "",
             "impact": "normale", "perimetre": "", "technicien_id": "",
             "technicien_nom": "", "etat": "en_cours", "notes": "",
+            "escalade_perimetre": "", "escalade_typologie": "",
+            "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
         }
         self.matrix_search = ""
         self.matrix_results = []
@@ -237,6 +239,7 @@ class TicketsState(rx.State):
         self.matrix_results = results
 
     def select_matrix(self, key: str):
+        # Conservé pour compatibilité (non utilisé par l'UI)
         for r in self.matrix_results:
             if r.key == key:
                 self.matrix_selected = r
@@ -245,8 +248,43 @@ class TicketsState(rx.State):
         self.matrix_search = ""
         self.matrix_results = []
 
+    def select_matrix_entry(
+        self,
+        perimetre: str,
+        typologie: str,
+        interlocuteur: str,
+        traitement_n2n3: str,
+        wp_n2: str,
+    ):
+        """Sélectionne directement une entrée matrice. Stocke dans matrix_selected
+        ET dans le form dict (source de vérité pour create)."""
+        self.matrix_selected = MatrixSuggestion(
+            key=f"{perimetre}|{typologie}",
+            perimetre=perimetre,
+            typologie=typologie,
+            interlocuteur=interlocuteur,
+            traitement_n2n3=traitement_n2n3,
+            wp_n2=wp_n2,
+        )
+        self.form = {
+            **self.form,
+            "perimetre":             perimetre,
+            "escalade_perimetre":    perimetre,
+            "escalade_typologie":    typologie,
+            "escalade_interlocuteur": interlocuteur,
+            "escalade_n2":           traitement_n2n3,
+            "escalade_wp_n2":        wp_n2,
+        }
+        self.matrix_search = ""
+        self.matrix_results = []
+
     def clear_matrix(self):
         self.matrix_selected = MatrixSuggestion()
+        self.form = {
+            **self.form,
+            "escalade_perimetre": "", "escalade_typologie": "",
+            "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
+        }
         self.matrix_search = ""
         self.matrix_results = []
 
@@ -283,11 +321,11 @@ class TicketsState(rx.State):
             "date_creation":      datetime.utcnow().isoformat(),
             "date_modification":  datetime.utcnow().isoformat(),
             "date_resolution":    None,
-            "escalade_perimetre":    self.matrix_selected.perimetre,
-            "escalade_typologie":    self.matrix_selected.typologie,
-            "escalade_interlocuteur": self.matrix_selected.interlocuteur,
-            "escalade_n2":           self.matrix_selected.traitement_n2n3,
-            "escalade_wp_n2":        self.matrix_selected.wp_n2,
+            "escalade_perimetre":    self.form.get("escalade_perimetre", ""),
+            "escalade_typologie":    self.form.get("escalade_typologie", ""),
+            "escalade_interlocuteur": self.form.get("escalade_interlocuteur", ""),
+            "escalade_n2":           self.form.get("escalade_n2", ""),
+            "escalade_wp_n2":        self.form.get("escalade_wp_n2", ""),
         })
         save_db(db)
         log_activity(auth.user_nom, "CREATE", "ticket", f"Incident: {titre}")
@@ -509,7 +547,13 @@ def matrix_result_item(s: MatrixSuggestion) -> rx.Component:
         border_bottom=f"1px solid {BORDER}",
         cursor="pointer",
         width="100%",
-        on_click=TicketsState.select_matrix(s["key"]),
+        on_click=TicketsState.select_matrix_entry(
+            s["perimetre"],
+            s["typologie"],
+            s["interlocuteur"],
+            s["traitement_n2n3"],
+            s["wp_n2"],
+        ),
         _hover={"background": "rgba(99,102,241,0.08)"},
     )
 
