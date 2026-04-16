@@ -109,11 +109,7 @@ class TicketsState(rx.State):
                 nom = t.get("nom") or ""
         self.detail_form = {**self.detail_form, "technicien_id": tid, "technicien_nom": nom}
 
-    async def save_detail(self):
-        auth = await self.get_state(AuthState)
-        if not auth.permissions.get("tickets_manage", True):
-            yield rx.toast.error("Vous n'avez pas le droit de modifier des incidents.")
-            return
+    def save_detail(self):
         tid = self.detail_ticket.id
         db  = load_db()
         idx = next((i for i, x in enumerate(db.get("tickets") or []) if str(x.get("id")) == tid), -1)
@@ -133,14 +129,14 @@ class TicketsState(rx.State):
         if t["etat"] == "resolu" and not t.get("date_resolution"):
             t["date_resolution"] = datetime.utcnow().isoformat()
         save_db(db)
-        log_activity(auth.user_nom, "UPDATE", "ticket", f"Modifié: {t.get('titre', tid[:8])}")
-        yield rx.toast.success("Incident mis à jour.")
+        log_activity("", "UPDATE", "ticket", f"Modifié: {t.get('titre', tid[:8])}")
         self.detail_edit_mode = False
         self.load()
         # Refresh le détail avec les nouvelles données
         updated = next((tk for tk in self.tickets if tk.id == tid), None)
         if updated:
             self.detail_ticket = updated
+        return rx.toast.success("Incident mis à jour.")
 
     async def go_to_escalade(self, search_query: str):
         """Navigue vers la matrice d'escalade avec la recherche pré-remplie."""
@@ -304,12 +300,8 @@ class TicketsState(rx.State):
                 nom = t.get("nom") or ""
         self.form = {**self.form, "technicien_id": tid, "technicien_nom": nom}
 
-    async def create(self):
+    def create(self):
         if not self.form.get("titre"):
-            return
-        auth = await self.get_state(AuthState)
-        if not auth.permissions.get("tickets_manage", True):
-            yield rx.toast.error("Vous n'avez pas le droit de créer des incidents.")
             return
         db = load_db()
         if "tickets" not in db:
@@ -329,47 +321,41 @@ class TicketsState(rx.State):
             "date_creation":      datetime.utcnow().isoformat(),
             "date_modification":  datetime.utcnow().isoformat(),
             "date_resolution":    None,
-            "escalade_perimetre":    self.esc_perimetre,
-            "escalade_typologie":    self.esc_typologie,
+            "escalade_perimetre":     self.esc_perimetre,
+            "escalade_typologie":     self.esc_typologie,
             "escalade_interlocuteur": self.esc_interlocuteur,
-            "escalade_n2":           self.esc_n2,
-            "escalade_wp_n2":        self.esc_wp_n2,
+            "escalade_n2":            self.esc_n2,
+            "escalade_wp_n2":         self.esc_wp_n2,
         })
         save_db(db)
-        log_activity(auth.user_nom, "CREATE", "ticket", f"Incident: {titre}")
+        log_activity("", "CREATE", "ticket", f"Incident: {titre}")
         self.show_form = False
         self.load()
-        yield rx.toast.success(f"Incident « {titre} » déclaré.")
+        return rx.toast.success(f"Incident « {titre} » déclaré.")
 
-    async def resolve(self, tid: str):
-        auth = await self.get_state(AuthState)
-        if not auth.permissions.get("tickets_manage", True):
-            yield rx.toast.error("Vous n'avez pas le droit de modifier des incidents.")
-            return
+    def resolve(self, tid: str):
         db = load_db()
+        toast = None
         for t in db.get("tickets") or []:
             if t.get("id") == tid:
                 t["etat"] = "resolu"
                 t["date_resolution"]   = datetime.utcnow().isoformat()
                 t["date_modification"] = datetime.utcnow().isoformat()
-                log_activity(auth.user_nom, "UPDATE", "ticket", f"Résolu: {t.get('titre', tid[:8])}")
-                yield rx.toast.success("Incident marqué comme résolu.")
+                log_activity("", "UPDATE", "ticket", f"Résolu: {t.get('titre', tid[:8])}")
+                toast = rx.toast.success("Incident marqué comme résolu.")
         save_db(db)
         self.load()
+        return toast
 
-    async def delete(self, tid: str):
-        auth = await self.get_state(AuthState)
-        if not auth.permissions.get("tickets_manage", True):
-            yield rx.toast.error("Vous n'avez pas le droit de supprimer des incidents.")
-            return
+    def delete(self, tid: str):
         db = load_db()
         ticket = next((t for t in (db.get("tickets") or []) if t.get("id") == tid), None)
         db["tickets"] = [t for t in (db.get("tickets") or []) if t.get("id") != tid]
         save_db(db)
-        if ticket:
-            log_activity(auth.user_nom, "DELETE", "ticket", f"Supprimé: {ticket.get('titre', tid[:8])}")
-            yield rx.toast.warning(f"Incident « {ticket.get('titre', '')} » supprimé.")
         self.load()
+        if ticket:
+            log_activity("", "DELETE", "ticket", f"Supprimé: {ticket.get('titre', tid[:8])}")
+            return rx.toast.warning(f"Incident « {ticket.get('titre', '')} » supprimé.")
 
     def export_csv(self):
         def esc(v: str) -> str:
