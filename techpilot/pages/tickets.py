@@ -1181,7 +1181,7 @@ def tickets_content() -> rx.Component:
                     background=f"linear-gradient(135deg, {RED}, #b91c1c)",
                     border_radius="12px 12px 0 0",
                     padding="1.25rem 1.5rem",
-                    margin="-24px -24px 0 -24px",
+                    width="100%",
                 ),
 
                 rx.vstack(
@@ -1369,8 +1369,8 @@ def tickets_content() -> rx.Component:
                                 ),
                                 spacing="2", align="start", width="100%",
                             ),
-                            # Barre de recherche
-                            rx.vstack(
+                            # Barre de recherche + dropdown absolu
+                            rx.box(
                                 rx.input(
                                     placeholder="Rechercher par périmètre, typologie, interlocuteur…",
                                     value=TicketsState.matrix_search,
@@ -1388,16 +1388,22 @@ def tickets_content() -> rx.Component:
                                     TicketsState.matrix_results.length() > 0,
                                     rx.box(
                                         rx.foreach(TicketsState.matrix_results, matrix_result_item),
+                                        position="absolute",
+                                        top="100%",
+                                        left="0",
+                                        right="0",
+                                        z_index="200",
                                         background="#0d1021",
                                         border=f"1px solid {BORDER}",
                                         border_radius="8px",
-                                        overflow="hidden",
-                                        max_height="200px",
+                                        max_height="220px",
                                         overflow_y="auto",
                                         width="100%",
+                                        margin_top="4px",
+                                        box_shadow="0 8px 24px rgba(0,0,0,0.5)",
                                     ),
                                 ),
-                                spacing="2",
+                                position="relative",
                                 width="100%",
                             ),
                         ),
@@ -1459,15 +1465,16 @@ def tickets_content() -> rx.Component:
 
                     spacing="4",
                     width="100%",
-                    padding_top="1.25rem",
+                    padding="1.25rem 1.5rem 1.5rem 1.5rem",
                 ),
 
                 background="#111524",
                 border=f"1px solid {BORDER}",
                 border_radius="16px",
-                padding="24px",
+                padding="0",
                 max_width="560px",
-                overflow="hidden",
+                overflow_y="auto",
+                max_height="92vh",
             ),
             open=TicketsState.show_form,
         ),
