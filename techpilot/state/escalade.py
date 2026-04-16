@@ -299,22 +299,30 @@ class EscaladeState(rx.State):
                 return steps
         return []
 
-    def open_entry(self, entry: EscaladeEntry):
+    def open_entry(self, perimetre: str, typologie: str):
+        """Ouvre la modale pour une entrée identifiée par (perimetre, typologie)."""
         db = load_db()
-        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie, db)
+        all_entries = db.get("escalation_matrix") or []
+        entry_data = next(
+            (r for r in all_entries if r.get("perimetre") == perimetre and r.get("typologie") == typologie),
+            None,
+        )
+        if entry_data is None:
+            return
+        steps = EscaladeState._find_procedure(perimetre, typologie, db)
         self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
-            perimetre=entry.perimetre,
-            typologie=entry.typologie,
-            categorie_fresh=entry.categorie_fresh,
-            traitement_n1=entry.traitement_n1,
-            wp=entry.wp,
-            interlocuteur=entry.interlocuteur,
-            traitement_n2n3=entry.traitement_n2n3,
-            wp_n2=entry.wp_n2,
-            referents=entry.referents,
-            conditions_escalade=entry.conditions_escalade,
-            notes=entry.notes,
+            perimetre=entry_data.get("perimetre") or "",
+            typologie=entry_data.get("typologie") or "",
+            categorie_fresh=entry_data.get("categorie_fresh") or "",
+            traitement_n1=entry_data.get("traitement_n1") or "",
+            wp=entry_data.get("wp") or "",
+            interlocuteur=entry_data.get("interlocuteur") or "",
+            traitement_n2n3=entry_data.get("traitement_n2n3") or "",
+            wp_n2=entry_data.get("wp_n2") or "",
+            referents=entry_data.get("referents") or "",
+            conditions_escalade=entry_data.get("conditions_escalade") or "",
+            notes=entry_data.get("notes") or "",
             procedure_n1=steps,
         )
         self.show_modal = True
@@ -367,25 +375,9 @@ class EscaladeState(rx.State):
         else:
             self.favoris = [*self.favoris, self.selected_entry]
 
-    def open_favori(self, entry: EscaladeEntry):
-        db = load_db()
-        steps = EscaladeState._find_procedure(entry.perimetre, entry.typologie, db)
-        self.editing_procedure = False
-        self.selected_entry = EscaladeEntry(
-            perimetre=entry.perimetre,
-            typologie=entry.typologie,
-            categorie_fresh=entry.categorie_fresh,
-            traitement_n1=entry.traitement_n1,
-            wp=entry.wp,
-            interlocuteur=entry.interlocuteur,
-            traitement_n2n3=entry.traitement_n2n3,
-            wp_n2=entry.wp_n2,
-            referents=entry.referents,
-            conditions_escalade=entry.conditions_escalade,
-            notes=entry.notes,
-            procedure_n1=steps,
-        )
-        self.show_modal = True
+    def open_favori(self, perimetre: str, typologie: str):
+        """Ouvre la modale depuis les favoris."""
+        self.open_entry(perimetre, typologie)
 
     def copy_fresh_cat(self):
         yield rx.set_clipboard(self.selected_entry.categorie_fresh)

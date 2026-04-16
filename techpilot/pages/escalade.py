@@ -376,7 +376,7 @@ def entry_row(entry: EscaladeEntry) -> rx.Component:
         rx.table.cell(
             rx.icon_button(
                 rx.icon("eye", size=14),
-                on_click=EscaladeState.open_entry(entry),
+                on_click=EscaladeState.open_entry(entry["perimetre"], entry["typologie"]),
                 background="rgba(99,102,241,0.1)", color=PRIMARY,
                 border=f"1px solid rgba(99,102,241,0.3)",
                 border_radius="6px", size="1",
@@ -387,7 +387,7 @@ def entry_row(entry: EscaladeEntry) -> rx.Component:
         ),
         _hover={"background": "rgba(255,255,255,0.02)"},
         cursor="pointer",
-        on_click=EscaladeState.open_entry(entry),
+        on_click=EscaladeState.open_entry(entry["perimetre"], entry["typologie"]),
     )
 
 
@@ -406,7 +406,7 @@ def recherche_mode() -> rx.Component:
                         EscaladeState.favoris,
                         lambda e: rx.badge(
                             e["perimetre"] + " — " + e["typologie"],
-                            on_click=EscaladeState.open_favori(e),
+                            on_click=EscaladeState.open_favori(e["perimetre"], e["typologie"]),
                             cursor="pointer", color_scheme="amber", variant="soft",
                             radius="full", font_size="0.72rem",
                         ),
@@ -546,7 +546,7 @@ def assistant_entry_row(entry: EscaladeEntry) -> rx.Component:
         rx.table.cell(
             rx.icon_button(
                 rx.icon("eye", size=14),
-                on_click=EscaladeState.open_entry(entry),
+                on_click=EscaladeState.open_entry(entry["perimetre"], entry["typologie"]),
                 background="rgba(99,102,241,0.1)", color=PRIMARY,
                 border=f"1px solid rgba(99,102,241,0.3)",
                 border_radius="6px", size="1",
@@ -557,7 +557,7 @@ def assistant_entry_row(entry: EscaladeEntry) -> rx.Component:
         ),
         _hover={"background": "rgba(255,255,255,0.02)"},
         cursor="pointer",
-        on_click=EscaladeState.open_entry(entry),
+        on_click=EscaladeState.open_entry(entry["perimetre"], entry["typologie"]),
     )
 
 
@@ -643,7 +643,7 @@ def arbre_entry_row(entry: EscaladeEntry) -> rx.Component:
             rx.text(entry["traitement_n1"], color="#86efac", font_size="0.75rem", max_width="260px"),
             rx.icon_button(
                 rx.icon("eye", size=13),
-                on_click=EscaladeState.open_entry(entry),
+                on_click=EscaladeState.open_entry(entry["perimetre"], entry["typologie"]),
                 background="rgba(99,102,241,0.1)", color=PRIMARY,
                 border=f"1px solid rgba(99,102,241,0.3)",
                 border_radius="6px", size="1", cursor="pointer",
@@ -723,7 +723,7 @@ def interlocuteur_entry_row(entry: EscaladeEntry) -> rx.Component:
             ),
             rx.icon_button(
                 rx.icon("eye", size=13),
-                on_click=EscaladeState.open_entry(entry),
+                on_click=EscaladeState.open_entry(entry["perimetre"], entry["typologie"]),
                 background="rgba(99,102,241,0.1)", color=PRIMARY,
                 border=f"1px solid rgba(99,102,241,0.3)",
                 border_radius="6px", size="1", cursor="pointer",
