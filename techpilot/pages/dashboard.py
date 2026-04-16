@@ -379,6 +379,47 @@ def dashboard_content() -> rx.Component:
             ),
         ),
 
+        # ── Actualités ───────────────────────────────────────────────────────
+        rx.cond(
+            DashboardState.w_actualites,
+            rx.box(
+                rx.hstack(
+                    rx.icon("newspaper", size=15, color=PRIMARY),
+                    rx.text("Actualités", color=TEXT, font_size="0.85rem", font_weight="600"),
+                    rx.spacer(),
+                    rx.link(
+                        rx.hstack(
+                            rx.text("Voir tout", color=MUTED, font_size="0.75rem"),
+                            rx.icon("arrow-right", size=13, color=MUTED),
+                            spacing="1", align="center",
+                        ),
+                        href="/actualites",
+                        _hover={"color": PRIMARY},
+                    ),
+                    spacing="2", align="center", margin_bottom="0.5rem",
+                ),
+                rx.cond(
+                    DashboardState.actualites_widget.length() == 0,
+                    rx.box(
+                        rx.text("Aucune actualité pour le moment", color=MUTED, font_size="0.82rem", text_align="center"),
+                        padding="1.5rem 0",
+                    ),
+                    rx.box(
+                        rx.foreach(DashboardState.actualites_widget, actu_mini_card),
+                        background="#0d1021",
+                        border=f"1px solid {BORDER}",
+                        border_radius="10px",
+                        overflow="hidden",
+                    ),
+                ),
+                background=CARD_BG,
+                border=f"1px solid {BORDER}",
+                border_radius="14px",
+                padding="1.1rem 1.2rem",
+                width="100%",
+            ),
+        ),
+
         # ── Présence + Astreintes ────────────────────────────────────────────
         rx.cond(
             DashboardState.w_presence,
@@ -503,47 +544,6 @@ def dashboard_content() -> rx.Component:
                 border=f"1px solid {BORDER}",
                 border_radius="14px",
                 overflow="hidden",
-                width="100%",
-            ),
-        ),
-
-        # ── Actualités ───────────────────────────────────────────────────────
-        rx.cond(
-            DashboardState.w_actualites,
-            rx.box(
-                rx.hstack(
-                    rx.icon("newspaper", size=15, color=PRIMARY),
-                    rx.text("Actualités", color=TEXT, font_size="0.85rem", font_weight="600"),
-                    rx.spacer(),
-                    rx.link(
-                        rx.hstack(
-                            rx.text("Voir tout", color=MUTED, font_size="0.75rem"),
-                            rx.icon("arrow-right", size=13, color=MUTED),
-                            spacing="1", align="center",
-                        ),
-                        href="/actualites",
-                        _hover={"color": PRIMARY},
-                    ),
-                    spacing="2", align="center", margin_bottom="0.5rem",
-                ),
-                rx.cond(
-                    DashboardState.actualites_widget.length() == 0,
-                    rx.box(
-                        rx.text("Aucune actualité pour le moment", color=MUTED, font_size="0.82rem", text_align="center"),
-                        padding="1.5rem 0",
-                    ),
-                    rx.box(
-                        rx.foreach(DashboardState.actualites_widget, actu_mini_card),
-                        background="#0d1021",
-                        border=f"1px solid {BORDER}",
-                        border_radius="10px",
-                        overflow="hidden",
-                    ),
-                ),
-                background=CARD_BG,
-                border=f"1px solid {BORDER}",
-                border_radius="14px",
-                padding="1.1rem 1.2rem",
                 width="100%",
             ),
         ),
