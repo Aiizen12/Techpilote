@@ -253,32 +253,25 @@ class TicketsState(rx.State):
         self.matrix_search = ""
         self.matrix_results = []
 
-    def select_matrix_entry(
-        self,
-        perimetre: str,
-        typologie: str,
-        interlocuteur: str,
-        traitement_n2n3: str,
-        wp_n2: str,
-    ):
-        """Sélectionne une entrée matrice. Les données sont stockées dans des
-        vars d'état simples (strings) — fiables entre handlers async."""
+    def select_matrix_at(self, idx: int):
+        """Sélectionne matrix_results[idx] — un seul int, le plus fiable dans rx.foreach."""
+        if idx < 0 or idx >= len(self.matrix_results):
+            return
+        r = self.matrix_results[idx]
         self.matrix_selected = MatrixSuggestion(
-            key=f"{perimetre}|{typologie}",
-            perimetre=perimetre,
-            typologie=typologie,
-            interlocuteur=interlocuteur,
-            traitement_n2n3=traitement_n2n3,
-            wp_n2=wp_n2,
+            key=f"{r.perimetre}|{r.typologie}",
+            perimetre=r.perimetre,
+            typologie=r.typologie,
+            interlocuteur=r.interlocuteur,
+            traitement_n2n3=r.traitement_n2n3,
+            wp_n2=r.wp_n2,
         )
-        # Vars simples = persistance garantie dans Reflex
-        self.esc_perimetre    = perimetre
-        self.esc_typologie    = typologie
-        self.esc_interlocuteur = interlocuteur
-        self.esc_n2           = traitement_n2n3
-        self.esc_wp_n2        = wp_n2
-        # Aussi dans form pour que le champ périmètre soit pré-rempli
-        self.form = {**self.form, "perimetre": perimetre}
+        self.esc_perimetre     = r.perimetre
+        self.esc_typologie     = r.typologie
+        self.esc_interlocuteur = r.interlocuteur
+        self.esc_n2            = r.traitement_n2n3
+        self.esc_wp_n2         = r.wp_n2
+        self.form = {**self.form, "perimetre": r.perimetre}
         self.matrix_search = ""
         self.matrix_results = []
 
@@ -522,7 +515,7 @@ def _detail_tech_pill(t: dict) -> rx.Component:
     )
 
 
-def matrix_result_item(s: MatrixSuggestion) -> rx.Component:
+def matrix_result_item(s: MatrixSuggestion, idx) -> rx.Component:
     return rx.hstack(
         rx.vstack(
             rx.text(s["perimetre"], color=MUTED, font_size="0.68rem"),
@@ -541,13 +534,7 @@ def matrix_result_item(s: MatrixSuggestion) -> rx.Component:
         border_bottom=f"1px solid {BORDER}",
         cursor="pointer",
         width="100%",
-        on_click=TicketsState.select_matrix_entry(
-            s["perimetre"],
-            s["typologie"],
-            s["interlocuteur"],
-            s["traitement_n2n3"],
-            s["wp_n2"],
-        ),
+        on_click=TicketsState.select_matrix_at(idx),
         _hover={"background": "rgba(99,102,241,0.08)"},
     )
 
@@ -1425,7 +1412,7 @@ def tickets_content() -> rx.Component:
                                 rx.cond(
                                     TicketsState.matrix_results.length() > 0,
                                     rx.box(
-                                        rx.foreach(TicketsState.matrix_results, matrix_result_item),
+                                        rx.foreach(TicketsState.matrix_results, lambda s, i: matrix_result_item(s, i)),
                                         position="absolute",
                                         top="100%",
                                         left="0",
