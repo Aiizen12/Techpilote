@@ -113,6 +113,15 @@ class DocGroup(rx.Base):
     docs: list[DocumentItem] = []
 
 
+class MatrixSuggestion(rx.Base):
+    key: str = ""
+    perimetre: str = ""
+    typologie: str = ""
+    interlocuteur: str = ""
+    traitement_n2n3: str = ""
+    wp_n2: str = ""
+
+
 class TicketItem(rx.Base):
     id: str = ""
     titre: str = ""
@@ -125,6 +134,11 @@ class TicketItem(rx.Base):
     etat: str = ""
     notes: str = ""
     date_creation: str = ""
+    escalade_interlocuteur: str = ""
+    escalade_n2: str = ""
+    escalade_wp_n2: str = ""
+    escalade_perimetre: str = ""
+    escalade_typologie: str = ""
 
 
 class TechnicienItem(rx.Base):

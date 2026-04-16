@@ -38,10 +38,27 @@ class LayoutState(rx.State):
 # ── Notification item ─────────────────────────────────────────────────────────
 
 def notif_item(item: dict) -> rx.Component:
-    is_ticket = item["type"] == "ticket"
-    color  = rx.cond(is_ticket, "#ef4444", PRIMARY)
-    bg     = rx.cond(is_ticket, "rgba(239,68,68,0.12)", "rgba(99,102,241,0.12)")
-    icon   = rx.cond(is_ticket, "shield-alert", "pin")
+    color = rx.match(
+        item["type"],
+        ("ticket",   "#ef4444"),
+        ("feedback", "#f97316"),
+        ("quete",    "#f59e0b"),
+        PRIMARY,
+    )
+    bg = rx.match(
+        item["type"],
+        ("ticket",   "rgba(239,68,68,0.12)"),
+        ("feedback", "rgba(249,115,22,0.12)"),
+        ("quete",    "rgba(245,158,11,0.12)"),
+        "rgba(99,102,241,0.12)",
+    )
+    icon = rx.match(
+        item["type"],
+        ("ticket",   "shield-alert"),
+        ("feedback", "message-circle"),
+        ("quete",    "trophy"),
+        "pin",
+    )
     return rx.hstack(
         rx.box(
             rx.icon(icon, size=14, color=color),

@@ -1,7 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
-from techpilot.state.models import TicketItem
+from techpilot.state.models import TicketItem, MatrixSuggestion
 from techpilot.state.auth import AuthState
 from techpilot.db.activity import log_activity
 import uuid
@@ -38,6 +38,10 @@ class TicketsState(rx.State):
         "impact": "normale", "perimetre": "", "technicien_id": "",
         "technicien_nom": "", "etat": "en_cours", "notes": "",
     }
+    # Liaison matrice
+    matrix_search: str = ""
+    matrix_results: list[MatrixSuggestion] = []
+    matrix_selected: MatrixSuggestion = MatrixSuggestion()
 
     def load(self):
         db = load_db()
@@ -63,6 +67,11 @@ class TicketsState(rx.State):
                 etat=x.get("etat") or "",
                 notes=x.get("notes") or "",
                 date_creation=x.get("date_creation") or "",
+                escalade_interlocuteur=x.get("escalade_interlocuteur") or "",
+                escalade_n2=x.get("escalade_n2") or "",
+                escalade_wp_n2=x.get("escalade_wp_n2") or "",
+                escalade_perimetre=x.get("escalade_perimetre") or "",
+                escalade_typologie=x.get("escalade_typologie") or "",
             )
             for x in filtered
         ]
@@ -82,6 +91,9 @@ class TicketsState(rx.State):
             "impact": "normale", "perimetre": "", "technicien_id": "",
             "technicien_nom": "", "etat": "en_cours", "notes": "",
         }
+        self.matrix_search = ""
+        self.matrix_results = []
+        self.matrix_selected = MatrixSuggestion()
         self.show_form = True
 
     def close_form(self):
@@ -95,6 +107,47 @@ class TicketsState(rx.State):
 
     def set_etat(self, val: str):
         self.form = {**self.form, "etat": val}
+
+    # ── Liaison matrice ────────────────────────────────────────────────────────
+
+    def search_matrix(self, val: str):
+        self.matrix_search = val
+        if not val or len(val) < 2:
+            self.matrix_results = []
+            return
+        q = val.lower()
+        db = load_db()
+        results = []
+        for r in (db.get("escalation_matrix") or []):
+            perim = (r.get("perimetre") or "").lower()
+            typo  = (r.get("typologie") or "").lower()
+            interl = (r.get("interlocuteur") or "").lower()
+            if q in perim or q in typo or q in interl:
+                results.append(MatrixSuggestion(
+                    key=f"{r.get('perimetre','')}|{r.get('typologie','')}",
+                    perimetre=r.get("perimetre") or "",
+                    typologie=r.get("typologie") or "",
+                    interlocuteur=r.get("interlocuteur") or "",
+                    traitement_n2n3=r.get("traitement_n2n3") or "",
+                    wp_n2=r.get("wp_n2") or "",
+                ))
+                if len(results) >= 8:
+                    break
+        self.matrix_results = results
+
+    def select_matrix(self, key: str):
+        for r in self.matrix_results:
+            if r.key == key:
+                self.matrix_selected = r
+                self.form = {**self.form, "perimetre": r.perimetre}
+                break
+        self.matrix_search = ""
+        self.matrix_results = []
+
+    def clear_matrix(self):
+        self.matrix_selected = MatrixSuggestion()
+        self.matrix_search = ""
+        self.matrix_results = []
 
     def set_tech(self, tid: str):
         tid = "" if tid == "_none" else tid
@@ -126,6 +179,11 @@ class TicketsState(rx.State):
             "date_creation":      datetime.utcnow().isoformat(),
             "date_modification":  datetime.utcnow().isoformat(),
             "date_resolution":    None,
+            "escalade_perimetre":    self.matrix_selected.perimetre,
+            "escalade_typologie":    self.matrix_selected.typologie,
+            "escalade_interlocuteur": self.matrix_selected.interlocuteur,
+            "escalade_n2":           self.matrix_selected.traitement_n2n3,
+            "escalade_wp_n2":        self.matrix_selected.wp_n2,
         })
         save_db(db)
         log_activity(auth.user_nom, "CREATE", "ticket", f"Incident: {titre}")
@@ -268,6 +326,30 @@ def _etat_btn(val: str, label: str, icon_name: str, color: str, bg: str) -> rx.C
     )
 
 
+def matrix_result_item(s: MatrixSuggestion) -> rx.Component:
+    return rx.hstack(
+        rx.vstack(
+            rx.text(s["perimetre"], color=MUTED, font_size="0.68rem"),
+            rx.text(s["typologie"], color=TEXT, font_size="0.82rem", font_weight="500"),
+            spacing="0",
+            align="start",
+            flex="1",
+            min_width="0",
+        ),
+        rx.text("→ " + s["interlocuteur"], color=PRIMARY, font_size="0.72rem",
+                flex_shrink="0", max_width="140px", overflow="hidden",
+                text_overflow="ellipsis", white_space="nowrap"),
+        spacing="3",
+        align="center",
+        padding="0.6rem 0.85rem",
+        border_bottom=f"1px solid {BORDER}",
+        cursor="pointer",
+        width="100%",
+        on_click=TicketsState.select_matrix(s["key"]),
+        _hover={"background": "rgba(99,102,241,0.08)"},
+    )
+
+
 def incident_row(t: TicketItem) -> rx.Component:
     border_color = rx.cond(t["etat"] == "en_cours", RED, GREEN)
     num_display  = rx.cond(t["id"] != "", t["id"][:6].upper(), "------")
@@ -293,6 +375,19 @@ def incident_row(t: TicketItem) -> rx.Component:
                 t["technicien_nom"] != "",
                 rx.text(t["technicien_nom"], color=MUTED, font_size="0.78rem"),
                 rx.text("Non assigné", color=MUTED, font_size="0.78rem"),
+            ),
+            rx.cond(
+                t["escalade_interlocuteur"] != "",
+                rx.badge(
+                    rx.hstack(
+                        rx.icon("git-branch", size=10),
+                        rx.text("→ " + t["escalade_interlocuteur"],
+                                font_size="0.68rem", max_width="120px",
+                                overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+                        spacing="1", align="center",
+                    ),
+                    color_scheme="indigo", variant="soft", radius="full",
+                ),
             ),
             rx.text(date_display, color=MUTED, font_size="0.78rem"),
             rx.hstack(
@@ -647,6 +742,101 @@ def tickets_content() -> rx.Component:
                             flex="1",
                         ),
                         spacing="3",
+                        width="100%",
+                    ),
+
+                    # Lien matrice
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("git-branch", size=13, color=PRIMARY),
+                            rx.text("LIEN MATRICE D'ESCALADE", color=MUTED, font_size="0.68rem",
+                                    font_weight="700", letter_spacing="0.07em"),
+                            rx.text("(optionnel)", color=MUTED, font_size="0.65rem"),
+                            spacing="2", align="center",
+                        ),
+                        rx.cond(
+                            TicketsState.matrix_selected.key != "",
+                            # Entrée sélectionnée
+                            rx.hstack(
+                                rx.box(
+                                    rx.vstack(
+                                        rx.hstack(
+                                            rx.icon("git-branch", size=12, color=PRIMARY),
+                                            rx.text(
+                                                TicketsState.matrix_selected.perimetre + " · " +
+                                                TicketsState.matrix_selected.typologie,
+                                                color=TEXT, font_size="0.8rem", font_weight="600",
+                                            ),
+                                            spacing="2", align="center",
+                                        ),
+                                        rx.hstack(
+                                            rx.text("→", color=MUTED, font_size="0.75rem"),
+                                            rx.text(TicketsState.matrix_selected.interlocuteur,
+                                                    color=PRIMARY, font_size="0.78rem", font_weight="600"),
+                                            spacing="1", align="center",
+                                        ),
+                                        rx.cond(
+                                            TicketsState.matrix_selected.traitement_n2n3 != "",
+                                            rx.text(TicketsState.matrix_selected.traitement_n2n3,
+                                                    color=MUTED, font_size="0.72rem",
+                                                    overflow="hidden", display="-webkit-box",
+                                                    style={"-webkit-line-clamp": "2", "-webkit-box-orient": "vertical"}),
+                                        ),
+                                        spacing="1", align="start",
+                                    ),
+                                    background="rgba(99,102,241,0.08)",
+                                    border="1px solid rgba(99,102,241,0.25)",
+                                    border_radius="10px",
+                                    padding="0.7rem 0.9rem",
+                                    flex="1",
+                                ),
+                                rx.icon_button(
+                                    rx.icon("x", size=13),
+                                    on_click=TicketsState.clear_matrix,
+                                    background="transparent",
+                                    color=MUTED,
+                                    border_radius="7px",
+                                    size="1",
+                                    cursor="pointer",
+                                    _hover={"color": RED},
+                                    title="Retirer le lien",
+                                ),
+                                spacing="2", align="start", width="100%",
+                            ),
+                            # Barre de recherche
+                            rx.vstack(
+                                rx.input(
+                                    placeholder="Rechercher par périmètre, typologie, interlocuteur…",
+                                    value=TicketsState.matrix_search,
+                                    on_change=TicketsState.search_matrix,
+                                    background="#1c2138",
+                                    color=TEXT,
+                                    border=f"1px solid {BORDER}",
+                                    border_radius="8px",
+                                    width="100%",
+                                    font_size="0.82rem",
+                                    _focus={"border_color": PRIMARY, "outline": "none"},
+                                    _placeholder={"color": "#475569"},
+                                ),
+                                rx.cond(
+                                    TicketsState.matrix_results.length() > 0,
+                                    rx.box(
+                                        rx.foreach(TicketsState.matrix_results, matrix_result_item),
+                                        background="#0d1021",
+                                        border=f"1px solid {BORDER}",
+                                        border_radius="8px",
+                                        overflow="hidden",
+                                        max_height="200px",
+                                        overflow_y="auto",
+                                        width="100%",
+                                    ),
+                                ),
+                                spacing="2",
+                                width="100%",
+                            ),
+                        ),
+                        spacing="2",
+                        align="start",
                         width="100%",
                     ),
 
