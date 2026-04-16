@@ -299,33 +299,65 @@ class EscaladeState(rx.State):
                 return steps
         return []
 
-    def open_entry(self, perimetre: str, typologie: str):
-        """Ouvre la modale pour une entrée identifiée par (perimetre, typologie)."""
+    def open_entry(
+        self,
+        perimetre: str,
+        typologie: str,
+        categorie_fresh: str,
+        traitement_n1: str,
+        wp: str,
+        interlocuteur: str,
+        traitement_n2n3: str,
+        wp_n2: str,
+        referents: str,
+        conditions_escalade: str,
+        notes: str,
+    ):
+        """Ouvre la modale — tous les champs passés directement (pas de lookup en DB)."""
         db = load_db()
-        all_entries = db.get("escalation_matrix") or []
-        entry_data = next(
-            (r for r in all_entries if r.get("perimetre") == perimetre and r.get("typologie") == typologie),
-            None,
-        )
-        if entry_data is None:
-            return
         steps = EscaladeState._find_procedure(perimetre, typologie, db)
         self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
-            perimetre=entry_data.get("perimetre") or "",
-            typologie=entry_data.get("typologie") or "",
-            categorie_fresh=entry_data.get("categorie_fresh") or "",
-            traitement_n1=entry_data.get("traitement_n1") or "",
-            wp=entry_data.get("wp") or "",
-            interlocuteur=entry_data.get("interlocuteur") or "",
-            traitement_n2n3=entry_data.get("traitement_n2n3") or "",
-            wp_n2=entry_data.get("wp_n2") or "",
-            referents=entry_data.get("referents") or "",
-            conditions_escalade=entry_data.get("conditions_escalade") or "",
-            notes=entry_data.get("notes") or "",
+            perimetre=perimetre,
+            typologie=typologie,
+            categorie_fresh=categorie_fresh,
+            traitement_n1=traitement_n1,
+            wp=wp,
+            interlocuteur=interlocuteur,
+            traitement_n2n3=traitement_n2n3,
+            wp_n2=wp_n2,
+            referents=referents,
+            conditions_escalade=conditions_escalade,
+            notes=notes,
             procedure_n1=steps,
         )
         self.show_modal = True
+
+    def open_favori(self, perimetre: str, typologie: str):
+        """Ouvre la modale depuis les favoris (lookup nécessaire pour récupérer tous les champs)."""
+        db = load_db()
+        all_entries = db.get("escalation_matrix") or []
+        e = next(
+            (r for r in all_entries
+             if (r.get("perimetre") or "").strip() == perimetre.strip()
+             and (r.get("typologie") or "").strip() == typologie.strip()),
+            None,
+        )
+        if e is None:
+            return
+        self.open_entry(
+            perimetre=e.get("perimetre") or "",
+            typologie=e.get("typologie") or "",
+            categorie_fresh=e.get("categorie_fresh") or "",
+            traitement_n1=e.get("traitement_n1") or "",
+            wp=e.get("wp") or "",
+            interlocuteur=e.get("interlocuteur") or "",
+            traitement_n2n3=e.get("traitement_n2n3") or "",
+            wp_n2=e.get("wp_n2") or "",
+            referents=e.get("referents") or "",
+            conditions_escalade=e.get("conditions_escalade") or "",
+            notes=e.get("notes") or "",
+        )
 
     def close_modal(self):
         self.show_modal = False
