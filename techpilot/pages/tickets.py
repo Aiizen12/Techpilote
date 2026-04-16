@@ -42,6 +42,12 @@ class TicketsState(rx.State):
     matrix_search: str = ""
     matrix_results: list[MatrixSuggestion] = []
     matrix_selected: MatrixSuggestion = MatrixSuggestion()
+    # Champs d'escalade stockés en vars simples (fiables entre handlers async)
+    esc_perimetre: str = ""
+    esc_typologie: str = ""
+    esc_interlocuteur: str = ""
+    esc_n2: str = ""
+    esc_wp_n2: str = ""
     # Détail ticket
     show_detail: bool = False
     detail_ticket: TicketItem = TicketItem()
@@ -191,12 +197,15 @@ class TicketsState(rx.State):
             "titre": "", "ticket_pere": "", "description": "",
             "impact": "normale", "perimetre": "", "technicien_id": "",
             "technicien_nom": "", "etat": "en_cours", "notes": "",
-            "escalade_perimetre": "", "escalade_typologie": "",
-            "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
         }
         self.matrix_search = ""
         self.matrix_results = []
         self.matrix_selected = MatrixSuggestion()
+        self.esc_perimetre = ""
+        self.esc_typologie = ""
+        self.esc_interlocuteur = ""
+        self.esc_n2 = ""
+        self.esc_wp_n2 = ""
         self.show_form = True
 
     def close_form(self):
@@ -256,8 +265,8 @@ class TicketsState(rx.State):
         traitement_n2n3: str,
         wp_n2: str,
     ):
-        """Sélectionne directement une entrée matrice. Stocke dans matrix_selected
-        ET dans le form dict (source de vérité pour create)."""
+        """Sélectionne une entrée matrice. Les données sont stockées dans des
+        vars d'état simples (strings) — fiables entre handlers async."""
         self.matrix_selected = MatrixSuggestion(
             key=f"{perimetre}|{typologie}",
             perimetre=perimetre,
@@ -266,25 +275,24 @@ class TicketsState(rx.State):
             traitement_n2n3=traitement_n2n3,
             wp_n2=wp_n2,
         )
-        self.form = {
-            **self.form,
-            "perimetre":             perimetre,
-            "escalade_perimetre":    perimetre,
-            "escalade_typologie":    typologie,
-            "escalade_interlocuteur": interlocuteur,
-            "escalade_n2":           traitement_n2n3,
-            "escalade_wp_n2":        wp_n2,
-        }
+        # Vars simples = persistance garantie dans Reflex
+        self.esc_perimetre    = perimetre
+        self.esc_typologie    = typologie
+        self.esc_interlocuteur = interlocuteur
+        self.esc_n2           = traitement_n2n3
+        self.esc_wp_n2        = wp_n2
+        # Aussi dans form pour que le champ périmètre soit pré-rempli
+        self.form = {**self.form, "perimetre": perimetre}
         self.matrix_search = ""
         self.matrix_results = []
 
     def clear_matrix(self):
-        self.matrix_selected = MatrixSuggestion()
-        self.form = {
-            **self.form,
-            "escalade_perimetre": "", "escalade_typologie": "",
-            "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
-        }
+        self.matrix_selected   = MatrixSuggestion()
+        self.esc_perimetre     = ""
+        self.esc_typologie     = ""
+        self.esc_interlocuteur = ""
+        self.esc_n2            = ""
+        self.esc_wp_n2         = ""
         self.matrix_search = ""
         self.matrix_results = []
 
@@ -321,11 +329,11 @@ class TicketsState(rx.State):
             "date_creation":      datetime.utcnow().isoformat(),
             "date_modification":  datetime.utcnow().isoformat(),
             "date_resolution":    None,
-            "escalade_perimetre":    self.form.get("escalade_perimetre", ""),
-            "escalade_typologie":    self.form.get("escalade_typologie", ""),
-            "escalade_interlocuteur": self.form.get("escalade_interlocuteur", ""),
-            "escalade_n2":           self.form.get("escalade_n2", ""),
-            "escalade_wp_n2":        self.form.get("escalade_wp_n2", ""),
+            "escalade_perimetre":    self.esc_perimetre,
+            "escalade_typologie":    self.esc_typologie,
+            "escalade_interlocuteur": self.esc_interlocuteur,
+            "escalade_n2":           self.esc_n2,
+            "escalade_wp_n2":        self.esc_wp_n2,
         })
         save_db(db)
         log_activity(auth.user_nom, "CREATE", "ticket", f"Incident: {titre}")
