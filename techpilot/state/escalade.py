@@ -299,65 +299,75 @@ class EscaladeState(rx.State):
                 return steps
         return []
 
-    def open_entry(
-        self,
-        perimetre: str,
-        typologie: str,
-        categorie_fresh: str,
-        traitement_n1: str,
-        wp: str,
-        interlocuteur: str,
-        traitement_n2n3: str,
-        wp_n2: str,
-        referents: str,
-        conditions_escalade: str,
-        notes: str,
-    ):
-        """Ouvre la modale — tous les champs passés directement (pas de lookup en DB)."""
+    def _open_escalade_entry(self, e: "EscaladeEntry"):
+        """Logique commune : charge la procédure et ouvre la modale."""
         db = load_db()
-        steps = EscaladeState._find_procedure(perimetre, typologie, db)
+        steps = EscaladeState._find_procedure(e.perimetre, e.typologie, db)
         self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
-            perimetre=perimetre,
-            typologie=typologie,
-            categorie_fresh=categorie_fresh,
-            traitement_n1=traitement_n1,
-            wp=wp,
-            interlocuteur=interlocuteur,
-            traitement_n2n3=traitement_n2n3,
-            wp_n2=wp_n2,
-            referents=referents,
-            conditions_escalade=conditions_escalade,
-            notes=notes,
+            perimetre=e.perimetre,
+            typologie=e.typologie,
+            categorie_fresh=e.categorie_fresh,
+            traitement_n1=e.traitement_n1,
+            wp=e.wp,
+            interlocuteur=e.interlocuteur,
+            traitement_n2n3=e.traitement_n2n3,
+            wp_n2=e.wp_n2,
+            referents=e.referents,
+            conditions_escalade=e.conditions_escalade,
+            notes=e.notes,
             procedure_n1=steps,
         )
         self.show_modal = True
 
+    # ── Ouverture par index (int) — le type le plus fiable dans rx.foreach ───
+
+    def open_entry_at(self, idx: int):
+        """Ouvre l'entrée entries[idx]."""
+        if 0 <= idx < len(self.entries):
+            self._open_escalade_entry(self.entries[idx])
+
+    def open_arbre_entry_at(self, idx: int):
+        """Ouvre l'entrée arbre_entries[idx]."""
+        if 0 <= idx < len(self.arbre_entries):
+            self._open_escalade_entry(self.arbre_entries[idx])
+
+    def open_interlocuteur_entry_at(self, idx: int):
+        """Ouvre l'entrée interlocuteur_entries[idx]."""
+        if 0 <= idx < len(self.interlocuteur_entries):
+            self._open_escalade_entry(self.interlocuteur_entries[idx])
+
+    def open_assistant_entry_at(self, idx: int):
+        """Ouvre l'entrée assistant_entries[idx]."""
+        if 0 <= idx < len(self.assistant_entries):
+            self._open_escalade_entry(self.assistant_entries[idx])
+
     def open_favori(self, perimetre: str, typologie: str):
-        """Ouvre la modale depuis les favoris (lookup nécessaire pour récupérer tous les champs)."""
+        """Favoris : lookup DB car la liste favoris n'a pas d'index fixe."""
         db = load_db()
         all_entries = db.get("escalation_matrix") or []
-        e = next(
+        raw = next(
             (r for r in all_entries
              if (r.get("perimetre") or "").strip() == perimetre.strip()
              and (r.get("typologie") or "").strip() == typologie.strip()),
             None,
         )
-        if e is None:
+        if raw is None:
             return
-        self.open_entry(
-            perimetre=e.get("perimetre") or "",
-            typologie=e.get("typologie") or "",
-            categorie_fresh=e.get("categorie_fresh") or "",
-            traitement_n1=e.get("traitement_n1") or "",
-            wp=e.get("wp") or "",
-            interlocuteur=e.get("interlocuteur") or "",
-            traitement_n2n3=e.get("traitement_n2n3") or "",
-            wp_n2=e.get("wp_n2") or "",
-            referents=e.get("referents") or "",
-            conditions_escalade=e.get("conditions_escalade") or "",
-            notes=e.get("notes") or "",
+        e = EscaladeEntry(
+            perimetre=raw.get("perimetre") or "",
+            typologie=raw.get("typologie") or "",
+            categorie_fresh=raw.get("categorie_fresh") or "",
+            traitement_n1=raw.get("traitement_n1") or "",
+            wp=raw.get("wp") or "",
+            interlocuteur=raw.get("interlocuteur") or "",
+            traitement_n2n3=raw.get("traitement_n2n3") or "",
+            wp_n2=raw.get("wp_n2") or "",
+            referents=raw.get("referents") or "",
+            conditions_escalade=raw.get("conditions_escalade") or "",
+            notes=raw.get("notes") or "",
         )
+        self._open_escalade_entry(e)
 
     def close_modal(self):
         self.show_modal = False

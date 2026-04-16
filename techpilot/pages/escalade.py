@@ -364,7 +364,7 @@ def entry_modal() -> rx.Component:
 # Mode RECHERCHE
 # ══════════════════════════════════════════════════════════════════════════════
 
-def entry_row(entry: EscaladeEntry) -> rx.Component:
+def entry_row(entry: EscaladeEntry, idx) -> rx.Component:
     return rx.table.row(
         rx.table.cell(
             rx.badge(entry["perimetre"], color_scheme="indigo", variant="soft", radius="full"),
@@ -374,30 +374,14 @@ def entry_row(entry: EscaladeEntry) -> rx.Component:
         rx.table.cell(rx.text(entry["categorie_fresh"], color=MUTED, font_size="0.82rem"), padding="8px 12px"),
         rx.table.cell(rx.text(entry["traitement_n1"], color="#86efac", font_size="0.82rem"), padding="8px 12px"),
         rx.table.cell(
-            rx.icon_button(
-                rx.icon("eye", size=14),
-                on_click=EscaladeState.open_entry(
-                entry["perimetre"], entry["typologie"], entry["categorie_fresh"],
-                entry["traitement_n1"], entry["wp"], entry["interlocuteur"],
-                entry["traitement_n2n3"], entry["wp_n2"], entry["referents"],
-                entry["conditions_escalade"], entry["notes"],
-            ),
-                background="rgba(99,102,241,0.1)", color=PRIMARY,
-                border=f"1px solid rgba(99,102,241,0.3)",
-                border_radius="6px", size="1",
-                _hover={"background": "rgba(99,102,241,0.2)"},
-                cursor="pointer",
+            rx.icon(
+                "eye", size=14, color=PRIMARY,
             ),
             padding="8px 12px", text_align="center",
         ),
         _hover={"background": "rgba(255,255,255,0.02)"},
         cursor="pointer",
-        on_click=EscaladeState.open_entry(
-                entry["perimetre"], entry["typologie"], entry["categorie_fresh"],
-                entry["traitement_n1"], entry["wp"], entry["interlocuteur"],
-                entry["traitement_n2n3"], entry["wp_n2"], entry["referents"],
-                entry["conditions_escalade"], entry["notes"],
-            ),
+        on_click=EscaladeState.open_entry_at(idx),
     )
 
 
@@ -492,7 +476,7 @@ def recherche_mode() -> rx.Component:
                     ),
                     background="#0d1021",
                 ),
-                rx.table.body(rx.foreach(EscaladeState.entries, entry_row)),
+                rx.table.body(rx.foreach(EscaladeState.entries, lambda e, i: entry_row(e, i))),
                 width="100%",
             ),
             background=CARD_BG, border=f"1px solid {BORDER}",
@@ -547,37 +531,16 @@ def perimetre_card(p: dict) -> rx.Component:
     )
 
 
-def assistant_entry_row(entry: EscaladeEntry) -> rx.Component:
+def assistant_entry_row(entry: EscaladeEntry, idx) -> rx.Component:
     return rx.table.row(
         rx.table.cell(rx.text(entry["typologie"], color=TEXT, font_size="0.85rem"), padding="8px 12px"),
         rx.table.cell(rx.text(entry["categorie_fresh"], color=MUTED, font_size="0.82rem"), padding="8px 12px"),
         rx.table.cell(rx.text(entry["traitement_n1"], color="#86efac", font_size="0.82rem"), padding="8px 12px"),
         rx.table.cell(rx.text(entry["interlocuteur"], color=MUTED, font_size="0.82rem"), padding="8px 12px"),
-        rx.table.cell(
-            rx.icon_button(
-                rx.icon("eye", size=14),
-                on_click=EscaladeState.open_entry(
-                entry["perimetre"], entry["typologie"], entry["categorie_fresh"],
-                entry["traitement_n1"], entry["wp"], entry["interlocuteur"],
-                entry["traitement_n2n3"], entry["wp_n2"], entry["referents"],
-                entry["conditions_escalade"], entry["notes"],
-            ),
-                background="rgba(99,102,241,0.1)", color=PRIMARY,
-                border=f"1px solid rgba(99,102,241,0.3)",
-                border_radius="6px", size="1",
-                _hover={"background": "rgba(99,102,241,0.2)"},
-                cursor="pointer",
-            ),
-            padding="8px 12px",
-        ),
+        rx.table.cell(rx.icon("eye", size=14, color=PRIMARY), padding="8px 12px"),
         _hover={"background": "rgba(255,255,255,0.02)"},
         cursor="pointer",
-        on_click=EscaladeState.open_entry(
-                entry["perimetre"], entry["typologie"], entry["categorie_fresh"],
-                entry["traitement_n1"], entry["wp"], entry["interlocuteur"],
-                entry["traitement_n2n3"], entry["wp_n2"], entry["referents"],
-                entry["conditions_escalade"], entry["notes"],
-            ),
+        on_click=EscaladeState.open_assistant_entry_at(idx),
     )
 
 
@@ -641,7 +604,7 @@ def assistant_mode() -> rx.Component:
                         ),
                         background="#0d1021",
                     ),
-                    rx.table.body(rx.foreach(EscaladeState.assistant_entries, assistant_entry_row)),
+                    rx.table.body(rx.foreach(EscaladeState.assistant_entries, lambda e, i: assistant_entry_row(e, i))),
                     width="100%",
                 ),
                 background=CARD_BG, border=f"1px solid {BORDER}",
@@ -656,24 +619,12 @@ def assistant_mode() -> rx.Component:
 # Mode ARBRE
 # ══════════════════════════════════════════════════════════════════════════════
 
-def arbre_entry_row(entry: EscaladeEntry) -> rx.Component:
+def arbre_entry_row(entry: EscaladeEntry, idx) -> rx.Component:
     return rx.box(
         rx.hstack(
             rx.text(entry["typologie"], color=TEXT, font_size="0.82rem", flex="1"),
             rx.text(entry["traitement_n1"], color="#86efac", font_size="0.75rem", max_width="260px"),
-            rx.icon_button(
-                rx.icon("eye", size=13),
-                on_click=EscaladeState.open_entry(
-                entry["perimetre"], entry["typologie"], entry["categorie_fresh"],
-                entry["traitement_n1"], entry["wp"], entry["interlocuteur"],
-                entry["traitement_n2n3"], entry["wp_n2"], entry["referents"],
-                entry["conditions_escalade"], entry["notes"],
-            ),
-                background="rgba(99,102,241,0.1)", color=PRIMARY,
-                border=f"1px solid rgba(99,102,241,0.3)",
-                border_radius="6px", size="1", cursor="pointer",
-                _hover={"background": "rgba(99,102,241,0.2)"},
-            ),
+            rx.icon("eye", size=13, color=PRIMARY),
             spacing="3", align="center", width="100%",
         ),
         background="#0a0d1a",
@@ -681,12 +632,16 @@ def arbre_entry_row(entry: EscaladeEntry) -> rx.Component:
         padding="7px 12px",
         margin_left="16px",
         border_radius="6px",
+        cursor="pointer",
+        on_click=EscaladeState.open_arbre_entry_at(idx),
+        _hover={"background": "rgba(99,102,241,0.08)"},
     )
 
 
 def arbre_perimetre_item(p: dict) -> rx.Component:
     is_open = EscaladeState.arbre_expanded == p["name"]
     return rx.box(
+        # Header cliquable pour ouvrir/fermer
         rx.hstack(
             rx.icon(
                 rx.cond(is_open, "folder-open", "folder"),
@@ -696,11 +651,15 @@ def arbre_perimetre_item(p: dict) -> rx.Component:
             rx.badge(p["count_str"], color_scheme="gray", variant="soft", radius="full", font_size="0.7rem"),
             rx.icon(rx.cond(is_open, "chevron-up", "chevron-down"), size=14, color=MUTED),
             spacing="3", align="center", padding="10px 14px", width="100%",
+            cursor="pointer",
+            on_click=EscaladeState.toggle_arbre_perimetre(p["name"]),
+            _hover={"opacity": "0.9"},
         ),
+        # Entrées — cliques isolés du header
         rx.cond(
             is_open,
             rx.vstack(
-                rx.foreach(EscaladeState.arbre_entries, arbre_entry_row),
+                rx.foreach(EscaladeState.arbre_entries, lambda e, i: arbre_entry_row(e, i)),
                 spacing="1",
                 padding="0 12px 12px 12px",
                 width="100%",
@@ -711,11 +670,8 @@ def arbre_perimetre_item(p: dict) -> rx.Component:
         border_left=p["border_accent"],
         border_radius="10px",
         overflow="hidden",
-        cursor="pointer",
         width="100%",
-        on_click=EscaladeState.toggle_arbre_perimetre(p["name"]),
         transition="all 0.15s",
-        _hover={"opacity": "0.9"},
     )
 
 
@@ -731,7 +687,7 @@ def arbre_mode() -> rx.Component:
 # Mode PAR INTERLOCUTEUR N2
 # ══════════════════════════════════════════════════════════════════════════════
 
-def interlocuteur_entry_row(entry: EscaladeEntry) -> rx.Component:
+def interlocuteur_entry_row(entry: EscaladeEntry, idx) -> rx.Component:
     return rx.box(
         rx.hstack(
             rx.vstack(
@@ -740,25 +696,13 @@ def interlocuteur_entry_row(entry: EscaladeEntry) -> rx.Component:
                     rx.text(entry["typologie"], color=TEXT, font_size="0.82rem"),
                     spacing="2", align="center",
                 ),
-                rx.cond(
-                    entry["traitement_n1"] != "",
-                    rx.text("N1 : " + entry["traitement_n1"], color="#86efac", font_size="0.75rem"),
+                rx.text(
+                    rx.cond(entry["traitement_n1"] != "", "N1 : " + entry["traitement_n1"], ""),
+                    color="#86efac", font_size="0.75rem",
                 ),
                 spacing="1", align="start", flex="1",
             ),
-            rx.icon_button(
-                rx.icon("eye", size=13),
-                on_click=EscaladeState.open_entry(
-                entry["perimetre"], entry["typologie"], entry["categorie_fresh"],
-                entry["traitement_n1"], entry["wp"], entry["interlocuteur"],
-                entry["traitement_n2n3"], entry["wp_n2"], entry["referents"],
-                entry["conditions_escalade"], entry["notes"],
-            ),
-                background="rgba(99,102,241,0.1)", color=PRIMARY,
-                border=f"1px solid rgba(99,102,241,0.3)",
-                border_radius="6px", size="1", cursor="pointer",
-                _hover={"background": "rgba(99,102,241,0.2)"},
-            ),
+            rx.icon("eye", size=13, color=PRIMARY),
             spacing="3", align="center", width="100%",
         ),
         background="#0a0d1a",
@@ -766,6 +710,9 @@ def interlocuteur_entry_row(entry: EscaladeEntry) -> rx.Component:
         padding="8px 12px",
         margin_left="16px",
         border_radius="6px",
+        cursor="pointer",
+        on_click=EscaladeState.open_interlocuteur_entry_at(idx),
+        _hover={"background": "rgba(99,102,241,0.08)"},
     )
 
 
@@ -802,7 +749,7 @@ def interlocuteur_row(item: dict) -> rx.Component:
         rx.cond(
             is_expanded,
             rx.vstack(
-                rx.foreach(EscaladeState.interlocuteur_entries, interlocuteur_entry_row),
+                rx.foreach(EscaladeState.interlocuteur_entries, lambda e, i: interlocuteur_entry_row(e, i)),
                 spacing="1",
                 padding="0 12px 12px 12px",
                 width="100%",
@@ -905,7 +852,7 @@ def libre_mode() -> rx.Component:
                             ),
                             background="#0d1021",
                         ),
-                        rx.table.body(rx.foreach(EscaladeState.entries, entry_row)),
+                        rx.table.body(rx.foreach(EscaladeState.entries, lambda e, i: entry_row(e, i))),
                         width="100%",
                     ),
                     background=CARD_BG, border=f"1px solid {BORDER}",
