@@ -998,22 +998,20 @@ def _sheet_procedures() -> rx.Component:
                                 # Document
                                 rx.vstack(
                                     rx.hstack(
-                                        rx.icon("file-text", size=12, color="#60a5fa"),
+                                        rx.icon("file-text", size=12, color="#60a5fa", flex_shrink="0"),
                                         rx.text(p["doc_name"], color=TEXT,
                                                 font_size="0.8rem", font_weight="600",
-                                                overflow="hidden", text_overflow="ellipsis",
-                                                white_space="nowrap", max_width="200px"),
-                                        spacing="1", align="center",
+                                                white_space="normal", line_height="1.4"),
+                                        spacing="1", align="start",
                                     ),
                                     rx.hstack(
-                                        rx.icon("arrow-right", size=11, color=MUTED),
+                                        rx.icon("arrow-right", size=11, color=MUTED, flex_shrink="0"),
                                         rx.text(
                                             p["perimetre"] + " · " + p["typologie"],
                                             color=MUTED, font_size="0.72rem",
-                                            overflow="hidden", text_overflow="ellipsis",
-                                            white_space="nowrap", max_width="200px",
+                                            white_space="normal", line_height="1.4",
                                         ),
-                                        spacing="1", align="center",
+                                        spacing="1", align="start",
                                     ),
                                     spacing="1", align="start", flex="1", min_width="0",
                                 ),
