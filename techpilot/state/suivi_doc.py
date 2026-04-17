@@ -7,6 +7,7 @@ from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
 from techpilot.state.models import AmeliorationItem, ProcSuiviRow, DocPickerItem, AutoMatchProposal
 from techpilot.state.escalade import PROCEDURE_MAP
+from techpilot.gabarits_data import PREDEFINED_GABARITS as _PREDEFINED_GABARITS
 
 CATEGORIES  = ["Process", "UX", "Technique", "Formation", "Autre"]
 PRIORITES   = ["Basse", "Normale", "Haute", "Critique"]
@@ -384,13 +385,18 @@ class SuiviDocState(rx.State):
             DocPickerItem(id=str(d.get("id", "")), nom=d.get("nom_original", ""), url=d.get("url", ""))
             for d in docs
         ]
-        gabarits = sorted(db.get("gabarits") or [], key=lambda g: g.get("titre") or "")
+        hidden = set(db.get("hidden_predefined") or [])
+        all_gabarits = [
+            g for g in _PREDEFINED_GABARITS
+            if g.get("id") not in hidden
+        ] + (db.get("gabarits") or [])
+        all_gabarits = sorted(all_gabarits, key=lambda g: g.get("titre") or "")
         if q:
-            gabarits = [g for g in gabarits if q in (g.get("titre") or "").lower()
-                        or q in (g.get("contenu") or "").lower()]
+            all_gabarits = [g for g in all_gabarits if q in (g.get("titre") or "").lower()
+                            or q in (g.get("contenu") or "").lower()]
         self.available_gabarits_picker = [
             DocPickerItem(id=str(g.get("id", "")), nom=g.get("titre", ""), url="")
-            for g in gabarits
+            for g in all_gabarits
         ]
 
     def set_doc_picker_tab(self, t: str):
