@@ -56,6 +56,7 @@ class SuiviDocState(rx.State):
     # ── Auto-détection des correspondances documents ↔ matrice ────────────
     show_auto_match: bool = False
     auto_match_proposals: list[AutoMatchProposal] = []
+    expanded_proposal_idx: int = -1
 
     # ── Chargement ────────────────────────────────────────────────────────
 
@@ -468,6 +469,10 @@ class SuiviDocState(rx.State):
 
     def close_auto_match(self):
         self.show_auto_match = False
+        self.expanded_proposal_idx = -1
+
+    def toggle_proposal(self, idx: int):
+        self.expanded_proposal_idx = -1 if self.expanded_proposal_idx == idx else idx
 
     def confirm_match_at(self, idx: int):
         """Confirme et sauvegarde la proposition à l'index idx."""
