@@ -364,27 +364,163 @@ def entry_modal() -> rx.Component:
 
             # ── Document lié ─────────────────────────────────────────────
             rx.cond(
-                e["doc_url"] != "",
+                (e["doc_url"] != "") | AuthState.can_edit_procedure,
                 rx.box(
+                    # En-tête
                     rx.hstack(
                         rx.box(
-                            rx.icon("file-text", size=13, color="#60a5fa"),
+                            rx.icon("link-2", size=13, color="#60a5fa"),
                             min_width="18px", flex_shrink="0",
                             display="flex", align_items="center", justify_content="center",
                         ),
-                        rx.link(
-                            e["doc_name"],
-                            href=e["doc_url"],
-                            is_external=True,
-                            color="#60a5fa",
-                            font_size="0.82rem",
-                            font_weight="600",
-                            text_decoration="underline",
-                            _hover={"color": "#93c5fd"},
+                        rx.text("Document lié", color="#60a5fa", font_size="0.78rem", font_weight="700"),
+                        rx.spacer(),
+                        rx.cond(
+                            AuthState.can_edit_procedure,
+                            rx.hstack(
+                                rx.cond(
+                                    e["doc_url"] != "",
+                                    rx.button(
+                                        rx.icon("pencil", size=11), "Changer",
+                                        on_click=EscaladeState.open_link_panel,
+                                        size="1",
+                                        style={
+                                            "background": "rgba(99,102,241,0.12)", "color": "#6366f1",
+                                            "border": "1px solid rgba(99,102,241,0.25)", "border_radius": "6px",
+                                            "cursor": "pointer", "font_size": "0.7rem", "padding": "2px 7px",
+                                        },
+                                    ),
+                                    rx.button(
+                                        rx.icon("link-2", size=11), "Lier",
+                                        on_click=EscaladeState.open_link_panel,
+                                        size="1",
+                                        style={
+                                            "background": "rgba(96,165,250,0.12)", "color": "#60a5fa",
+                                            "border": "1px solid rgba(96,165,250,0.25)", "border_radius": "6px",
+                                            "cursor": "pointer", "font_size": "0.7rem", "padding": "2px 7px",
+                                        },
+                                    ),
+                                ),
+                                rx.cond(
+                                    e["doc_url"] != "",
+                                    rx.icon_button(
+                                        rx.icon("trash-2", size=11),
+                                        on_click=EscaladeState.unlink_doc,
+                                        size="1",
+                                        style={
+                                            "background": "transparent", "color": MUTED,
+                                            "border": "none", "cursor": "pointer", "border_radius": "5px",
+                                        },
+                                    ),
+                                ),
+                                spacing="1",
+                            ),
                         ),
-                        spacing="2", align="center",
+                        spacing="2", align="center", width="100%", margin_bottom="8px",
                     ),
-                    background="rgba(59,130,246,0.05)",
+                    # Lien existant
+                    rx.cond(
+                        e["doc_url"] != "",
+                        rx.hstack(
+                            rx.icon("file-text", size=13, color="#60a5fa"),
+                            rx.link(
+                                e["doc_name"],
+                                href=e["doc_url"],
+                                is_external=True,
+                                color="#60a5fa", font_size="0.82rem", font_weight="600",
+                                text_decoration="underline", _hover={"color": "#93c5fd"},
+                            ),
+                            spacing="2", align="center",
+                        ),
+                        rx.cond(
+                            ~EscaladeState.show_link_panel,
+                            rx.text("Aucun document lié", color=MUTED, font_size="0.78rem", font_style="italic"),
+                        ),
+                    ),
+                    # Panel liaison
+                    rx.cond(
+                        EscaladeState.show_link_panel,
+                        rx.vstack(
+                            rx.divider(border_color=BORDER, margin_y="0.5rem"),
+                            # Recherche SuiviDoc
+                            rx.text("Rechercher dans les documents", color=MUTED, font_size="0.72rem", font_weight="600"),
+                            rx.input(
+                                placeholder="Rechercher un document...",
+                                value=EscaladeState.link_search,
+                                on_change=EscaladeState.set_link_search,
+                                background="#0d1117", style={"color": TEXT},
+                                border=f"1px solid {BORDER}", border_radius="7px",
+                                font_size="0.82rem", width="100%",
+                            ),
+                            rx.foreach(
+                                EscaladeState.link_results,
+                                lambda d: rx.box(
+                                    rx.hstack(
+                                        rx.icon("file-text", size=12, color="#60a5fa"),
+                                        rx.text(d["nom"], color=TEXT, font_size="0.8rem", flex="1",
+                                                overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+                                        rx.icon_button(
+                                            rx.icon("check", size=12),
+                                            on_click=EscaladeState.link_from_picker(d["id"]),
+                                            size="1",
+                                            style={"background": "rgba(34,197,94,0.15)", "color": "#22c55e",
+                                                   "border": "1px solid rgba(34,197,94,0.25)", "border_radius": "5px",
+                                                   "cursor": "pointer"},
+                                        ),
+                                        spacing="2", align="center", width="100%",
+                                    ),
+                                    background="#0d1117", border=f"1px solid {BORDER}",
+                                    border_radius="7px", padding="6px 10px",
+                                    _hover={"border_color": "#60a5fa"},
+                                ),
+                            ),
+                            # Séparateur "ou"
+                            rx.hstack(
+                                rx.divider(border_color=BORDER, flex="1"),
+                                rx.text("ou", color=MUTED, font_size="0.7rem", padding_x="8px"),
+                                rx.divider(border_color=BORDER, flex="1"),
+                                align="center", width="100%",
+                            ),
+                            # Lien personnalisé
+                            rx.text("Lien externe / personnalisé", color=MUTED, font_size="0.72rem", font_weight="600"),
+                            rx.input(
+                                placeholder="Nom affiché *",
+                                value=EscaladeState.link_custom_name,
+                                on_change=EscaladeState.set_link_custom_name,
+                                background="#0d1117", style={"color": TEXT},
+                                border=f"1px solid {BORDER}", border_radius="7px",
+                                font_size="0.82rem", width="100%",
+                            ),
+                            rx.input(
+                                placeholder="URL *",
+                                value=EscaladeState.link_custom_url,
+                                on_change=EscaladeState.set_link_custom_url,
+                                background="#0d1117", style={"color": TEXT},
+                                border=f"1px solid {BORDER}", border_radius="7px",
+                                font_size="0.82rem", width="100%",
+                            ),
+                            rx.hstack(
+                                rx.button(
+                                    "Annuler", on_click=EscaladeState.close_link_panel,
+                                    size="1",
+                                    style={"background": "transparent", "color": MUTED,
+                                           "border": f"1px solid {BORDER}", "border_radius": "6px",
+                                           "cursor": "pointer", "font_size": "0.75rem"},
+                                ),
+                                rx.button(
+                                    rx.icon("save", size=12), "Enregistrer",
+                                    on_click=EscaladeState.save_custom_link,
+                                    size="1",
+                                    style={"background": "rgba(96,165,250,0.15)", "color": "#60a5fa",
+                                           "border": "1px solid rgba(96,165,250,0.3)", "border_radius": "6px",
+                                           "cursor": "pointer", "font_size": "0.75rem"},
+                                ),
+                                spacing="2", justify="end", width="100%",
+                            ),
+                            spacing="2", width="100%",
+                        ),
+                    ),
+                    background="rgba(59,130,246,0.04)",
                     border="1px solid rgba(59,130,246,0.2)",
                     border_left="3px solid #60a5fa",
                     border_radius="10px",

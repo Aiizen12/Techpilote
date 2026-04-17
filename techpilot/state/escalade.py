@@ -1,7 +1,7 @@
 import reflex as rx
 import base64
 from techpilot.db.database import load_db, save_db
-from techpilot.state.models import EscaladeEntry
+from techpilot.state.models import EscaladeEntry, DocPickerItem
 
 # ── Procédures N1 — réseau / hardware (source : docs procédures internes) ─────
 # Clé : (perimetre, typologie)  →  liste d'étapes ordonnées
@@ -162,6 +162,13 @@ class EscaladeState(rx.State):
     # ── Édition procédure ─────────────────────────────────────────────────
     editing_procedure: bool = False
     edit_steps_text: str = ""   # étapes séparées par \n
+
+    # ── Liaison document ─────────────────────────────────────────────────
+    show_link_panel: bool = False
+    link_search: str = ""
+    link_results: list[DocPickerItem] = []
+    link_custom_name: str = ""
+    link_custom_url: str = ""
 
     # ── Chargement ────────────────────────────────────────────────────────
 
@@ -376,6 +383,11 @@ class EscaladeState(rx.State):
     def close_modal(self):
         self.show_modal = False
         self.editing_procedure = False
+        self.show_link_panel = False
+        self.link_search = ""
+        self.link_results = []
+        self.link_custom_name = ""
+        self.link_custom_url = ""
 
     # ── Édition procédure ─────────────────────────────────────────────────
 
@@ -385,6 +397,113 @@ class EscaladeState(rx.State):
 
     def cancel_edit_procedure(self):
         self.editing_procedure = False
+
+    # ── Liaison document ─────────────────────────────────────────────────
+
+    def open_link_panel(self):
+        self.show_link_panel = True
+        self.link_search = ""
+        self.link_results = []
+        self.link_custom_name = ""
+        self.link_custom_url = ""
+
+    def close_link_panel(self):
+        self.show_link_panel = False
+        self.link_search = ""
+        self.link_results = []
+
+    def set_link_search(self, val: str):
+        self.link_search = val
+        if not val.strip():
+            self.link_results = []
+            return
+        db = load_db()
+        q = val.lower()
+        results = []
+        for d in (db.get("documents") or []):
+            nom = (d.get("nom_original") or "").lower()
+            desc = (d.get("description") or "").lower()
+            if q in nom or q in desc:
+                results.append(DocPickerItem(
+                    id=str(d.get("id") or ""),
+                    nom=d.get("nom_original") or "",
+                    url=d.get("url") or "",
+                ))
+        self.link_results = results[:10]
+
+    def set_link_custom_name(self, val: str):
+        self.link_custom_name = val
+
+    def set_link_custom_url(self, val: str):
+        self.link_custom_url = val
+
+    def _save_doc_link(self, name: str, url: str, doc_id: str = ""):
+        key = f"{self.selected_entry.perimetre}|{self.selected_entry.typologie}"
+        db = load_db()
+        if "proc_doc_links" not in db:
+            db["proc_doc_links"] = {}
+        db["proc_doc_links"][key] = {"doc_id": doc_id, "doc_name": name, "doc_url": url}
+        save_db(db)
+        self.selected_entry = EscaladeEntry(
+            perimetre=self.selected_entry.perimetre,
+            typologie=self.selected_entry.typologie,
+            categorie_fresh=self.selected_entry.categorie_fresh,
+            traitement_n1=self.selected_entry.traitement_n1,
+            wp=self.selected_entry.wp,
+            interlocuteur=self.selected_entry.interlocuteur,
+            traitement_n2n3=self.selected_entry.traitement_n2n3,
+            wp_n2=self.selected_entry.wp_n2,
+            referents=self.selected_entry.referents,
+            conditions_escalade=self.selected_entry.conditions_escalade,
+            notes=self.selected_entry.notes,
+            procedure_n1=self.selected_entry.procedure_n1,
+            doc_name=name,
+            doc_url=url,
+        )
+        self.show_link_panel = False
+        self.link_search = ""
+        self.link_results = []
+        self.link_custom_name = ""
+        self.link_custom_url = ""
+        yield rx.toast.success("Document lié.")
+
+    def link_from_picker(self, doc_id: str):
+        doc = next((d for d in self.link_results if d.id == doc_id), None)
+        if doc:
+            yield EscaladeState._save_doc_link(self, doc.nom, doc.url, doc.id)
+
+    def save_custom_link(self):
+        name = self.link_custom_name.strip()
+        url = self.link_custom_url.strip()
+        if not name or not url:
+            yield rx.toast.error("Nom et URL requis.")
+            return
+        yield EscaladeState._save_doc_link(self, name, url)
+
+    def unlink_doc(self):
+        key = f"{self.selected_entry.perimetre}|{self.selected_entry.typologie}"
+        db = load_db()
+        links = db.get("proc_doc_links") or {}
+        links.pop(key, None)
+        db["proc_doc_links"] = links
+        save_db(db)
+        self.selected_entry = EscaladeEntry(
+            perimetre=self.selected_entry.perimetre,
+            typologie=self.selected_entry.typologie,
+            categorie_fresh=self.selected_entry.categorie_fresh,
+            traitement_n1=self.selected_entry.traitement_n1,
+            wp=self.selected_entry.wp,
+            interlocuteur=self.selected_entry.interlocuteur,
+            traitement_n2n3=self.selected_entry.traitement_n2n3,
+            wp_n2=self.selected_entry.wp_n2,
+            referents=self.selected_entry.referents,
+            conditions_escalade=self.selected_entry.conditions_escalade,
+            notes=self.selected_entry.notes,
+            procedure_n1=self.selected_entry.procedure_n1,
+            doc_name="",
+            doc_url="",
+        )
+        yield rx.toast.success("Lien supprimé.")
 
     def set_edit_steps_text(self, val: str):
         self.edit_steps_text = val
