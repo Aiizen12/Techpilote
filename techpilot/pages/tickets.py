@@ -543,6 +543,20 @@ def _detail_tech_pill(t: dict) -> rx.Component:
 
 
 def matrix_result_item(s: MatrixSuggestion, idx) -> rx.Component:
+    # Affiche interlocuteur si dispo, sinon traitement N2, sinon rien
+    label_n2 = rx.cond(
+        s["interlocuteur"] != "",
+        rx.text("→ " + s["interlocuteur"], color=PRIMARY, font_size="0.72rem",
+                flex_shrink="0", max_width="140px", overflow="hidden",
+                text_overflow="ellipsis", white_space="nowrap"),
+        rx.cond(
+            s["traitement_n2n3"] != "",
+            rx.text("N2: " + s["traitement_n2n3"], color=MUTED, font_size="0.68rem",
+                    flex_shrink="0", max_width="140px", overflow="hidden",
+                    text_overflow="ellipsis", white_space="nowrap"),
+            rx.text(""),
+        ),
+    )
     return rx.hstack(
         rx.vstack(
             rx.text(s["perimetre"], color=MUTED, font_size="0.68rem"),
@@ -552,9 +566,7 @@ def matrix_result_item(s: MatrixSuggestion, idx) -> rx.Component:
             flex="1",
             min_width="0",
         ),
-        rx.text("→ " + s["interlocuteur"], color=PRIMARY, font_size="0.72rem",
-                flex_shrink="0", max_width="140px", overflow="hidden",
-                text_overflow="ellipsis", white_space="nowrap"),
+        label_n2,
         spacing="3",
         align="center",
         padding="0.6rem 0.85rem",
@@ -600,13 +612,18 @@ def incident_row(t: TicketItem) -> rx.Component:
                             white_space="nowrap", flex_shrink="0"),
                 ),
                 rx.cond(
-                    t["escalade_interlocuteur"] != "",
+                    t["escalade_perimetre"] != "",
                     rx.badge(
                         rx.hstack(
                             rx.icon("git-branch", size=10),
-                            rx.text("→ " + t["escalade_interlocuteur"],
-                                    font_size="0.68rem", max_width="100px",
-                                    overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+                            rx.text(
+                                rx.cond(
+                                    t["escalade_interlocuteur"] != "",
+                                    "→ " + t["escalade_interlocuteur"],
+                                    t["escalade_perimetre"],
+                                ),
+                                font_size="0.68rem", max_width="100px",
+                                overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
                             spacing="1", align="center",
                         ),
                         color_scheme="indigo", variant="soft", radius="full",
@@ -799,7 +816,7 @@ def ticket_detail_dialog() -> rx.Component:
 
         # ── Escalade — cliquable vers la matrice ──────────────────────────────
         rx.cond(
-            t["escalade_interlocuteur"] != "",
+            t["escalade_perimetre"] != "",
             rx.vstack(
                 rx.hstack(
                     rx.icon("git-branch", size=13, color=PRIMARY),
@@ -812,11 +829,27 @@ def ticket_detail_dialog() -> rx.Component:
                 rx.hstack(
                     rx.vstack(
                         rx.vstack(
-                            rx.text("Interlocuteur", color=MUTED, font_size="0.65rem",
+                            rx.text("Périmètre / Typologie", color=MUTED, font_size="0.65rem",
                                     font_weight="700", letter_spacing="0.05em"),
-                            rx.text(t["escalade_interlocuteur"], color=TEXT,
-                                    font_size="0.85rem", font_weight="600"),
+                            rx.text(
+                                t["escalade_perimetre"] + rx.cond(
+                                    t["escalade_typologie"] != "",
+                                    " · " + t["escalade_typologie"],
+                                    "",
+                                ),
+                                color=TEXT, font_size="0.85rem", font_weight="600",
+                            ),
                             spacing="0", align="start",
+                        ),
+                        rx.cond(
+                            t["escalade_interlocuteur"] != "",
+                            rx.vstack(
+                                rx.text("Interlocuteur", color=MUTED, font_size="0.65rem",
+                                        font_weight="700", letter_spacing="0.05em"),
+                                rx.text(t["escalade_interlocuteur"], color=TEXT,
+                                        font_size="0.85rem", font_weight="600"),
+                                spacing="0", align="start",
+                            ),
                         ),
                         rx.cond(
                             t["escalade_n2"] != "",
