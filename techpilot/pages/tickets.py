@@ -37,6 +37,8 @@ class TicketsState(rx.State):
         "titre": "", "ticket_pere": "", "description": "",
         "impact": "normale", "perimetre": "", "technicien_id": "",
         "technicien_nom": "", "etat": "en_cours", "notes": "",
+        "escalade_perimetre": "", "escalade_typologie": "",
+        "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
     }
     # Liaison matrice
     matrix_search: str = ""
@@ -321,24 +323,10 @@ class TicketsState(rx.State):
     def create(self):
         if not self.form.get("titre"):
             return
-        # DEBUG — visible dans les logs Railway
-        print(f"[CREATE] matrix_selected.key={self.matrix_selected.key!r}")
-        print(f"[CREATE] matrix_selected.interlocuteur={self.matrix_selected.interlocuteur!r}")
-        print(f"[CREATE] form.escalade_interlocuteur={self.form.get('escalade_interlocuteur')!r}")
-        print(f"[CREATE] esc_interlocuteur={self.esc_interlocuteur!r}")
-        print(f"[CREATE] form keys={list(self.form.keys())}")
         db = load_db()
         if "tickets" not in db:
             db["tickets"] = []
         titre = self.form.get("titre", "")
-        # Lire depuis matrix_selected (source la plus fiable — affichée dans l'UI)
-        # avec fallback form puis esc_* vars
-        esc_p  = self.matrix_selected.perimetre     or self.form.get("escalade_perimetre", self.esc_perimetre)
-        esc_t  = self.matrix_selected.typologie     or self.form.get("escalade_typologie", self.esc_typologie)
-        esc_i  = self.matrix_selected.interlocuteur or self.form.get("escalade_interlocuteur", self.esc_interlocuteur)
-        esc_n2 = self.matrix_selected.traitement_n2n3 or self.form.get("escalade_n2", self.esc_n2)
-        esc_wp = self.matrix_selected.wp_n2         or self.form.get("escalade_wp_n2", self.esc_wp_n2)
-        print(f"[CREATE] final esc_i={esc_i!r} esc_p={esc_p!r}")
         db["tickets"].append({
             "id": str(uuid.uuid4()),
             "titre":          titre,
@@ -353,11 +341,11 @@ class TicketsState(rx.State):
             "date_creation":      datetime.utcnow().isoformat(),
             "date_modification":  datetime.utcnow().isoformat(),
             "date_resolution":    None,
-            "escalade_perimetre":     esc_p,
-            "escalade_typologie":     esc_t,
-            "escalade_interlocuteur": esc_i,
-            "escalade_n2":            esc_n2,
-            "escalade_wp_n2":         esc_wp,
+            "escalade_perimetre":     self.form.get("escalade_perimetre", ""),
+            "escalade_typologie":     self.form.get("escalade_typologie", ""),
+            "escalade_interlocuteur": self.form.get("escalade_interlocuteur", ""),
+            "escalade_n2":            self.form.get("escalade_n2", ""),
+            "escalade_wp_n2":         self.form.get("escalade_wp_n2", ""),
         })
         save_db(db)
         log_activity("", "CREATE", "ticket", f"Incident: {titre}")
