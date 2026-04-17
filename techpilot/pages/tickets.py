@@ -144,8 +144,11 @@ class TicketsState(rx.State):
         """Navigue vers la matrice d'escalade avec la recherche pré-remplie."""
         from techpilot.state.escalade import EscaladeState
         esc = await self.get_state(EscaladeState)
-        esc.search = search_query
+        esc.search = search_query.strip()   # trim — évite le trailing space si interlocuteur vide
         esc.mode   = "recherche"
+        esc.selected_perimetres = []        # reset les filtres périmètre de la session précédente
+        esc.page = 1
+        esc._filter()
         yield rx.redirect("/escalade")
 
     def load(self):
@@ -879,7 +882,7 @@ def ticket_detail_dialog() -> rx.Component:
                     border_radius="8px",
                     cursor="pointer",
                     on_click=TicketsState.go_to_escalade(
-                        t["escalade_perimetre"] + " " + t["escalade_interlocuteur"]
+                        t["escalade_perimetre"] + " " + t["escalade_typologie"]
                     ),
                     _hover={"background": "rgba(99,102,241,0.14)", "border_color": "rgba(99,102,241,0.4)"},
                     transition="all 0.15s",
