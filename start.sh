@@ -28,6 +28,7 @@ map \$http_upgrade \$connection_upgrade {
 }
 server {
     listen ${PORT} default_server;
+    port_in_redirect off;
 
     # Backend API / WebSocket
     location ~* ^/(_event|_upload|_ping|backend_health) {
