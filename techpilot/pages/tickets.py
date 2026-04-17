@@ -193,6 +193,8 @@ class TicketsState(rx.State):
             "titre": "", "ticket_pere": "", "description": "",
             "impact": "normale", "perimetre": "", "technicien_id": "",
             "technicien_nom": "", "etat": "en_cours", "notes": "",
+            "escalade_perimetre": "", "escalade_typologie": "",
+            "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
         }
         self.matrix_search = ""
         self.matrix_results = []
@@ -258,20 +260,35 @@ class TicketsState(rx.State):
         if idx < 0 or idx >= len(self.matrix_results):
             return
         r = self.matrix_results[idx]
+        perim  = r.perimetre
+        typo   = r.typologie
+        interl = r.interlocuteur
+        n2     = r.traitement_n2n3
+        wp_n2  = r.wp_n2
         self.matrix_selected = MatrixSuggestion(
-            key=f"{r.perimetre}|{r.typologie}",
-            perimetre=r.perimetre,
-            typologie=r.typologie,
-            interlocuteur=r.interlocuteur,
-            traitement_n2n3=r.traitement_n2n3,
-            wp_n2=r.wp_n2,
+            key=f"{perim}|{typo}",
+            perimetre=perim,
+            typologie=typo,
+            interlocuteur=interl,
+            traitement_n2n3=n2,
+            wp_n2=wp_n2,
         )
-        self.esc_perimetre     = r.perimetre
-        self.esc_typologie     = r.typologie
-        self.esc_interlocuteur = r.interlocuteur
-        self.esc_n2            = r.traitement_n2n3
-        self.esc_wp_n2         = r.wp_n2
-        self.form = {**self.form, "perimetre": r.perimetre}
+        # Stocke tout dans le form dict (source de vérité unique pour create())
+        self.form = {
+            **self.form,
+            "perimetre":             perim,
+            "escalade_perimetre":    perim,
+            "escalade_typologie":    typo,
+            "escalade_interlocuteur": interl,
+            "escalade_n2":           n2,
+            "escalade_wp_n2":        wp_n2,
+        }
+        # Copie aussi dans les vars simples (pour compatibilité)
+        self.esc_perimetre     = perim
+        self.esc_typologie     = typo
+        self.esc_interlocuteur = interl
+        self.esc_n2            = n2
+        self.esc_wp_n2         = wp_n2
         self.matrix_search = ""
         self.matrix_results = []
 
@@ -282,6 +299,14 @@ class TicketsState(rx.State):
         self.esc_interlocuteur = ""
         self.esc_n2            = ""
         self.esc_wp_n2         = ""
+        self.form = {
+            **self.form,
+            "escalade_perimetre": "",
+            "escalade_typologie": "",
+            "escalade_interlocuteur": "",
+            "escalade_n2": "",
+            "escalade_wp_n2": "",
+        }
         self.matrix_search = ""
         self.matrix_results = []
 
@@ -314,11 +339,11 @@ class TicketsState(rx.State):
             "date_creation":      datetime.utcnow().isoformat(),
             "date_modification":  datetime.utcnow().isoformat(),
             "date_resolution":    None,
-            "escalade_perimetre":     self.esc_perimetre,
-            "escalade_typologie":     self.esc_typologie,
-            "escalade_interlocuteur": self.esc_interlocuteur,
-            "escalade_n2":            self.esc_n2,
-            "escalade_wp_n2":         self.esc_wp_n2,
+            "escalade_perimetre":     self.form.get("escalade_perimetre", self.esc_perimetre),
+            "escalade_typologie":     self.form.get("escalade_typologie", self.esc_typologie),
+            "escalade_interlocuteur": self.form.get("escalade_interlocuteur", self.esc_interlocuteur),
+            "escalade_n2":            self.form.get("escalade_n2", self.esc_n2),
+            "escalade_wp_n2":         self.form.get("escalade_wp_n2", self.esc_wp_n2),
         })
         save_db(db)
         log_activity("", "CREATE", "ticket", f"Incident: {titre}")
