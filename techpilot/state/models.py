@@ -163,6 +163,8 @@ class EscaladeEntry(rx.Base):
     conditions_escalade: str = ""
     notes: str = ""
     procedure_n1: list[str] = []
+    doc_name: str = ""
+    doc_url: str = ""
 
 
 class QueteItem(rx.Base):

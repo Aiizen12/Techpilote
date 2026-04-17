@@ -341,6 +341,37 @@ def entry_modal() -> rx.Component:
                 ),
             ),
 
+            # ── Document lié ─────────────────────────────────────────────
+            rx.cond(
+                e["doc_url"] != "",
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("file-text", size=13, color="#60a5fa"),
+                            min_width="18px", flex_shrink="0",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.link(
+                            e["doc_name"],
+                            href=e["doc_url"],
+                            is_external=True,
+                            color="#60a5fa",
+                            font_size="0.82rem",
+                            font_weight="600",
+                            text_decoration="underline",
+                            _hover={"color": "#93c5fd"},
+                        ),
+                        spacing="2", align="center",
+                    ),
+                    background="rgba(59,130,246,0.05)",
+                    border="1px solid rgba(59,130,246,0.2)",
+                    border_left="3px solid #60a5fa",
+                    border_radius="10px",
+                    padding="10px 14px",
+                    margin_top="0.75rem",
+                ),
+            ),
+
             # ── Notes Excel ───────────────────────────────────────────────
             rx.cond(
                 e["notes"] != "",

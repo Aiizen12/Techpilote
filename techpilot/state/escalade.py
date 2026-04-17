@@ -300,9 +300,11 @@ class EscaladeState(rx.State):
         return []
 
     def _open_escalade_entry(self, e: "EscaladeEntry"):
-        """Logique commune : charge la procédure et ouvre la modale."""
+        """Logique commune : charge la procédure, le document lié et ouvre la modale."""
         db = load_db()
         steps = EscaladeState._find_procedure(e.perimetre, e.typologie, db)
+        key = f"{e.perimetre}|{e.typologie}"
+        doc_link = (db.get("proc_doc_links") or {}).get(key) or {}
         self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
             perimetre=e.perimetre,
@@ -317,6 +319,8 @@ class EscaladeState(rx.State):
             conditions_escalade=e.conditions_escalade,
             notes=e.notes,
             procedure_n1=steps,
+            doc_name=doc_link.get("doc_name", ""),
+            doc_url=doc_link.get("doc_url", ""),
         )
         self.show_modal = True
 
