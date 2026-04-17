@@ -44,6 +44,8 @@ class TicketsState(rx.State):
     matrix_search: str = ""
     matrix_results: list[MatrixSuggestion] = []
     matrix_selected: MatrixSuggestion = MatrixSuggestion()
+    # Suggestions matrice déclenchées par le titre
+    title_suggestions: list[MatrixSuggestion] = []
     # Champs d'escalade stockés en vars simples (fiables entre handlers async)
     esc_perimetre: str = ""
     esc_typologie: str = ""
@@ -206,6 +208,7 @@ class TicketsState(rx.State):
         self.matrix_search = ""
         self.matrix_results = []
         self.matrix_selected = MatrixSuggestion()
+        self.title_suggestions = []
         self.esc_perimetre = ""
         self.esc_typologie = ""
         self.esc_interlocuteur = ""
@@ -224,6 +227,72 @@ class TicketsState(rx.State):
 
     def set_etat(self, val: str):
         self.form = {**self.form, "etat": val}
+
+    def set_titre(self, val: str):
+        """Met à jour le titre et génère des suggestions matrice basées sur les mots-clés."""
+        self.form = {**self.form, "titre": val}
+        # Ne pas chercher si une entrée est déjà sélectionnée ou si le titre est trop court
+        if len(val) < 3 or self.matrix_selected.key != "":
+            self.title_suggestions = []
+            return
+        words = [w.lower() for w in val.split() if len(w) >= 2]
+        if not words:
+            self.title_suggestions = []
+            return
+        db = load_db()
+        scored = []
+        for r in (db.get("escalation_matrix") or []):
+            perim = (r.get("perimetre") or "").lower()
+            typo  = (r.get("typologie") or "").lower()
+            n1    = (r.get("traitement_n1") or "").lower()
+            score = sum(1 for w in words if w in perim or w in typo or w in n1)
+            if score > 0:
+                scored.append((score, r))
+        scored.sort(key=lambda x: -x[0])
+        results = []
+        for _, r in scored[:5]:
+            results.append(MatrixSuggestion(
+                key=f"{r.get('perimetre','')}|{r.get('typologie','')}",
+                perimetre=r.get("perimetre") or "",
+                typologie=r.get("typologie") or "",
+                interlocuteur=r.get("interlocuteur") or "",
+                traitement_n2n3=r.get("traitement_n2n3") or "",
+                wp_n2=r.get("wp_n2") or "",
+            ))
+        self.title_suggestions = results
+
+    def select_title_suggestion_at(self, idx: int):
+        """Sélectionne title_suggestions[idx] et remplit les champs escalade."""
+        if idx < 0 or idx >= len(self.title_suggestions):
+            return
+        r = self.title_suggestions[idx]
+        perim  = r.perimetre
+        typo   = r.typologie
+        interl = r.interlocuteur
+        n2     = r.traitement_n2n3
+        wp_n2  = r.wp_n2
+        self.matrix_selected = MatrixSuggestion(
+            key=f"{perim}|{typo}",
+            perimetre=perim, typologie=typo,
+            interlocuteur=interl, traitement_n2n3=n2, wp_n2=wp_n2,
+        )
+        self.form = {
+            **self.form,
+            "perimetre":              perim,
+            "escalade_perimetre":     perim,
+            "escalade_typologie":     typo,
+            "escalade_interlocuteur": interl,
+            "escalade_n2":            n2,
+            "escalade_wp_n2":         wp_n2,
+        }
+        self.esc_perimetre     = perim
+        self.esc_typologie     = typo
+        self.esc_interlocuteur = interl
+        self.esc_n2            = n2
+        self.esc_wp_n2         = wp_n2
+        self.title_suggestions = []
+        self.matrix_search     = ""
+        self.matrix_results    = []
 
     # ── Liaison matrice ────────────────────────────────────────────────────────
 
@@ -296,8 +365,9 @@ class TicketsState(rx.State):
         self.esc_interlocuteur = interl
         self.esc_n2            = n2
         self.esc_wp_n2         = wp_n2
-        self.matrix_search = ""
-        self.matrix_results = []
+        self.matrix_search     = ""
+        self.matrix_results    = []
+        self.title_suggestions = []
 
     def clear_matrix(self):
         self.matrix_selected   = MatrixSuggestion()
@@ -580,6 +650,38 @@ def matrix_result_item(s: MatrixSuggestion, idx) -> rx.Component:
         width="100%",
         on_click=TicketsState.select_matrix_at(idx),
         _hover={"background": "rgba(99,102,241,0.08)"},
+    )
+
+
+def title_suggestion_item(s: MatrixSuggestion, idx) -> rx.Component:
+    label_n2 = rx.cond(
+        s["interlocuteur"] != "",
+        rx.text("→ " + s["interlocuteur"], color=PRIMARY, font_size="0.7rem",
+                flex_shrink="0", max_width="130px", overflow="hidden",
+                text_overflow="ellipsis", white_space="nowrap"),
+        rx.cond(
+            s["traitement_n2n3"] != "",
+            rx.text(s["traitement_n2n3"], color=MUTED, font_size="0.68rem",
+                    flex_shrink="0", max_width="130px", overflow="hidden",
+                    text_overflow="ellipsis", white_space="nowrap"),
+            rx.text(""),
+        ),
+    )
+    return rx.hstack(
+        rx.icon("sparkles", size=11, color="#fbbf24", flex_shrink="0"),
+        rx.vstack(
+            rx.text(s["perimetre"], color=MUTED, font_size="0.65rem"),
+            rx.text(s["typologie"], color=TEXT, font_size="0.8rem", font_weight="500"),
+            spacing="0", align="start", flex="1", min_width="0",
+        ),
+        label_n2,
+        spacing="2", align="center",
+        padding="0.5rem 0.85rem",
+        border_bottom=f"1px solid {BORDER}",
+        cursor="pointer",
+        width="100%",
+        on_click=TicketsState.select_title_suggestion_at(idx),
+        _hover={"background": "rgba(251,191,36,0.06)"},
     )
 
 
@@ -1299,12 +1401,46 @@ def tickets_content() -> rx.Component:
                                 rx.text("*", color=RED, font_size="0.75rem"),
                                 spacing="1",
                             ),
-                            rx.input(
-                                placeholder="Titre court et descriptif",
-                                value=TicketsState.form["titre"],
-                                on_change=lambda v: TicketsState.set_field("titre", v),
-                                background="#1c2138", color=TEXT,
-                                border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                            rx.box(
+                                rx.input(
+                                    placeholder="Titre court et descriptif",
+                                    value=TicketsState.form["titre"],
+                                    on_change=TicketsState.set_titre,
+                                    background="#1c2138", color=TEXT,
+                                    border=f"1px solid {BORDER}", border_radius="8px", width="100%",
+                                ),
+                                rx.cond(
+                                    TicketsState.title_suggestions.length() > 0,
+                                    rx.box(
+                                        rx.hstack(
+                                            rx.icon("sparkles", size=11, color="#fbbf24"),
+                                            rx.text("Suggestions matrice", color=MUTED,
+                                                    font_size="0.62rem", font_style="italic"),
+                                            spacing="1", align="center",
+                                            padding="0.3rem 0.85rem",
+                                            border_bottom=f"1px solid {BORDER}",
+                                        ),
+                                        rx.foreach(
+                                            TicketsState.title_suggestions,
+                                            lambda s, i: title_suggestion_item(s, i),
+                                        ),
+                                        position="absolute",
+                                        top="100%",
+                                        left="0",
+                                        right="0",
+                                        z_index="300",
+                                        background="#0d1021",
+                                        border="1px solid rgba(251,191,36,0.3)",
+                                        border_radius="8px",
+                                        max_height="220px",
+                                        overflow_y="auto",
+                                        width="100%",
+                                        margin_top="4px",
+                                        box_shadow="0 8px 24px rgba(0,0,0,0.5)",
+                                    ),
+                                ),
+                                position="relative",
+                                width="100%",
                             ),
                             spacing="1",
                             align="start",
