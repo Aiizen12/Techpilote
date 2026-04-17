@@ -195,6 +195,27 @@ def entry_modal() -> rx.Component:
                 ),
             ),
 
+            # ── Note Excel ────────────────────────────────────────────────
+            rx.cond(
+                e["notes"] != "",
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("notebook-pen", size=13, color="#f59e0b"),
+                            min_width="18px", flex_shrink="0",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.text("Note", color="#f59e0b", font_size="0.78rem", font_weight="700"),
+                        spacing="2", align="center", margin_bottom="6px",
+                    ),
+                    rx.text(e["notes"], color="#fcd34d", font_size="0.82rem", line_height="1.55"),
+                    background="rgba(245,158,11,0.07)",
+                    border="1px solid rgba(245,158,11,0.25)",
+                    border_left="3px solid #f59e0b",
+                    border_radius="10px", padding="10px 14px", margin_top="0.5rem",
+                ),
+            ),
+
             # ── Procédure N1 ──────────────────────────────────────────────
             rx.box(
                 # En-tête avec bouton édition
@@ -369,18 +390,6 @@ def entry_modal() -> rx.Component:
                     border_radius="10px",
                     padding="10px 14px",
                     margin_top="0.75rem",
-                ),
-            ),
-
-            # ── Notes Excel ───────────────────────────────────────────────
-            rx.cond(
-                e["notes"] != "",
-                rx.box(
-                    rx.text("Notes", color=MUTED, font_size="0.72rem", font_weight="600", margin_bottom="4px"),
-                    rx.text(e["notes"], color="#94a3b8", font_size="0.78rem", line_height="1.5",
-                            font_style="italic"),
-                    background="rgba(148,163,184,0.05)", border=f"1px solid {BORDER}",
-                    border_radius="8px", padding="10px 14px", margin_top="0.5rem",
                 ),
             ),
 

@@ -59,8 +59,8 @@ def _parse_escalade_matrix(wb) -> list[dict]:
     col_n2n3       = find_col(["traitement n2/3", "traitement n2n3", "traitement n2"])
     col_wp_n2      = find_col(["wp n2"])
     col_referents  = find_col(["référent", "referent"])
-    col_conditions = find_col(["conditions"])
-    col_notes      = find_col(["notes"])
+    col_conditions = find_col(["conditions", "condition"])
+    col_notes      = find_col(["notes", "note", "remarque", "observation"])
 
     entries = []
     for row in rows[header_row_idx + 1:]:
