@@ -796,6 +796,23 @@ def _sheet_procedures() -> rx.Component:
                     border=f"1px solid {BORDER}",
                     border_radius="6px", padding="3px 8px",
                 ),
+                rx.cond(
+                    AuthState.can_edit_procedure,
+                    rx.button(
+                        rx.icon("wand-sparkles", size=14),
+                        "Détecter les correspondances",
+                        on_click=SuiviDocState.detect_matches,
+                        background="rgba(99,102,241,0.1)",
+                        color=PRIMARY,
+                        border=f"1px solid rgba(99,102,241,0.3)",
+                        border_radius="8px",
+                        font_size="0.78rem",
+                        font_weight="600",
+                        cursor="pointer",
+                        spacing="2",
+                        _hover={"background": "rgba(99,102,241,0.2)"},
+                    ),
+                ),
                 spacing="2",
             ),
             align="start", width="100%",
@@ -935,6 +952,141 @@ def _sheet_procedures() -> rx.Component:
                 ),
                 spacing="1",
             ),
+        ),
+
+        # ── Modale auto-match ─────────────────────────────────────────────
+        rx.dialog.root(
+            rx.dialog.content(
+                # Header
+                rx.hstack(
+                    rx.box(
+                        rx.icon("wand-sparkles", size=16, color="white"),
+                        background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                        border_radius="8px", padding="8px",
+                        display="flex", align_items="center", justify_content="center",
+                    ),
+                    rx.vstack(
+                        rx.text("Correspondances détectées", color=TEXT,
+                                font_size="1rem", font_weight="700"),
+                        rx.text(
+                            SuiviDocState.auto_match_proposals.length().to_string()
+                            + " proposition(s) — confirmez ou rejetez chacune",
+                            color=MUTED, font_size="0.75rem",
+                        ),
+                        spacing="0", align="start",
+                    ),
+                    rx.spacer(),
+                    rx.icon_button(
+                        rx.icon("x", size=16),
+                        on_click=SuiviDocState.close_auto_match,
+                        background="transparent", color=MUTED,
+                        size="2", cursor="pointer",
+                        _hover={"background": "rgba(255,255,255,0.08)"},
+                    ),
+                    spacing="3", align="center", width="100%",
+                ),
+
+                rx.divider(border_color=BORDER, margin_y="0.75rem"),
+
+                # Liste des propositions
+                rx.cond(
+                    SuiviDocState.auto_match_proposals.length() > 0,
+                    rx.vstack(
+                        rx.foreach(
+                            SuiviDocState.auto_match_proposals,
+                            lambda p, i: rx.hstack(
+                                # Document
+                                rx.vstack(
+                                    rx.hstack(
+                                        rx.icon("file-text", size=12, color="#60a5fa"),
+                                        rx.text(p["doc_name"], color=TEXT,
+                                                font_size="0.8rem", font_weight="600",
+                                                overflow="hidden", text_overflow="ellipsis",
+                                                white_space="nowrap", max_width="200px"),
+                                        spacing="1", align="center",
+                                    ),
+                                    rx.hstack(
+                                        rx.icon("arrow-right", size=11, color=MUTED),
+                                        rx.text(
+                                            p["perimetre"] + " · " + p["typologie"],
+                                            color=MUTED, font_size="0.72rem",
+                                            overflow="hidden", text_overflow="ellipsis",
+                                            white_space="nowrap", max_width="200px",
+                                        ),
+                                        spacing="1", align="center",
+                                    ),
+                                    spacing="1", align="start", flex="1", min_width="0",
+                                ),
+                                # Score
+                                rx.badge(
+                                    p["score"].to_string() + " pts",
+                                    color_scheme="indigo", variant="soft",
+                                    font_size="0.68rem", flex_shrink="0",
+                                ),
+                                # Actions
+                                rx.icon_button(
+                                    rx.icon("check", size=14),
+                                    on_click=SuiviDocState.confirm_match_at(i),
+                                    background="rgba(34,197,94,0.12)",
+                                    color="#22c55e",
+                                    border="1px solid rgba(34,197,94,0.3)",
+                                    size="1", cursor="pointer",
+                                    border_radius="6px",
+                                    title="Confirmer",
+                                    _hover={"background": "rgba(34,197,94,0.25)"},
+                                ),
+                                rx.icon_button(
+                                    rx.icon("x", size=14),
+                                    on_click=SuiviDocState.reject_match_at(i),
+                                    background="transparent",
+                                    color=MUTED,
+                                    size="1", cursor="pointer",
+                                    border_radius="6px",
+                                    title="Rejeter",
+                                    _hover={"color": "#ef4444"},
+                                ),
+                                spacing="2", align="center", width="100%",
+                                padding="0.5rem 0.75rem",
+                                border_bottom=f"1px solid {BORDER}",
+                            ),
+                        ),
+                        spacing="0", width="100%",
+                        max_height="50vh", overflow_y="auto",
+                    ),
+                    rx.text("Aucune proposition.", color=MUTED,
+                            font_size="0.82rem", text_align="center",
+                            padding_y="1rem"),
+                ),
+
+                # Footer
+                rx.hstack(
+                    rx.button(
+                        "Fermer",
+                        on_click=SuiviDocState.close_auto_match,
+                        background="transparent", color=MUTED,
+                        border=f"1px solid {BORDER}", border_radius="8px",
+                        cursor="pointer",
+                    ),
+                    rx.cond(
+                        SuiviDocState.auto_match_proposals.length() > 0,
+                        rx.button(
+                            rx.icon("check-check", size=15),
+                            "Tout confirmer",
+                            on_click=SuiviDocState.confirm_all_matches,
+                            background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                            color="white", border_radius="8px", cursor="pointer",
+                            font_weight="700", spacing="2",
+                        ),
+                    ),
+                    spacing="3", justify="end", width="100%",
+                    margin_top="0.75rem",
+                ),
+
+                background="#111524", border=f"1px solid {BORDER}",
+                border_radius="16px", padding="1.5rem",
+                max_width="600px", overflow_y="auto", max_height="90vh",
+            ),
+            open=SuiviDocState.show_auto_match,
         ),
 
         spacing="4", width="100%",

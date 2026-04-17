@@ -5,7 +5,7 @@ import reflex as rx
 
 from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
-from techpilot.state.models import AmeliorationItem, ProcSuiviRow, DocPickerItem
+from techpilot.state.models import AmeliorationItem, ProcSuiviRow, DocPickerItem, AutoMatchProposal
 from techpilot.state.escalade import PROCEDURE_MAP
 
 CATEGORIES  = ["Process", "UX", "Technique", "Formation", "Autre"]
@@ -52,6 +52,10 @@ class SuiviDocState(rx.State):
     show_doc_picker: bool = False
     doc_picker_key: str = ""          # "perimetre|typologie"
     available_proc_docs: list[DocPickerItem] = []
+
+    # ── Auto-détection des correspondances documents ↔ matrice ────────────
+    show_auto_match: bool = False
+    auto_match_proposals: list[AutoMatchProposal] = []
 
     # ── Chargement ────────────────────────────────────────────────────────
 
@@ -397,6 +401,114 @@ class SuiviDocState(rx.State):
         db["proc_doc_links"] = links
         save_db(db)
         self._load_proc_suivi()
+
+    # ── Auto-détection ────────────────────────────────────────────────────
+
+    _STOP = {
+        "de", "du", "la", "le", "les", "un", "une", "des", "et", "ou", "en",
+        "dans", "sur", "pour", "par", "au", "aux", "avec", "sans", "son",
+        "sa", "ses", "ce", "qui", "que", "si", "ne", "pas", "se", "à",
+        "l", "d", "n1", "n2", "n3", "its", "the",
+    }
+
+    def detect_matches(self):
+        """Parcourt tous les documents et propose des correspondances avec la matrice."""
+        db = load_db()
+        docs = [d for d in (db.get("documents") or []) if d.get("url")]
+        matrix = db.get("escalation_matrix") or []
+        existing_links = set((db.get("proc_doc_links") or {}).keys())
+
+        proposals = []
+        used_keys: set = set()
+
+        for doc in docs:
+            nom = doc.get("nom_original") or ""
+            doc_id = str(doc.get("id") or "")
+            doc_url = doc.get("url") or ""
+            # Normalise : remplace séparateurs, découpe, filtre stop words
+            raw_words = nom.replace("-", " ").replace("/", " ").replace("_", " ").replace("(", " ").replace(")", " ").split()
+            words = [w.lower() for w in raw_words if len(w) >= 3 and w.lower() not in self._STOP]
+            if not words:
+                continue
+
+            best_score = 0
+            best_key = ""
+            best_p = ""
+            best_t = ""
+            for r in matrix:
+                p = r.get("perimetre") or ""
+                t = r.get("typologie") or ""
+                key = f"{p}|{t}"
+                if key in existing_links or key in used_keys:
+                    continue
+                target = (p + " " + t).lower()
+                score = sum(1 for w in words if w in target)
+                if score > best_score:
+                    best_score = score
+                    best_key = key
+                    best_p = p
+                    best_t = t
+
+            if best_score >= 2 and best_key:
+                proposals.append(AutoMatchProposal(
+                    doc_id=doc_id,
+                    doc_name=nom,
+                    doc_url=doc_url,
+                    perimetre=best_p,
+                    typologie=best_t,
+                    score=best_score,
+                ))
+                used_keys.add(best_key)
+
+        proposals.sort(key=lambda x: -x.score)
+        self.auto_match_proposals = proposals
+        self.show_auto_match = True
+        if not proposals:
+            return rx.toast.info("Aucune correspondance automatique trouvée.")
+
+    def close_auto_match(self):
+        self.show_auto_match = False
+
+    def confirm_match_at(self, idx: int):
+        """Confirme et sauvegarde la proposition à l'index idx."""
+        if idx < 0 or idx >= len(self.auto_match_proposals):
+            return
+        p = self.auto_match_proposals[idx]
+        key = f"{p.perimetre}|{p.typologie}"
+        db = load_db()
+        if "proc_doc_links" not in db:
+            db["proc_doc_links"] = {}
+        db["proc_doc_links"][key] = {
+            "doc_id": p.doc_id,
+            "doc_name": p.doc_name,
+            "doc_url": p.doc_url,
+        }
+        save_db(db)
+        self.auto_match_proposals = [r for i, r in enumerate(self.auto_match_proposals) if i != idx]
+        self._load_proc_suivi()
+
+    def reject_match_at(self, idx: int):
+        """Rejette la proposition à l'index idx."""
+        self.auto_match_proposals = [r for i, r in enumerate(self.auto_match_proposals) if i != idx]
+
+    def confirm_all_matches(self):
+        """Confirme toutes les propositions restantes en une fois."""
+        db = load_db()
+        if "proc_doc_links" not in db:
+            db["proc_doc_links"] = {}
+        for p in self.auto_match_proposals:
+            key = f"{p.perimetre}|{p.typologie}"
+            db["proc_doc_links"][key] = {
+                "doc_id": p.doc_id,
+                "doc_name": p.doc_name,
+                "doc_url": p.doc_url,
+            }
+        save_db(db)
+        count = len(self.auto_match_proposals)
+        self.auto_match_proposals = []
+        self.show_auto_match = False
+        self._load_proc_suivi()
+        return rx.toast.success(f"{count} correspondance(s) enregistrée(s).")
 
     @rx.var
     def proc_total_pages(self) -> int:

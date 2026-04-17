@@ -229,3 +229,12 @@ class DocPickerItem(rx.Base):
     id: str = ""
     nom: str = ""
     url: str = ""
+
+
+class AutoMatchProposal(rx.Base):
+    doc_id: str = ""
+    doc_name: str = ""
+    doc_url: str = ""
+    perimetre: str = ""
+    typologie: str = ""
+    score: int = 0
