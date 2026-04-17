@@ -97,6 +97,12 @@ class FeedbacksState(rx.State):
         save_db(db)
         self.load()
 
+    def delete(self, fid: str):
+        db = load_db()
+        db["feedbacks"] = [f for f in (db.get("feedbacks") or []) if f.get("id") != fid]
+        save_db(db)
+        self.load()
+
 
 def _statut_color(statut) -> rx.Var:
     return rx.cond(
@@ -138,6 +144,17 @@ def feedback_card(f: FeedbackItem) -> rx.Component:
                         on_change=lambda v: FeedbacksState.update_statut(f["id"], v),
                         background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}",
                         border_radius="6px", font_size="0.75rem", width="110px",
+                    ),
+                ),
+                rx.cond(
+                    AuthState.is_manager,
+                    rx.icon_button(
+                        rx.icon("trash-2", size=13),
+                        on_click=FeedbacksState.delete(f["id"]),
+                        background="transparent", color=MUTED,
+                        size="1", cursor="pointer", border_radius="6px",
+                        _hover={"color": "#ef4444"},
+                        title="Supprimer",
                     ),
                 ),
                 spacing="2", align="center",
