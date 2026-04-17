@@ -289,9 +289,37 @@ def _doc_picker_item(doc: DocPickerItem) -> rx.Component:
     )
 
 
+def _gabarit_picker_item(g: DocPickerItem) -> rx.Component:
+    return rx.hstack(
+        rx.box(
+            rx.icon("file-text", size=15, color="#a5b4fc"),
+            flex_shrink="0", width="2rem", height="2rem",
+            background="rgba(99,102,241,0.12)", border_radius="8px",
+            display="flex", align_items="center", justify_content="center",
+        ),
+        rx.text(g["nom"], color=TEXT, font_size="0.82rem", flex="1",
+                overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+        rx.button(
+            "Lier",
+            on_click=SuiviDocState.link_gabarit_to_proc(g["id"], g["nom"]),
+            background="rgba(99,102,241,0.15)", color="#a5b4fc",
+            border="1px solid rgba(99,102,241,0.3)", border_radius="6px",
+            font_size="0.75rem", font_weight="600", padding="3px 10px",
+            cursor="pointer", flex_shrink="0",
+            _hover={"background": "rgba(99,102,241,0.3)"},
+        ),
+        spacing="3", align="center", width="100%",
+        padding="8px 12px",
+        border_bottom=f"1px solid {BORDER}",
+        _hover={"background": "rgba(255,255,255,0.025)"},
+    )
+
+
 def _doc_picker_modal() -> rx.Component:
+    is_docs_tab = SuiviDocState.doc_picker_tab == "documents"
     return rx.dialog.root(
         rx.dialog.content(
+            # Header
             rx.box(
                 rx.hstack(
                     rx.box(
@@ -302,7 +330,7 @@ def _doc_picker_modal() -> rx.Component:
                     ),
                     rx.vstack(
                         rx.text("Lier un document", color="white", font_size="1rem", font_weight="700"),
-                        rx.text("Choisir le document à associer à cette procédure",
+                        rx.text("Choisir le document ou gabarit à associer",
                                 color="rgba(255,255,255,0.65)", font_size="0.72rem"),
                         spacing="0", align="start",
                     ),
@@ -313,24 +341,69 @@ def _doc_picker_modal() -> rx.Component:
                 padding="1.25rem 1.5rem",
                 margin="-24px -24px 0 -24px",
             ),
-            rx.box(
+            # Onglets
+            rx.hstack(
+                rx.button(
+                    rx.icon("folder-open", size=13), "Documents",
+                    on_click=SuiviDocState.set_doc_picker_tab("documents"),
+                    background=rx.cond(is_docs_tab, "rgba(99,102,241,0.2)", "transparent"),
+                    color=rx.cond(is_docs_tab, PRIMARY, MUTED),
+                    border=rx.cond(is_docs_tab, "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+                    border_radius="7px", font_size="0.78rem", font_weight="600",
+                    padding="4px 12px", cursor="pointer", spacing="1",
+                ),
+                rx.button(
+                    rx.icon("file-text", size=13), "Gabarits",
+                    on_click=SuiviDocState.set_doc_picker_tab("gabarits"),
+                    background=rx.cond(~is_docs_tab, "rgba(99,102,241,0.2)", "transparent"),
+                    color=rx.cond(~is_docs_tab, PRIMARY, MUTED),
+                    border=rx.cond(~is_docs_tab, "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"),
+                    border_radius="7px", font_size="0.78rem", font_weight="600",
+                    padding="4px 12px", cursor="pointer", spacing="1",
+                ),
+                spacing="2", padding_top="1rem", padding_bottom="0.5rem",
+            ),
+            # Recherche
+            rx.input(
+                placeholder=rx.cond(is_docs_tab, "Rechercher un document…", "Rechercher un gabarit…"),
+                value=SuiviDocState.doc_picker_search,
+                on_change=SuiviDocState.set_doc_picker_search,
+                background="#0d1117", style={"color": TEXT},
+                border=f"1px solid {BORDER}", border_radius="8px",
+                font_size="0.82rem", width="100%", margin_bottom="0.5rem",
+            ),
+            # Liste documents
+            rx.cond(
+                is_docs_tab,
                 rx.cond(
                     SuiviDocState.available_proc_docs.length() == 0,
                     rx.box(
                         rx.vstack(
                             rx.icon("folder-open", size=32, color=MUTED),
-                            rx.text("Aucun document disponible.", color=MUTED, font_size="0.85rem"),
-                            rx.text("Ajoutez d'abord des liens dans l'onglet Documents.",
-                                    color=MUTED, font_size="0.75rem"),
+                            rx.text("Aucun document trouvé.", color=MUTED, font_size="0.85rem"),
                             spacing="2", align="center",
                         ),
                         padding="2rem", text_align="center",
                     ),
                     rx.box(
                         rx.foreach(SuiviDocState.available_proc_docs, _doc_picker_item),
-                        max_height="360px",
-                        overflow_y="auto",
-                        width="100%",
+                        max_height="300px", overflow_y="auto", width="100%",
+                    ),
+                ),
+                # Liste gabarits
+                rx.cond(
+                    SuiviDocState.available_gabarits_picker.length() == 0,
+                    rx.box(
+                        rx.vstack(
+                            rx.icon("file-text", size=32, color=MUTED),
+                            rx.text("Aucun gabarit trouvé.", color=MUTED, font_size="0.85rem"),
+                            spacing="2", align="center",
+                        ),
+                        padding="2rem", text_align="center",
+                    ),
+                    rx.box(
+                        rx.foreach(SuiviDocState.available_gabarits_picker, _gabarit_picker_item),
+                        max_height="300px", overflow_y="auto", width="100%",
                     ),
                 ),
             ),

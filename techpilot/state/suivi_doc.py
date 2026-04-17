@@ -52,6 +52,9 @@ class SuiviDocState(rx.State):
     show_doc_picker: bool = False
     doc_picker_key: str = ""          # "perimetre|typologie"
     available_proc_docs: list[DocPickerItem] = []
+    doc_picker_tab: str = "documents"   # "documents" | "gabarits"
+    doc_picker_search: str = ""
+    available_gabarits_picker: list[DocPickerItem] = []
 
     # ── Auto-détection des correspondances documents ↔ matrice ────────────
     show_auto_match: bool = False
@@ -362,20 +365,45 @@ class SuiviDocState(rx.State):
 
     def open_doc_picker(self, perimetre: str, typologie: str):
         self.doc_picker_key = f"{perimetre}|{typologie}"
+        self.doc_picker_tab = "documents"
+        self.doc_picker_search = ""
+        self._reload_picker_lists()
+        self.show_doc_picker = True
+
+    def _reload_picker_lists(self):
         db = load_db()
+        q = self.doc_picker_search.lower()
         docs = sorted(
             [d for d in (db.get("documents") or []) if d.get("url")],
             key=lambda d: d.get("nom_original") or "",
         )
+        if q:
+            docs = [d for d in docs if q in (d.get("nom_original") or "").lower()
+                    or q in (d.get("description") or "").lower()]
         self.available_proc_docs = [
-            DocPickerItem(id=d.get("id", ""), nom=d.get("nom_original", ""), url=d.get("url", ""))
+            DocPickerItem(id=str(d.get("id", "")), nom=d.get("nom_original", ""), url=d.get("url", ""))
             for d in docs
         ]
-        self.show_doc_picker = True
+        gabarits = sorted(db.get("gabarits") or [], key=lambda g: g.get("titre") or "")
+        if q:
+            gabarits = [g for g in gabarits if q in (g.get("titre") or "").lower()
+                        or q in (g.get("contenu") or "").lower()]
+        self.available_gabarits_picker = [
+            DocPickerItem(id=str(g.get("id", "")), nom=g.get("titre", ""), url="")
+            for g in gabarits
+        ]
+
+    def set_doc_picker_tab(self, t: str):
+        self.doc_picker_tab = t
+
+    def set_doc_picker_search(self, v: str):
+        self.doc_picker_search = v
+        self._reload_picker_lists()
 
     def close_doc_picker(self):
         self.show_doc_picker = False
         self.doc_picker_key = ""
+        self.doc_picker_search = ""
 
     def link_doc_to_proc(self, doc_id: str, doc_name: str, doc_url: str):
         if not self.doc_picker_key:
@@ -391,6 +419,26 @@ class SuiviDocState(rx.State):
         save_db(db)
         self.show_doc_picker = False
         self.doc_picker_key = ""
+        self.doc_picker_search = ""
+        self._load_proc_suivi()
+
+    def link_gabarit_to_proc(self, gabarit_id: str, gabarit_titre: str):
+        """Lie un gabarit à une procédure (sans URL, stocké par id)."""
+        if not self.doc_picker_key:
+            return
+        db = load_db()
+        if "proc_doc_links" not in db:
+            db["proc_doc_links"] = {}
+        db["proc_doc_links"][self.doc_picker_key] = {
+            "doc_id": gabarit_id,
+            "doc_name": gabarit_titre,
+            "doc_url": f"#gabarit:{gabarit_id}",
+            "type": "gabarit",
+        }
+        save_db(db)
+        self.show_doc_picker = False
+        self.doc_picker_key = ""
+        self.doc_picker_search = ""
         self._load_proc_suivi()
 
     def unlink_doc_from_proc(self, perimetre: str, typologie: str):

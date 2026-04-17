@@ -38,6 +38,7 @@ class DocumentsState(rx.State):
     link_form: dict = {"nom": "", "url": "", "categorie": "Procédures", "sous_categorie": "", "description": ""}
     current_tab: str = "documents"
     escalade_count: int = 0
+    doc_search: str = ""
     gabarit_columns: list[GabaritColumn] = []
     gabarit_categories: list[str] = ["Ticket", "Mail", "Note", "Escalade", "Autre"]
     show_gabarit_form: bool = False
@@ -51,6 +52,10 @@ class DocumentsState(rx.State):
     def set_tab(self, tab: str):
         self.current_tab = tab
 
+    def set_doc_search(self, v: str):
+        self.doc_search = v
+        self.load()
+
     def load(self):
         self.load_gabarits()
         db = load_db()
@@ -60,6 +65,13 @@ class DocumentsState(rx.State):
             docs = [d for d in docs if d.get("categorie") == self.filter_cat]
         if self.filter_sous_cat:
             docs = [d for d in docs if d.get("sous_categorie") == self.filter_sous_cat]
+        if self.doc_search:
+            q = self.doc_search.lower()
+            docs = [
+                d for d in docs
+                if q in (d.get("nom_original") or "").lower()
+                or q in (d.get("description") or "").lower()
+            ]
         self.total_count = len(docs)
 
         groups: dict[str, list] = {}

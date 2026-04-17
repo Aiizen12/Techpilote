@@ -636,6 +636,16 @@ def documents_content() -> rx.Component:
                 spacing="1", align="start",
             ),
             rx.spacer(),
+            rx.input(
+                placeholder="Rechercher un document…",
+                value=DocumentsState.doc_search,
+                on_change=DocumentsState.set_doc_search,
+                style={
+                    "background": CARD_BG, "color": TEXT,
+                    "border": f"1px solid {BORDER}", "border_radius": "8px",
+                    "padding": "6px 12px", "font_size": "0.82rem", "width": "220px",
+                },
+            ),
             rx.button(
                 rx.icon("link-2", size=16),
                 "Ajouter un lien",
