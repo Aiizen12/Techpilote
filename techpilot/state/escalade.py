@@ -179,7 +179,7 @@ class EscaladeState(rx.State):
             {
                 "name": p,
                 "count": sum(1 for r in all_entries if r.get("perimetre") == p),
-                "count_str": f"{sum(1 for r in all_entries if r.get('perimetre') == p)} procédures",
+                "count_str": f"{sum(1 for r in all_entries if r.get('perimetre') == p)} lignes",
                 "color": PERIMETRE_COLORS[i % len(PERIMETRE_COLORS)],
                 "border_accent": f"3px solid {PERIMETRE_COLORS[i % len(PERIMETRE_COLORS)]}",
             }
