@@ -300,48 +300,25 @@ def modop_page() -> rx.Component:
                     border_bottom=f"1px solid {BORDER}",
                 ),
                 rx.box(
-                    rx.markdown(
-                        MODOP_CONTENT,
-                        component_map={
-                            "h2": lambda *c, **p: rx.heading(
-                                *c, size="5", color=TEXT, font_weight="700",
-                                margin_top="2rem", margin_bottom="0.75rem",
-                                padding_bottom="0.4rem",
-                                border_bottom=f"1px solid {BORDER}",
-                                **p,
-                            ),
-                            "h3": lambda *c, **p: rx.heading(
-                                *c, size="4", color=TEXT, font_weight="600",
-                                margin_top="1.25rem", margin_bottom="0.5rem", **p,
-                            ),
-                            "p": lambda *c, **p: rx.text(
-                                *c, color=MUTED, font_size="0.875rem",
-                                line_height="1.7", margin_bottom="0.5rem", **p,
-                            ),
-                            "ul": lambda *c, **p: rx.unordered_list(
-                                *c, color=MUTED, font_size="0.875rem",
-                                padding_left="1.25rem", margin_bottom="0.75rem",
-                                spacing="1", **p,
-                            ),
-                            "li": lambda *c, **p: rx.list.item(*c, color=MUTED, **p),
-                            "strong": lambda *c, **p: rx.text.strong(
-                                *c, color=TEXT, **p
-                            ),
-                            "code": lambda *c, **p: rx.code(
-                                *c,
-                                background="rgba(99,102,241,0.12)",
-                                color="#a5b4fc",
-                                border_radius="4px",
-                                padding="1px 6px",
-                                font_size="0.82rem",
-                                **p,
-                            ),
-                            "hr": lambda **p: rx.divider(
-                                border_color=BORDER, margin_y="1.5rem", **p
-                            ),
-                        },
-                    ),
+                    rx.markdown(MODOP_CONTENT),
                     padding="1.5rem 2rem 2rem",
+                    style={
+                        "h2": {"color": TEXT, "font_weight": "700", "margin_top": "2rem",
+                               "margin_bottom": "0.75rem", "font_size": "1.15rem"},
+                        "h3": {"color": TEXT, "font_weight": "600", "margin_top": "1.25rem"},
+                        "p":  {"color": MUTED, "font_size": "0.875rem", "line_height": "1.7"},
+                        "li": {"color": MUTED, "font_size": "0.875rem"},
+                        "code": {"background": "rgba(99,102,241,0.15)", "color": "#a5b4fc",
+                                 "border_radius": "4px", "padding": "1px 6px"},
+                        "table": {"width": "100%", "border_collapse": "collapse",
+                                  "font_size": "0.82rem", "margin_bottom": "1rem"},
+                        "th": {"color": MUTED, "font_size": "0.72rem", "font_weight": "600",
+                               "padding": "6px 12px", "text_align": "left",
+                               "border_bottom": f"1px solid {BORDER}"},
+                        "td": {"color": MUTED, "padding": "6px 12px",
+                               "border_bottom": f"1px solid {BORDER}33"},
+                        "strong": {"color": TEXT},
+                    },
                 ),
                 background=CARD_BG,
                 border=f"1px solid {BORDER}",
