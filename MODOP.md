@@ -99,6 +99,7 @@ Page d'accueil opérationnelle. Affiche une vue synthétique de l'activité en t
 | Notes rapides | Zone de texte libre, auto-sauvegardée, ouvrable en fenêtre séparée |
 | Liens rapides | Favoris avec URL, ajout/suppression en un clic |
 | Stats techniciens | Barre de progression par tech : total tickets / en cours / résolus / % escaladés |
+| Mises à jour | Historique des évolutions de l'application (changelog) |
 
 **Personnaliser les widgets**
 - Cliquer sur l'icône ⚙ en haut à droite du dashboard.
@@ -438,6 +439,30 @@ Page `/profil` — accessible en cliquant sur son nom en bas de la sidebar.
 |---|---|
 | En cours | Ticket ouvert, en traitement |
 | Résolu | Ticket clôturé |
+
+---
+
+---
+
+## Annexe — Widget Mises à jour (Changelog)
+
+Le widget "Mises à jour" sur le dashboard permet de suivre l'historique des évolutions de l'application.
+
+**Ajouter une entrée**
+1. Cliquer sur le bouton "+ Nouvelle entrée" dans l'en-tête du widget.
+2. Renseigner : version (ex. `2.4.0`), type, titre, et les détails (une ligne par item).
+3. Sauvegarder.
+
+**Types d'entrées**
+| Type | Couleur | Usage |
+|---|---|---|
+| Nouveauté | Indigo ✨ | Nouvelle fonctionnalité |
+| Amélioration | Vert ↑ | Amélioration d'une feature existante |
+| Correction | Rouge 🔧 | Bug fix |
+
+**Supprimer une entrée** : icône 🗑 à droite de la carte.
+
+Les entrées sont affichées du plus récent au plus ancien. Le widget est masquable via le panneau de config du dashboard.
 
 ---
 

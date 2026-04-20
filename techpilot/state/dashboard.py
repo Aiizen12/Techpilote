@@ -6,7 +6,7 @@ import reflex as rx
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import (
     AstreinteEntry, PlanningRow,
-    TechPresence, QuickLink, ActualiteItem, TechStatItem,
+    TechPresence, QuickLink, ActualiteItem, TechStatItem, ChangelogEntry,
 )
 
 DEFAULT_TECH_COLORS = [
@@ -44,6 +44,15 @@ class DashboardState(rx.State):
     # Stats techniciens
     tech_stats: list[TechStatItem] = []
     w_tech_stats: bool = True
+
+    # Changelog
+    changelog: list[ChangelogEntry] = []
+    w_changelog: bool = True
+    show_changelog_form: bool = False
+    cl_form_version: str = ""
+    cl_form_titre: str = ""
+    cl_form_items: str = ""
+    cl_form_type: str = "feature"
 
     # Widget visibility
     w_kpis: bool = True
@@ -213,6 +222,21 @@ class DashboardState(rx.State):
         self.w_notes_links = cfg.get("notes_links", True)
         self.w_actualites = cfg.get("actualites", True)
         self.w_tech_stats = cfg.get("tech_stats", True)
+        self.w_changelog  = cfg.get("changelog", True)
+
+        # Changelog — du plus récent au plus ancien
+        cl_items = db.get("changelog") or []
+        self.changelog = [
+            ChangelogEntry(
+                id=str(c.get("id") or ""),
+                version=c.get("version") or "",
+                date=c.get("date") or "",
+                titre=c.get("titre") or "",
+                items=c.get("items") or [],
+                type=c.get("type") or "feature",
+            )
+            for c in sorted(cl_items, key=lambda x: x.get("date", ""), reverse=True)
+        ]
 
         # Actualités widget (5 dernières, épinglées en premier)
         actu_items = db.get("actualites") or []
@@ -291,13 +315,14 @@ class DashboardState(rx.State):
     def _save_config(self):
         db = load_db()
         db["dashboard_config"] = {
-            "kpis":       self.w_kpis,
-            "presence":   self.w_presence,
-            "trends":     self.w_trends,
-            "planning":   self.w_planning,
+            "kpis":        self.w_kpis,
+            "presence":    self.w_presence,
+            "trends":      self.w_trends,
+            "planning":    self.w_planning,
             "notes_links": self.w_notes_links,
-            "actualites": self.w_actualites,
-            "tech_stats": self.w_tech_stats,
+            "actualites":  self.w_actualites,
+            "tech_stats":  self.w_tech_stats,
+            "changelog":   self.w_changelog,
         }
         save_db(db)
 
@@ -328,3 +353,49 @@ class DashboardState(rx.State):
     def toggle_w_tech_stats(self):
         self.w_tech_stats = not self.w_tech_stats
         self._save_config()
+
+    def toggle_w_changelog(self):
+        self.w_changelog = not self.w_changelog
+        self._save_config()
+
+    # ── Changelog ─────────────────────────────────────────────────────────────
+
+    def open_changelog_form(self):
+        self.cl_form_version = ""
+        self.cl_form_titre   = ""
+        self.cl_form_items   = ""
+        self.cl_form_type    = "feature"
+        self.show_changelog_form = True
+
+    def close_changelog_form(self):
+        self.show_changelog_form = False
+
+    def set_cl_version(self, v: str): self.cl_form_version = v
+    def set_cl_titre(self, v: str):   self.cl_form_titre   = v
+    def set_cl_items(self, v: str):   self.cl_form_items   = v
+    def set_cl_type(self, v: str):    self.cl_form_type    = v
+
+    def add_changelog_entry(self):
+        if not self.cl_form_version.strip() or not self.cl_form_titre.strip():
+            return
+        items = [l.strip() for l in self.cl_form_items.splitlines() if l.strip()]
+        db = load_db()
+        if "changelog" not in db:
+            db["changelog"] = []
+        db["changelog"].append({
+            "id":      str(uuid.uuid4()),
+            "version": self.cl_form_version.strip(),
+            "date":    datetime.utcnow().strftime("%Y-%m-%d"),
+            "titre":   self.cl_form_titre.strip(),
+            "items":   items,
+            "type":    self.cl_form_type,
+        })
+        save_db(db)
+        self.show_changelog_form = False
+        self.load_data()
+
+    def delete_changelog_entry(self, eid: str):
+        db = load_db()
+        db["changelog"] = [c for c in (db.get("changelog") or []) if str(c.get("id")) != eid]
+        save_db(db)
+        self.load_data()

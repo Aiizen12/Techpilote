@@ -1,6 +1,15 @@
 import reflex as rx
 
 
+class ChangelogEntry(rx.Base):
+    id: str = ""
+    version: str = ""
+    date: str = ""
+    titre: str = ""
+    items: list[str] = []
+    type: str = "feature"   # "feature" | "fix" | "amélioration"
+
+
 class AstreinteEntry(rx.Base):
     period: str = ""
     slot_matin: str = ""
