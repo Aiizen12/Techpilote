@@ -231,6 +231,13 @@ class DocPickerItem(rx.Base):
     url: str = ""
 
 
+class ProcVersionItem(rx.Base):
+    version: int = 0
+    steps: list[str] = []
+    date: str = ""
+    auteur: str = ""
+
+
 class AutoMatchProposal(rx.Base):
     doc_id: str = ""
     doc_name: str = ""

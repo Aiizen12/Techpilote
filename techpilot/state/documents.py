@@ -40,6 +40,8 @@ class DocumentsState(rx.State):
     escalade_count: int = 0
     doc_search: str = ""
     gabarit_columns: list[GabaritColumn] = []
+    filtered_gabarit_columns: list[GabaritColumn] = []
+    gabarit_search: str = ""
     gabarit_categories: list[str] = ["Ticket", "Mail", "Note", "Escalade", "Autre"]
     show_gabarit_form: bool = False
     gabarit_form: dict = {"titre": "", "categorie": "Ticket", "contenu": ""}
@@ -55,6 +57,23 @@ class DocumentsState(rx.State):
     def set_doc_search(self, v: str):
         self.doc_search = v
         self.load()
+
+    def set_gabarit_search(self, v: str):
+        self.gabarit_search = v
+        self._apply_gabarit_filter()
+
+    def _apply_gabarit_filter(self):
+        if not self.gabarit_search.strip():
+            self.filtered_gabarit_columns = self.gabarit_columns
+            return
+        q = self.gabarit_search.lower()
+        result = []
+        for col in self.gabarit_columns:
+            matched = [g for g in col.items
+                       if q in g.titre.lower() or q in g.contenu.lower()]
+            if matched:
+                result.append(GabaritColumn(category=col.category, items=matched))
+        self.filtered_gabarit_columns = result
 
     def load(self):
         self.load_gabarits()
@@ -148,6 +167,7 @@ class DocumentsState(rx.State):
             GabaritColumn(category=cat, items=columns.get(cat, []))
             for cat in all_cats
         ]
+        self._apply_gabarit_filter()
 
     def start_edit_col(self, cat: str):
         self.editing_col_cat = cat

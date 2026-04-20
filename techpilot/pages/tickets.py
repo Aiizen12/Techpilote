@@ -1,7 +1,8 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.db.database import load_db, save_db
-from techpilot.state.models import TicketItem, MatrixSuggestion
+from techpilot.state.models import TicketItem, MatrixSuggestion, DocPickerItem
+from techpilot.gabarits_data import PREDEFINED_GABARITS as _PREDEFINED_GABARITS
 from techpilot.state.auth import AuthState
 from techpilot.db.activity import log_activity
 import uuid
@@ -52,6 +53,10 @@ class TicketsState(rx.State):
     esc_interlocuteur: str = ""
     esc_n2: str = ""
     esc_wp_n2: str = ""
+    # Quick gabarit
+    show_quick_gabarit: bool = False
+    quick_gabarit_search: str = ""
+    quick_gabarit_results: list[DocPickerItem] = []
     # Détail ticket
     show_detail: bool = False
     detail_ticket: TicketItem = TicketItem()
@@ -218,6 +223,37 @@ class TicketsState(rx.State):
 
     def close_form(self):
         self.show_form = False
+        self.show_quick_gabarit = False
+
+    def toggle_quick_gabarit(self):
+        self.show_quick_gabarit = not self.show_quick_gabarit
+        if self.show_quick_gabarit:
+            self.quick_gabarit_search = ""
+            self._load_quick_gabarits("")
+
+    def set_quick_gabarit_search(self, v: str):
+        self.quick_gabarit_search = v
+        self._load_quick_gabarits(v)
+
+    def _load_quick_gabarits(self, q: str):
+        db = load_db()
+        hidden = set(db.get("hidden_predefined") or [])
+        all_g = [g for g in _PREDEFINED_GABARITS if g.get("id") not in hidden]
+        all_g += db.get("gabarits") or []
+        all_g = sorted(all_g, key=lambda g: g.get("titre") or "")
+        if q.strip():
+            ql = q.lower()
+            all_g = [g for g in all_g if ql in (g.get("titre") or "").lower()
+                     or ql in (g.get("contenu") or "").lower()]
+        self.quick_gabarit_results = [
+            DocPickerItem(id=str(g.get("id", "")), nom=g.get("titre", ""), url=g.get("contenu", ""))
+            for g in all_g[:25]
+        ]
+
+    def copy_quick_gabarit(self, contenu: str):
+        self.show_quick_gabarit = False
+        yield rx.set_clipboard(contenu)
+        yield rx.toast.success("Gabarit copié dans le presse-papiers !")
 
     def set_field(self, field: str, val: str):
         self.form = {**self.form, field: val}
@@ -1655,10 +1691,75 @@ def tickets_content() -> rx.Component:
                         width="100%",
                     ),
 
-                    # Notes
+                    # Notes + Quick gabarit
                     rx.vstack(
-                        rx.text("NOTES / ACTIONS MENÉES", color=MUTED, font_size="0.68rem",
-                                font_weight="700", letter_spacing="0.07em"),
+                        rx.hstack(
+                            rx.text("NOTES / ACTIONS MENÉES", color=MUTED, font_size="0.68rem",
+                                    font_weight="700", letter_spacing="0.07em"),
+                            rx.spacer(),
+                            rx.button(
+                                rx.icon("file-text", size=12), "Gabarit",
+                                on_click=TicketsState.toggle_quick_gabarit,
+                                size="1",
+                                style={
+                                    "background": rx.cond(
+                                        TicketsState.show_quick_gabarit,
+                                        "rgba(99,102,241,0.2)", "transparent"
+                                    ),
+                                    "color": rx.cond(
+                                        TicketsState.show_quick_gabarit,
+                                        PRIMARY, MUTED
+                                    ),
+                                    "border": f"1px solid {BORDER}",
+                                    "border_radius": "6px",
+                                    "cursor": "pointer",
+                                    "font_size": "0.7rem",
+                                    "padding": "2px 8px",
+                                },
+                            ),
+                            width="100%", align="center",
+                        ),
+                        rx.cond(
+                            TicketsState.show_quick_gabarit,
+                            rx.vstack(
+                                rx.input(
+                                    placeholder="Rechercher un gabarit…",
+                                    value=TicketsState.quick_gabarit_search,
+                                    on_change=TicketsState.set_quick_gabarit_search,
+                                    background="#0d1117", style={"color": TEXT},
+                                    border=f"1px solid {BORDER}", border_radius="7px",
+                                    font_size="0.8rem", width="100%",
+                                    auto_focus=True,
+                                ),
+                                rx.box(
+                                    rx.foreach(
+                                        TicketsState.quick_gabarit_results,
+                                        lambda g: rx.hstack(
+                                            rx.text(g["nom"], color=TEXT, font_size="0.78rem",
+                                                    flex="1", overflow="hidden",
+                                                    text_overflow="ellipsis", white_space="nowrap"),
+                                            rx.icon_button(
+                                                rx.icon("copy", size=12),
+                                                on_click=TicketsState.copy_quick_gabarit(g["url"]),
+                                                size="1",
+                                                style={"background": "rgba(99,102,241,0.12)",
+                                                       "color": PRIMARY,
+                                                       "border": "1px solid rgba(99,102,241,0.25)",
+                                                       "border_radius": "5px", "cursor": "pointer"},
+                                            ),
+                                            spacing="2", align="center", width="100%",
+                                            padding="5px 8px",
+                                            border_bottom=f"1px solid {BORDER}",
+                                            _hover={"background": "rgba(255,255,255,0.03)"},
+                                        ),
+                                    ),
+                                    background="#0d1117", border=f"1px solid {BORDER}",
+                                    border_radius="8px", max_height="180px",
+                                    overflow_y="auto", width="100%",
+                                ),
+                                spacing="2", width="100%",
+                            ),
+                        ),
                         rx.text_area(
                             placeholder="Actions effectuées, contournements mis en place...",
                             value=TicketsState.form["notes"],

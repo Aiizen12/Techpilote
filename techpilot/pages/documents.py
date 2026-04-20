@@ -536,6 +536,16 @@ def gabarits_tab_view() -> rx.Component:
                 spacing="0", align="start",
             ),
             rx.spacer(),
+            rx.input(
+                placeholder="Rechercher un gabarit…",
+                value=DocumentsState.gabarit_search,
+                on_change=DocumentsState.set_gabarit_search,
+                style={
+                    "background": CARD_BG, "color": TEXT,
+                    "border": f"1px solid {BORDER}", "border_radius": "8px",
+                    "padding": "5px 10px", "font_size": "0.8rem", "width": "200px",
+                },
+            ),
             rx.button(
                 rx.icon("plus", size=15),
                 "Nouveau gabarit",
@@ -558,8 +568,8 @@ def gabarits_tab_view() -> rx.Component:
         ),
         # Kanban board
         rx.hstack(
-            rx.foreach(DocumentsState.gabarit_columns, gabarit_kanban_column),
-            add_category_column(),
+            rx.foreach(DocumentsState.filtered_gabarit_columns, gabarit_kanban_column),
+            rx.cond(DocumentsState.gabarit_search == "", add_category_column()),
             spacing="3",
             align="start",
             width="100%",

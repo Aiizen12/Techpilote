@@ -227,7 +227,37 @@ def entry_modal() -> rx.Component:
                         align_items="center", justify_content="center",
                     ),
                     rx.text("Procédure N1", color="#22c55e", font_size="0.8rem", font_weight="700"),
+                    rx.cond(
+                        EscaladeState.proc_current_version > 0,
+                        rx.box(
+                            rx.text("v" + EscaladeState.proc_current_version.to_string(),
+                                    color="#22c55e", font_size="0.65rem", font_weight="700"),
+                            background="rgba(34,197,94,0.1)",
+                            border="1px solid rgba(34,197,94,0.2)",
+                            border_radius="999px", padding="1px 7px",
+                        ),
+                    ),
                     rx.spacer(),
+                    rx.cond(
+                        EscaladeState.proc_current_version > 0,
+                        rx.icon_button(
+                            rx.icon("history", size=12),
+                            on_click=EscaladeState.open_history,
+                            size="1",
+                            title="Historique des versions",
+                            style={
+                                "background": rx.cond(
+                                    EscaladeState.show_history,
+                                    "rgba(245,158,11,0.2)", "transparent"
+                                ),
+                                "color": rx.cond(
+                                    EscaladeState.show_history, "#f59e0b", MUTED
+                                ),
+                                "border": f"1px solid {BORDER}",
+                                "border_radius": "6px", "cursor": "pointer",
+                            },
+                        ),
+                    ),
                     rx.cond(
                         AuthState.can_edit_procedure,
                         rx.cond(
@@ -359,6 +389,74 @@ def entry_modal() -> rx.Component:
                     EscaladeState.has_procedure | AuthState.can_edit_procedure,
                     "block",
                     "none",
+                ),
+            ),
+
+            # ── Historique versions ───────────────────────────────────────
+            rx.cond(
+                EscaladeState.show_history,
+                rx.box(
+                    rx.hstack(
+                        rx.icon("history", size=13, color="#f59e0b"),
+                        rx.text("Historique des versions", color="#f59e0b", font_size="0.78rem", font_weight="700"),
+                        rx.spacer(),
+                        rx.icon_button(
+                            rx.icon("x", size=12),
+                            on_click=EscaladeState.close_history,
+                            size="1",
+                            style={"background": "transparent", "color": MUTED,
+                                   "border": "none", "cursor": "pointer"},
+                        ),
+                        spacing="2", align="center", width="100%", margin_bottom="8px",
+                    ),
+                    rx.vstack(
+                        rx.foreach(
+                            EscaladeState.procedure_versions,
+                            lambda v: rx.box(
+                                rx.hstack(
+                                    rx.box(
+                                        rx.text("v" + v["version"].to_string(),
+                                                color="#f59e0b", font_size="0.7rem", font_weight="700"),
+                                        background="rgba(245,158,11,0.1)",
+                                        border="1px solid rgba(245,158,11,0.2)",
+                                        border_radius="999px", padding="1px 8px",
+                                        flex_shrink="0",
+                                    ),
+                                    rx.vstack(
+                                        rx.text(v["auteur"], color=TEXT, font_size="0.78rem", font_weight="600"),
+                                        rx.text(v["date"], color=MUTED, font_size="0.7rem"),
+                                        spacing="0", align="start",
+                                    ),
+                                    rx.spacer(),
+                                    rx.button(
+                                        "Restaurer",
+                                        on_click=EscaladeState.restore_version(v["version"]),
+                                        size="1",
+                                        style={
+                                            "background": "rgba(245,158,11,0.1)",
+                                            "color": "#f59e0b",
+                                            "border": "1px solid rgba(245,158,11,0.25)",
+                                            "border_radius": "6px",
+                                            "cursor": "pointer",
+                                            "font_size": "0.7rem",
+                                            "padding": "2px 8px",
+                                        },
+                                    ),
+                                    spacing="2", align="center", width="100%",
+                                ),
+                                padding="6px 8px",
+                                border_bottom=f"1px solid {BORDER}",
+                                _hover={"background": "rgba(245,158,11,0.03)"},
+                            ),
+                        ),
+                        spacing="0", width="100%",
+                    ),
+                    background="rgba(245,158,11,0.04)",
+                    border="1px solid rgba(245,158,11,0.2)",
+                    border_left="3px solid #f59e0b",
+                    border_radius="10px",
+                    padding="10px 14px",
+                    margin_top="0.75rem",
                 ),
             ),
 

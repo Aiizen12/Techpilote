@@ -1,7 +1,8 @@
 import reflex as rx
 import base64
 from techpilot.db.database import load_db, save_db
-from techpilot.state.models import EscaladeEntry, DocPickerItem
+from techpilot.state.models import EscaladeEntry, DocPickerItem, ProcVersionItem
+from datetime import datetime
 
 # ── Procédures N1 — réseau / hardware (source : docs procédures internes) ─────
 # Clé : (perimetre, typologie)  →  liste d'étapes ordonnées
@@ -163,6 +164,11 @@ class EscaladeState(rx.State):
     editing_procedure: bool = False
     edit_steps_text: str = ""   # étapes séparées par \n
 
+    # ── Historique / versioning procédure ────────────────────────────────
+    show_history: bool = False
+    procedure_versions: list[ProcVersionItem] = []
+    proc_current_version: int = 0
+
     # ── Liaison document ─────────────────────────────────────────────────
     show_link_panel: bool = False
     link_search: str = ""
@@ -312,6 +318,9 @@ class EscaladeState(rx.State):
         steps = EscaladeState._find_procedure(e.perimetre, e.typologie, db)
         key = f"{e.perimetre}|{e.typologie}"
         doc_link = (db.get("proc_doc_links") or {}).get(key) or {}
+        versions = (db.get("procedures_versions") or {}).get(key) or []
+        self.proc_current_version = len(versions)
+        self.show_history = False
         self.editing_procedure = False
         self.selected_entry = EscaladeEntry(
             perimetre=e.perimetre,
@@ -508,10 +517,75 @@ class EscaladeState(rx.State):
     def set_edit_steps_text(self, val: str):
         self.edit_steps_text = val
 
-    def save_procedure(self):
+    async def save_procedure(self):
         steps = [s.strip() for s in self.edit_steps_text.split("\n") if s.strip()]
         key = f"{self.selected_entry.perimetre}|{self.selected_entry.typologie}"
         db = load_db()
+        if "procedures_custom" not in db:
+            db["procedures_custom"] = {}
+        db["procedures_custom"][key] = steps
+
+        # ── Versioning ─────────────────────────────────────────────────
+        auth = await self.get_state(AuthState)
+        versions = list((db.get("procedures_versions") or {}).get(key) or [])
+        new_v = len(versions) + 1
+        versions.append({
+            "version": new_v,
+            "steps": steps,
+            "date": datetime.utcnow().strftime("%d/%m/%Y %H:%M"),
+            "auteur": auth.user_nom,
+        })
+        if "procedures_versions" not in db:
+            db["procedures_versions"] = {}
+        db["procedures_versions"][key] = versions
+        save_db(db)
+
+        self.proc_current_version = new_v
+        self.selected_entry = EscaladeEntry(
+            perimetre=self.selected_entry.perimetre,
+            typologie=self.selected_entry.typologie,
+            categorie_fresh=self.selected_entry.categorie_fresh,
+            traitement_n1=self.selected_entry.traitement_n1,
+            wp=self.selected_entry.wp,
+            interlocuteur=self.selected_entry.interlocuteur,
+            traitement_n2n3=self.selected_entry.traitement_n2n3,
+            wp_n2=self.selected_entry.wp_n2,
+            referents=self.selected_entry.referents,
+            conditions_escalade=self.selected_entry.conditions_escalade,
+            notes=self.selected_entry.notes,
+            procedure_n1=steps,
+            doc_name=self.selected_entry.doc_name,
+            doc_url=self.selected_entry.doc_url,
+        )
+        self.editing_procedure = False
+        yield rx.toast.success(f"Procédure sauvegardée — v{new_v}.")
+
+    def open_history(self):
+        key = f"{self.selected_entry.perimetre}|{self.selected_entry.typologie}"
+        db = load_db()
+        versions = (db.get("procedures_versions") or {}).get(key) or []
+        self.procedure_versions = [
+            ProcVersionItem(
+                version=v.get("version", 0),
+                steps=v.get("steps") or [],
+                date=v.get("date") or "",
+                auteur=v.get("auteur") or "",
+            )
+            for v in reversed(versions)
+        ]
+        self.show_history = True
+
+    def close_history(self):
+        self.show_history = False
+
+    def restore_version(self, v: int):
+        key = f"{self.selected_entry.perimetre}|{self.selected_entry.typologie}"
+        db = load_db()
+        versions = (db.get("procedures_versions") or {}).get(key) or []
+        target = next((x for x in versions if x.get("version") == v), None)
+        if not target:
+            return
+        steps = target.get("steps") or []
         if "procedures_custom" not in db:
             db["procedures_custom"] = {}
         db["procedures_custom"][key] = steps
@@ -529,9 +603,12 @@ class EscaladeState(rx.State):
             conditions_escalade=self.selected_entry.conditions_escalade,
             notes=self.selected_entry.notes,
             procedure_n1=steps,
+            doc_name=self.selected_entry.doc_name,
+            doc_url=self.selected_entry.doc_url,
         )
-        self.editing_procedure = False
-        yield rx.toast.success("Procédure sauvegardée.")
+        self.proc_current_version = v
+        self.show_history = False
+        yield rx.toast.success(f"Version {v} restaurée.")
 
     def toggle_favori(self):
         key = self.selected_entry.perimetre + "|" + self.selected_entry.typologie
