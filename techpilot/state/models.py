@@ -231,6 +231,24 @@ class DocPickerItem(rx.Base):
     url: str = ""
 
 
+class GlobalSearchResult(rx.Base):
+    type: str = ""       # "ticket" | "matrice" | "document" | "gabarit"
+    title: str = ""
+    subtitle: str = ""
+    href: str = ""
+    key: str = ""        # id ou clé unique
+    extra: str = ""      # contenu gabarit pour copie
+
+
+class TechStatItem(rx.Base):
+    nom: str = ""
+    color: str = ""
+    total: int = 0
+    en_cours: int = 0
+    resolus: int = 0
+    escalades: int = 0
+
+
 class ProcVersionItem(rx.Base):
     version: int = 0
     steps: list[str] = []

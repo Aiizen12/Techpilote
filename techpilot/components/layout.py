@@ -2,6 +2,7 @@ import reflex as rx
 from techpilot.state.auth import AuthState
 from techpilot.state.escalade import EscaladeState
 from techpilot.state.notifications import NotificationState
+from techpilot.state.global_search import GlobalSearchState
 
 # ── Design tokens ─────────────────────────────────────────────────────────────
 BG          = "#080b14"
@@ -395,12 +396,174 @@ def mobile_sidebar() -> rx.Component:
     )
 
 
+# ── Global search overlay ─────────────────────────────────────────────────────
+
+def _search_type_icon(t: str) -> rx.Component:
+    return rx.match(
+        t,
+        ("ticket",   rx.icon("ticket",    size=13, color="#ef4444")),
+        ("matrice",  rx.icon("git-branch", size=13, color="#06b6d4")),
+        ("document", rx.icon("folder",    size=13, color="#f59e0b")),
+        ("gabarit",  rx.icon("file-text", size=13, color="#22c55e")),
+        rx.icon("search", size=13, color=MUTED),
+    )
+
+def _search_type_label(t: str) -> rx.Component:
+    return rx.match(
+        t,
+        ("ticket",   rx.text("Ticket",   color="#ef4444", font_size="0.62rem", font_weight="700")),
+        ("matrice",  rx.text("Matrice",  color="#06b6d4", font_size="0.62rem", font_weight="700")),
+        ("document", rx.text("Document", color="#f59e0b", font_size="0.62rem", font_weight="700")),
+        ("gabarit",  rx.text("Gabarit",  color="#22c55e", font_size="0.62rem", font_weight="700")),
+        rx.text(t, color=MUTED, font_size="0.62rem", font_weight="700"),
+    )
+
+def _search_result_row(r) -> rx.Component:
+    return rx.hstack(
+        rx.box(
+            _search_type_icon(r["type"]),
+            width="28px", height="28px",
+            background="rgba(255,255,255,0.05)",
+            border_radius="7px",
+            display="flex", align_items="center", justify_content="center",
+            flex_shrink="0",
+        ),
+        rx.vstack(
+            rx.text(r["title"], color=TEXT, font_size="0.82rem", font_weight="500",
+                    overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+            rx.cond(
+                r["subtitle"] != "",
+                rx.text(r["subtitle"], color=MUTED, font_size="0.7rem",
+                        overflow="hidden", text_overflow="ellipsis", white_space="nowrap"),
+            ),
+            spacing="0", align="start", flex="1", min_width="0",
+        ),
+        _search_type_label(r["type"]),
+        spacing="3", align="center",
+        padding="0.55rem 1rem",
+        cursor="pointer",
+        _hover={"background": "rgba(99,102,241,0.1)"},
+        width="100%",
+        on_click=rx.cond(
+            r["type"] == "gabarit",
+            GlobalSearchState.copy_gabarit(r["extra"]),
+            GlobalSearchState.navigate(r["href"], r["key"]),
+        ),
+    )
+
+def global_search_overlay() -> rx.Component:
+    return rx.cond(
+        GlobalSearchState.show,
+        rx.box(
+            # Backdrop
+            rx.box(
+                position="fixed", inset="0",
+                background="rgba(0,0,0,0.6)",
+                z_index="400",
+                on_click=GlobalSearchState.close,
+                backdrop_filter="blur(2px)",
+            ),
+            # Modal
+            rx.box(
+                rx.vstack(
+                    # Search input
+                    rx.hstack(
+                        rx.icon("search", size=16, color=MUTED),
+                        rx.input(
+                            placeholder="Recherche tickets, matrice, documents, gabarits…",
+                            value=GlobalSearchState.query,
+                            on_change=GlobalSearchState.set_query,
+                            auto_focus=True,
+                            background="transparent",
+                            border="none",
+                            color=TEXT,
+                            font_size="0.95rem",
+                            flex="1",
+                            _focus={"outline": "none", "box_shadow": "none"},
+                            _placeholder={"color": MUTED},
+                        ),
+                        rx.kbd("Esc", on_click=GlobalSearchState.close,
+                               cursor="pointer",
+                               background="rgba(255,255,255,0.07)",
+                               color=MUTED, font_size="0.7rem",
+                               border_radius="5px", padding="2px 6px"),
+                        spacing="2", align="center",
+                        padding="0.85rem 1rem",
+                        border_bottom=f"1px solid {BORDER}",
+                        width="100%",
+                    ),
+                    # Results
+                    rx.cond(
+                        GlobalSearchState.results.length() == 0,
+                        rx.box(
+                            rx.cond(
+                                GlobalSearchState.query != "",
+                                rx.vstack(
+                                    rx.icon("search-x", size=28, color=MUTED),
+                                    rx.text("Aucun résultat", color=MUTED, font_size="0.85rem"),
+                                    spacing="2", align="center",
+                                ),
+                                rx.vstack(
+                                    rx.icon("search", size=28, color=MUTED),
+                                    rx.text("Commencez à taper…", color=MUTED, font_size="0.85rem"),
+                                    spacing="2", align="center",
+                                ),
+                            ),
+                            padding="2.5rem",
+                            display="flex",
+                            justify_content="center",
+                        ),
+                        rx.box(
+                            rx.foreach(GlobalSearchState.results, _search_result_row),
+                            max_height="380px",
+                            overflow_y="auto",
+                            width="100%",
+                        ),
+                    ),
+                    # Footer hint
+                    rx.hstack(
+                        rx.hstack(
+                            rx.kbd("↵", background="rgba(255,255,255,0.07)", color=MUTED,
+                                   font_size="0.65rem", border_radius="4px", padding="1px 5px"),
+                            rx.text("Ouvrir", color=MUTED, font_size="0.7rem"),
+                            spacing="1", align="center",
+                        ),
+                        rx.hstack(
+                            rx.icon("copy", size=11, color=MUTED),
+                            rx.text("Copier (gabarit)", color=MUTED, font_size="0.7rem"),
+                            spacing="1", align="center",
+                        ),
+                        rx.spacer(),
+                        rx.text("Ctrl+K pour ouvrir", color=MUTED, font_size="0.7rem"),
+                        spacing="4", align="center",
+                        padding="0.6rem 1rem",
+                        border_top=f"1px solid {BORDER}",
+                        width="100%",
+                    ),
+                    spacing="0", width="100%",
+                ),
+                position="fixed",
+                top="15%",
+                left="50%",
+                transform="translateX(-50%)",
+                width="min(600px, 90vw)",
+                background=SIDEBAR_BG,
+                border=f"1px solid {BORDER}",
+                border_radius="16px",
+                box_shadow="0 24px 80px rgba(0,0,0,0.6)",
+                z_index="401",
+                overflow="hidden",
+            ),
+        ),
+    )
+
+
 # ── Page layout ───────────────────────────────────────────────────────────────
 
 def page_layout(content: rx.Component, title: str = "") -> rx.Component:
     return rx.box(
 
-        # CSS responsive
+        # CSS responsive + Ctrl+K shortcut
         rx.script("""
 (function() {
   var s = document.createElement('style');
@@ -414,6 +577,13 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
     #tp-ham { display: none; }
   `;
   document.head.appendChild(s);
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      var btn = document.getElementById('tp-search-trigger');
+      if (btn) btn.click();
+    }
+  });
 })();
 """),
 
@@ -442,30 +612,35 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
                     ),
                     rx.heading(title, size="5", color=TEXT, font_weight="700"),
                     rx.spacer(),
-                    # Barre de recherche (masquée sur mobile via CSS)
+                    # Ctrl+K global search button (masqué sur mobile via CSS)
                     rx.box(
-                        rx.icon("search", size=14, color=MUTED,
-                                position="absolute", left="10px",
-                                top="50%", transform="translateY(-50%)"),
-                        rx.input(
-                            placeholder="Recherche dans la matrice…",
-                            on_change=EscaladeState.set_search,
-                            on_key_down=LayoutState.search_key,
-                            background="rgba(255,255,255,0.05)",
-                            border=f"1px solid {BORDER}",
-                            style={"color": TEXT},
-                            border_radius="8px",
-                            padding_left="32px",
-                            padding_right="10px",
-                            padding_y="7px",
-                            font_size="0.82rem",
-                            width="240px",
-                            _focus={"border_color": PRIMARY, "outline": "none",
-                                    "background": "rgba(99,102,241,0.07)"},
-                            _placeholder={"color": MUTED},
+                        rx.hstack(
+                            rx.icon("search", size=13, color=MUTED),
+                            rx.text("Recherche…", color=MUTED, font_size="0.82rem"),
+                            rx.spacer(),
+                            rx.kbd("Ctrl+K",
+                                   background="rgba(255,255,255,0.06)",
+                                   color=MUTED, font_size="0.65rem",
+                                   border_radius="5px", padding="2px 6px"),
+                            spacing="2", align="center",
+                            padding="6px 10px",
                         ),
                         id="tp-search",
+                        background="rgba(255,255,255,0.04)",
+                        border=f"1px solid {BORDER}",
+                        border_radius="8px",
+                        cursor="pointer",
+                        width="220px",
+                        _hover={"background": "rgba(99,102,241,0.08)", "border_color": PRIMARY},
+                        on_click=GlobalSearchState.open,
+                        # Hidden button used as click target for the JS keyboard shortcut
                         position="relative",
+                    ),
+                    rx.button(
+                        id="tp-search-trigger",
+                        on_click=GlobalSearchState.open,
+                        display="none",
+                        position="fixed",
                     ),
                     # Cloche notifications
                     rx.box(
@@ -526,6 +701,9 @@ def page_layout(content: rx.Component, title: str = "") -> rx.Component:
             min_height="100vh",
             transition="margin-left 0.22s cubic-bezier(0.4,0,0.2,1)",
         ),
+
+        # Global search overlay (Ctrl+K)
+        global_search_overlay(),
 
         rx.toast.provider(position="bottom-right", duration=3000),
 

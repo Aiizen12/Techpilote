@@ -2,7 +2,7 @@ import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.auth import AuthState
 from techpilot.state.dashboard import DashboardState
-from techpilot.state.models import PlanningRow, AstreinteEntry, TechPresence, TicketTrend, QuickLink, ActualiteItem
+from techpilot.state.models import PlanningRow, AstreinteEntry, TechPresence, TicketTrend, QuickLink, ActualiteItem, TechStatItem
 
 TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
@@ -137,6 +137,7 @@ def config_panel() -> rx.Component:
                 _widget_toggle("Planning semaine",       "calendar-days",  DashboardState.w_planning,   DashboardState.toggle_w_planning),
                 _widget_toggle("Notes & Liens rapides",  "notebook-pen",   DashboardState.w_notes_links, DashboardState.toggle_w_notes_links),
                 _widget_toggle("Actualités",             "newspaper",      DashboardState.w_actualites, DashboardState.toggle_w_actualites),
+                _widget_toggle("Stats techniciens",      "bar-chart-2",    DashboardState.w_tech_stats, DashboardState.toggle_w_tech_stats),
                 spacing="1",
                 width="100%",
                 padding_top="1rem",
@@ -328,6 +329,65 @@ def quick_link_row(lk: QuickLink) -> rx.Component:
         padding="0.5rem 0.75rem",
         border_bottom=f"1px solid {BORDER}",
         _hover={"background": "rgba(255,255,255,0.02)"},
+    )
+
+
+# ── Stats techniciens ─────────────────────────────────────────────────────────
+
+def _tech_stat_bar(value: int, total: int, color: str) -> rx.Component:
+    pct = rx.cond(total > 0, (value * 100 // total).to_string() + "%", "0%")
+    return rx.box(
+        rx.box(background=color, width=pct, height="100%", border_radius="4px",
+               transition="width 0.3s ease"),
+        background="rgba(255,255,255,0.06)", border_radius="4px",
+        height="6px", width="100%", overflow="hidden",
+    )
+
+
+def tech_stat_card(s: TechStatItem) -> rx.Component:
+    esc_pct = rx.cond(s["total"] > 0, (s["escalades"] * 100 // s["total"]).to_string() + "%", "0%")
+    return rx.box(
+        rx.hstack(
+            rx.box(
+                rx.text(s["nom"][:2].upper(), color="white", font_size="0.72rem", font_weight="700"),
+                background=s["color"], border_radius="50%",
+                width="34px", height="34px", flex_shrink="0",
+                display="flex", align_items="center", justify_content="center",
+            ),
+            rx.vstack(
+                rx.hstack(
+                    rx.text(s["nom"], color=TEXT, font_size="0.82rem", font_weight="600"),
+                    rx.spacer(),
+                    rx.text(s["total"].to_string() + " ticket(s)", color=MUTED, font_size="0.72rem"),
+                    width="100%", align="center",
+                ),
+                _tech_stat_bar(s["resolus"], s["total"], "#22c55e"),
+                rx.hstack(
+                    rx.hstack(
+                        rx.box(width="8px", height="8px", background="#ef4444",
+                               border_radius="50%", flex_shrink="0"),
+                        rx.text(s["en_cours"].to_string() + " en cours", color=MUTED, font_size="0.7rem"),
+                        spacing="1", align="center",
+                    ),
+                    rx.hstack(
+                        rx.box(width="8px", height="8px", background="#22c55e",
+                               border_radius="50%", flex_shrink="0"),
+                        rx.text(s["resolus"].to_string() + " résolus", color=MUTED, font_size="0.7rem"),
+                        spacing="1", align="center",
+                    ),
+                    rx.spacer(),
+                    rx.cond(
+                        s["escalades"] > 0,
+                        rx.text("↑ " + esc_pct + " escaladés", color="#f59e0b", font_size="0.7rem"),
+                    ),
+                    spacing="3", width="100%", align="center",
+                ),
+                spacing="1", flex="1", min_width="0",
+            ),
+            spacing="3", align="center", width="100%",
+        ),
+        background=CARD_BG, border=f"1px solid {BORDER}",
+        border_radius="12px", padding="0.875rem 1rem",
     )
 
 
@@ -672,6 +732,36 @@ def dashboard_content() -> rx.Component:
                     flex="1",
                 ),
                 spacing="4", width="100%", align="start",
+            ),
+        ),
+
+        # ── Stats techniciens ────────────────────────────────────────────────
+        rx.cond(
+            DashboardState.w_tech_stats,
+            rx.box(
+                rx.hstack(
+                    rx.icon("bar-chart-2", size=15, color=PRIMARY),
+                    rx.text("Stats techniciens", color=TEXT, font_size="0.85rem", font_weight="600"),
+                    spacing="2", align="center", margin_bottom="0.8rem",
+                ),
+                rx.cond(
+                    DashboardState.tech_stats.length() == 0,
+                    rx.box(
+                        rx.text("Aucune donnée disponible", color=MUTED, font_size="0.82rem", text_align="center"),
+                        padding="1.5rem 0",
+                    ),
+                    rx.grid(
+                        rx.foreach(DashboardState.tech_stats, tech_stat_card),
+                        columns=rx.breakpoints(initial="1", sm="2", lg="3"),
+                        spacing="3",
+                        width="100%",
+                    ),
+                ),
+                background=CARD_BG,
+                border=f"1px solid {BORDER}",
+                border_radius="14px",
+                padding="1.1rem 1.2rem",
+                width="100%",
             ),
         ),
 

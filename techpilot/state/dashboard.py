@@ -6,7 +6,7 @@ import reflex as rx
 from techpilot.db.database import load_db, save_db
 from techpilot.state.models import (
     AstreinteEntry, PlanningRow,
-    TechPresence, QuickLink, ActualiteItem,
+    TechPresence, QuickLink, ActualiteItem, TechStatItem,
 )
 
 DEFAULT_TECH_COLORS = [
@@ -40,6 +40,10 @@ class DashboardState(rx.State):
 
     # Actualités widget
     actualites_widget: list[ActualiteItem] = []
+
+    # Stats techniciens
+    tech_stats: list[TechStatItem] = []
+    w_tech_stats: bool = True
 
     # Widget visibility
     w_kpis: bool = True
@@ -169,6 +173,37 @@ class DashboardState(rx.State):
             for lk in (db.get("quick_links") or [])
         ]
 
+        # ── Stats par technicien ─────────────────────────────────────────
+        stats_map: dict[str, dict] = {}
+        for t in techs:
+            if not t.get("active"):
+                continue
+            nom = t.get("nom") or ""
+            color = t.get("color") or ""
+            stats_map[nom] = {"nom": nom, "color": color,
+                              "total": 0, "en_cours": 0, "resolus": 0, "escalades": 0}
+        for tk in tickets:
+            nom = tk.get("technicien_nom") or ""
+            if nom not in stats_map:
+                stats_map[nom] = {"nom": nom, "color": "#6366f1",
+                                  "total": 0, "en_cours": 0, "resolus": 0, "escalades": 0}
+            stats_map[nom]["total"] += 1
+            if tk.get("etat") == "en_cours":
+                stats_map[nom]["en_cours"] += 1
+            else:
+                stats_map[nom]["resolus"] += 1
+            if tk.get("escalade_interlocuteur") or tk.get("escalade_n2"):
+                stats_map[nom]["escalades"] += 1
+        self.tech_stats = [
+            TechStatItem(
+                nom=v["nom"], color=v["color"],
+                total=v["total"], en_cours=v["en_cours"],
+                resolus=v["resolus"], escalades=v["escalades"],
+            )
+            for v in sorted(stats_map.values(), key=lambda x: -x["total"])
+            if v["nom"]
+        ]
+
         # Widget config
         cfg = db.get("dashboard_config") or {}
         self.w_kpis       = cfg.get("kpis", True)
@@ -177,6 +212,7 @@ class DashboardState(rx.State):
         self.w_planning   = cfg.get("planning", True)
         self.w_notes_links = cfg.get("notes_links", True)
         self.w_actualites = cfg.get("actualites", True)
+        self.w_tech_stats = cfg.get("tech_stats", True)
 
         # Actualités widget (5 dernières, épinglées en premier)
         actu_items = db.get("actualites") or []
@@ -261,6 +297,7 @@ class DashboardState(rx.State):
             "planning":   self.w_planning,
             "notes_links": self.w_notes_links,
             "actualites": self.w_actualites,
+            "tech_stats": self.w_tech_stats,
         }
         save_db(db)
 
@@ -286,4 +323,8 @@ class DashboardState(rx.State):
 
     def toggle_w_actualites(self):
         self.w_actualites = not self.w_actualites
+        self._save_config()
+
+    def toggle_w_tech_stats(self):
+        self.w_tech_stats = not self.w_tech_stats
         self._save_config()
