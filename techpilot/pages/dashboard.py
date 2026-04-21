@@ -784,7 +784,42 @@ def dashboard_content() -> rx.Component:
                 rx.hstack(
                     rx.icon("calendar-days", size=15, color="#06b6d4"),
                     rx.text("Planning de la semaine", color=TEXT, font_size="0.85rem", font_weight="600"),
-                    spacing="2", align="center", margin_bottom="0.8rem",
+                    rx.spacer(),
+                    rx.button(
+                        "Tous",
+                        on_click=DashboardState.planning_show_all,
+                        background="transparent", color=MUTED,
+                        border=f"1px solid {BORDER}", border_radius="6px",
+                        font_size="0.72rem", padding="2px 10px", cursor="pointer",
+                        _hover={"border_color": "#06b6d4", "color": "#06b6d4"},
+                    ),
+                    spacing="2", align="center", margin_bottom="0.75rem",
+                    width="100%",
+                ),
+                rx.hstack(
+                    rx.foreach(
+                        DashboardState.planning_all_names,
+                        lambda name: rx.button(
+                            name,
+                            on_click=DashboardState.toggle_planning_tech(name),
+                            background=rx.cond(
+                                DashboardState.planning_filter_techs.contains(name),
+                                "rgba(6,182,212,0.15)", "transparent",
+                            ),
+                            color=rx.cond(
+                                DashboardState.planning_filter_techs.contains(name),
+                                "#06b6d4", MUTED,
+                            ),
+                            border=rx.cond(
+                                DashboardState.planning_filter_techs.contains(name),
+                                "1px solid rgba(6,182,212,0.4)", f"1px solid {BORDER}",
+                            ),
+                            border_radius="20px", font_size="0.72rem",
+                            padding="2px 12px", cursor="pointer",
+                            _hover={"border_color": "#06b6d4", "color": "#06b6d4"},
+                        ),
+                    ),
+                    wrap="wrap", spacing="2", margin_bottom="0.75rem",
                 ),
                 rx.table.root(
                     rx.table.header(
@@ -796,12 +831,13 @@ def dashboard_content() -> rx.Component:
                         ),
                         background="#0d1021",
                     ),
-                    rx.table.body(rx.foreach(DashboardState.planning_semaine, planning_row_v2)),
+                    rx.table.body(rx.foreach(DashboardState.planning_semaine_view, planning_row_v2)),
                     width="100%",
                 ),
                 background=CARD_BG,
                 border=f"1px solid {BORDER}",
                 border_radius="14px",
+                padding="1rem 1.2rem 0",
                 overflow="hidden",
                 width="100%",
             ),

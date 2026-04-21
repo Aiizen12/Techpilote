@@ -8,6 +8,7 @@ from techpilot.state.models import (
     AstreinteEntry, PlanningRow,
     TechPresence, QuickLink, ActualiteItem, TechStatItem, ChangelogEntry,
 )
+from techpilot.state.auth import AuthState
 
 DEFAULT_TECH_COLORS = [
     "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6", "#ec4899",
@@ -63,12 +64,18 @@ class DashboardState(rx.State):
     w_actualites: bool = True
     show_config_panel: bool = False
 
+    # Planning filter
+    planning_filter_techs: list[str] = []
+    planning_all_names: list[str] = []
+    planning_semaine_view: list[PlanningRow] = []
+    planning_filter_initialized: bool = False
+
     # Meta
     today_label: str = ""
 
     # ── Chargement principal ──────────────────────────────────────────────────
 
-    def load_data(self):
+    async def load_data(self):
         db = load_db()
         now = datetime.utcnow()
         today_idx = now.weekday()
@@ -119,6 +126,17 @@ class DashboardState(rx.State):
                     bendoc_pause=p.get("bendoc_pause") or "",
                 ))
         self.planning_semaine = plan_rows
+        all_names = [r.technician_name for r in plan_rows]
+        self.planning_all_names = all_names
+
+        # Initialise le filtre au premier chargement : uniquement le tech connecté
+        if not self.planning_filter_initialized:
+            auth = await self.get_state(AuthState)
+            user_nom = auth.user_nom or ""
+            self.planning_filter_techs = [user_nom] if user_nom in all_names else all_names
+            self.planning_filter_initialized = True
+
+        self._apply_planning_filter()
 
         # Présence aujourd'hui (dérivée du planning)
         tech_color_map = {t.get("nom", ""): t.get("color", "") for t in techs}
@@ -357,6 +375,27 @@ class DashboardState(rx.State):
     def toggle_w_changelog(self):
         self.w_changelog = not self.w_changelog
         self._save_config()
+
+    def _apply_planning_filter(self):
+        if not self.planning_filter_techs:
+            self.planning_semaine_view = self.planning_semaine
+        else:
+            self.planning_semaine_view = [
+                r for r in self.planning_semaine
+                if r.technician_name in self.planning_filter_techs
+            ]
+
+    def toggle_planning_tech(self, name: str):
+        if name in self.planning_filter_techs:
+            remaining = [n for n in self.planning_filter_techs if n != name]
+            self.planning_filter_techs = remaining if remaining else self.planning_filter_techs
+        else:
+            self.planning_filter_techs = [*self.planning_filter_techs, name]
+        self._apply_planning_filter()
+
+    def planning_show_all(self):
+        self.planning_filter_techs = list(self.planning_all_names)
+        self._apply_planning_filter()
 
     # ── Changelog ─────────────────────────────────────────────────────────────
 

@@ -58,13 +58,15 @@ Vue synthétique de l'activité. Widgets disponibles :
 | Présence aujourd'hui | Statut de chaque tech (Présent / TT / Absent / Repos) |
 | Astreintes à venir | Créneaux matin (06h-08h) et soir (18h-20h) |
 | Tendance tickets | Graphe 8 dernières semaines (créés vs résolus) |
-| Planning de la semaine | Horaires / jours TT / Bendoc |
+| Planning de la semaine | Horaires / jours TT / Bendoc — filtre par technicien |
 | Notes rapides | Zone de texte libre, auto-sauvegardée, ouvrable en fenêtre séparée |
 | Liens rapides | Favoris avec URL, ajout/suppression en un clic |
 | Stats techniciens | Barre de progression par tech : total / en cours / résolus / % escaladés |
 | Mises à jour | Historique des évolutions de l'application (changelog) |
 
 **Personnaliser** : icône ⚙ en haut à droite → activer/désactiver chaque widget.
+
+**Widget Planning** : affiche par défaut uniquement votre propre ligne. Cliquez sur les badges de techniciens en haut du widget pour afficher/masquer d'autres techs. Bouton "Tous" pour tout afficher.
 
 **Widget Mises à jour** : bouton "+ Nouvelle entrée" → renseigner version, type (Nouveauté / Amélioration / Correction), titre, détails (une ligne par item).
 
@@ -134,8 +136,9 @@ Outil de **diagnostic réseau** intégré en iframe (ping, traceroute…).
 ## 11. Techniciens
 
 - Ajouter : bouton "+ Nouveau technicien" (nom, matricule, email, couleur).
-- Modifier / Désactiver : cliquer sur la carte → modale d'édition.
-- Un technicien désactivé n'apparaît plus dans les plannings et assignations.
+- Modifier : bouton "Modifier" sur la carte → modale d'édition.
+- Désactiver / Activer : bascule le statut — un tech désactivé n'apparaît plus dans les plannings et assignations.
+- **Supprimer** : icône 🗑️ rouge sur la carte — suppression définitive (Manager ou permission `technicians_edit`).
 
 ---
 

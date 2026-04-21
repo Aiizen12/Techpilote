@@ -95,7 +95,7 @@ Page d'accueil opérationnelle. Affiche une vue synthétique de l'activité en t
 | Présence aujourd'hui | Statut de chaque tech (Présent / TT / Absent / Repos) dérivé du planning |
 | Astreintes à venir | Créneaux matin (06h-08h) et soir (18h-20h) |
 | Tendance tickets | Graphe linéaire des 8 dernières semaines (créés vs résolus) |
-| Planning de la semaine | Tableau horaires / jours TT / Bendoc de la semaine active |
+| Planning de la semaine | Tableau horaires / jours TT / Bendoc — filtre par technicien |
 | Notes rapides | Zone de texte libre, auto-sauvegardée, ouvrable en fenêtre séparée |
 | Liens rapides | Favoris avec URL, ajout/suppression en un clic |
 | Stats techniciens | Barre de progression par tech : total tickets / en cours / résolus / % escaladés |
@@ -105,6 +105,11 @@ Page d'accueil opérationnelle. Affiche une vue synthétique de l'activité en t
 - Cliquer sur l'icône ⚙ en haut à droite du dashboard.
 - Activer/désactiver chaque widget via les toggles.
 - La configuration est sauvegardée.
+
+**Widget Planning — filtre technicien**
+- Par défaut, affiche uniquement votre propre ligne.
+- Badges cliquables en haut du widget pour afficher/masquer d'autres techs.
+- Bouton "Tous" pour tout afficher d'un coup.
 
 **Notes rapides — fenêtre dédiée**
 - Cliquer sur l'icône ⧉ dans l'en-tête du widget Notes.
@@ -270,9 +275,13 @@ Gestion de l'équipe (droits requis).
 - Cliquer sur la card → modale d'édition.
 - Modifier les informations, activer/désactiver le compte.
 
-**Désactiver un technicien**
-- Toggle "Actif" dans la modale.
-- Le technicien n'apparaît plus dans les plannings et les nouvelles assignations.
+**Désactiver / Réactiver un technicien**
+- Bouton "Désactiver" / "Activer" sur la carte.
+- Un tech désactivé n'apparaît plus dans les plannings et les nouvelles assignations.
+
+**Supprimer un technicien**
+- Icône 🗑️ rouge sur la carte (Manager ou permission `technicians_edit`).
+- Suppression définitive — irréversible.
 
 ---
 
