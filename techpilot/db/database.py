@@ -15,6 +15,7 @@ DEFAULT_DB = {
         {"id": "6", "nom": "Alistair", "matricule": "556", "active": True, "permissions": {}},
         {"id": "7", "nom": "Tiphaine", "matricule": "590", "active": True, "permissions": {}},
         {"id": "8", "nom": "Sabrina",  "matricule": "",    "active": True, "permissions": {}},
+        {"id": "9", "nom": "Benjamin", "matricule": "",    "active": True, "permissions": {}},
     ],
     "planning": [],
     "astreintes": [
