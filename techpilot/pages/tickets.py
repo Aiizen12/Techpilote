@@ -196,6 +196,7 @@ class TicketsState(rx.State):
         self.technicians = [
             {"id": str(t.get("id") or ""), "nom": t.get("nom") or ""}
             for t in (db.get("technicians") or [])
+            if t.get("active", True)
         ]
 
     def set_tab(self, val: str):
