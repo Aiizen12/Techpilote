@@ -84,7 +84,7 @@ def module_card(m: FormationModule) -> rx.Component:
                 rx.badge(
                     m["categorie"],
                     color=_cat_color(m["categorie"]),
-                    background=rx.color_mix("in srgb", _cat_color(m["categorie"]), "transparent 85%"),
+                    background="rgba(99,102,241,0.12)",
                     border_radius="full", font_size="0.68rem", padding="2px 8px",
                 ),
                 rx.spacer(),
@@ -363,14 +363,13 @@ def modules_tab() -> rx.Component:
         ),
         # Chips catégories
         rx.hstack(
-            rx.foreach(
-                FORMATION_CATEGORIES,
-                lambda cat: rx.button(
+            *[
+                rx.button(
                     cat,
                     on_click=FormationState.set_cat_filter(cat),
                     background=rx.cond(
                         FormationState.cat_filter == cat,
-                        f"rgba(99,102,241,0.2)", "transparent",
+                        "rgba(99,102,241,0.2)", "transparent",
                     ),
                     color=rx.cond(
                         FormationState.cat_filter == cat,
@@ -378,13 +377,14 @@ def modules_tab() -> rx.Component:
                     ),
                     border=rx.cond(
                         FormationState.cat_filter == cat,
-                        f"1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}",
+                        "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}",
                     ),
                     border_radius="20px", font_size="0.75rem",
                     padding="3px 12px", cursor="pointer",
                     _hover={"border_color": PRIMARY, "color": PRIMARY},
-                ),
-            ),
+                )
+                for cat in FORMATION_CATEGORIES
+            ],
             wrap="wrap", spacing="2",
         ),
         # Grille
