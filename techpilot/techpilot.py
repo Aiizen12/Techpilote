@@ -18,6 +18,7 @@ from techpilot.pages.notes_window import notes_window_page
 from techpilot.pages.profil import profil_page
 from techpilot.pages.outils import outils_page
 from techpilot.pages.modop import modop_page
+from techpilot.pages.formation import formation_page
 
 # Initialisation DB
 init_db()
@@ -57,3 +58,4 @@ app.add_page(notes_window_page,  route="/notes-window")
 app.add_page(profil_page,        route="/profil")
 app.add_page(outils_page,        route="/outils")
 app.add_page(modop_page,         route="/modop")
+app.add_page(formation_page,     route="/formation")

@@ -272,10 +272,11 @@ def sidebar_content(mobile: bool = False) -> rx.Component:
         # Équipe
         nav_group(
             section_label("ÉQUIPE", mobile=mobile),
-            nav_item("Techniciens", "users",          "/techniciens", mobile=mobile),
-            nav_item("Actualités",  "newspaper",      "/actualites",  mobile=mobile),
-            nav_item("Quêtes",      "trophy",         "/quetes",      mobile=mobile),
-            nav_item("Feedbacks",   "message-circle", "/feedbacks",   mobile=mobile),
+            nav_item("Techniciens", "users",            "/techniciens", mobile=mobile),
+            nav_item("Actualités",  "newspaper",        "/actualites",  mobile=mobile),
+            nav_item("Quêtes",      "trophy",           "/quetes",      mobile=mobile),
+            nav_item("Feedbacks",   "message-circle",   "/feedbacks",   mobile=mobile),
+            nav_item("Formation",   "graduation-cap",   "/formation",   mobile=mobile),
             mobile=mobile,
         ),
 

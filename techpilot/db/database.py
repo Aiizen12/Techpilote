@@ -112,6 +112,18 @@ DEFAULT_DB = {
             ],
         },
     ],
+    "formation_modules": [],
+    "onboarding_steps": [
+        {"id": "ob-01", "titre": "Création du compte Active Directory", "description": "Création login, ajout aux groupes de sécurité N1", "categorie": "Accès", "ordre": 0},
+        {"id": "ob-02", "titre": "Accès VPN et poste de travail", "description": "Installation client VPN, test de connexion", "categorie": "Accès", "ordre": 1},
+        {"id": "ob-03", "titre": "Accès Freshservice", "description": "Création du compte agent, présentation de l'interface", "categorie": "Outils", "ordre": 2},
+        {"id": "ob-04", "titre": "Présentation de l'équipe et du process N1", "description": "Tour d'équipe, explication des rôles et escalades", "categorie": "Processus", "ordre": 3},
+        {"id": "ob-05", "titre": "Formation outil Mayday", "description": "Prise en main de la base de connaissances Mayday", "categorie": "Outils", "ordre": 4},
+        {"id": "ob-06", "titre": "Lecture de la matrice d'escalade", "description": "Parcourir les 401 entrées, comprendre les périmètres", "categorie": "Formation", "ordre": 5},
+        {"id": "ob-07", "titre": "Accès aux gabarits de réponse", "description": "Utilisation des gabarits dans TechPilot et Freshservice", "categorie": "Outils", "ordre": 6},
+        {"id": "ob-08", "titre": "Premier ticket supervisé", "description": "Traitement d'un ticket en binôme avec un référent", "categorie": "Processus", "ordre": 7},
+    ],
+    "onboarding_progress": [],
 }
 
 _client = None
@@ -156,6 +168,17 @@ def init_db():
             {"$set": {"changelog": _cache["changelog"]}},
         )
         print(f"[DB] Changelog ajouté : {[e['titre'] for e in missing_cl]}")
+
+    # Ajoute les étapes onboarding manquantes
+    existing_ob_ids = {str(s.get("id")) for s in _cache.get("onboarding_steps", [])}
+    missing_ob = [s for s in DEFAULT_DB["onboarding_steps"] if str(s.get("id")) not in existing_ob_ids]
+    if missing_ob:
+        _cache.setdefault("onboarding_steps", []).extend(missing_ob)
+        _collection.update_one(
+            {"_id": "main"},
+            {"$set": {"onboarding_steps": _cache["onboarding_steps"]}},
+        )
+        print(f"[DB] Étapes onboarding ajoutées : {len(missing_ob)}")
 
     print(f"[DB] MongoDB connecté — {len(_cache.get('technicians', []))} techniciens")
 

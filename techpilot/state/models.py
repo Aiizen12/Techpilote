@@ -272,3 +272,32 @@ class AutoMatchProposal(BaseModel):
     perimetre: str = ""
     typologie: str = ""
     score: int = 0
+
+
+class FormationModule(BaseModel):
+    id: str = ""
+    titre: str = ""
+    categorie: str = ""
+    description: str = ""
+    contenu: str = ""
+    difficulte: str = "Débutant"
+    auteur_nom: str = ""
+    date_creation: str = ""
+    lu_count: int = 0
+
+
+class OnboardingStep(BaseModel):
+    id: str = ""
+    titre: str = ""
+    description: str = ""
+    categorie: str = "Général"
+    ordre: int = 0
+
+
+class OnboardingTechProgress(BaseModel):
+    tech_id: str = ""
+    tech_nom: str = ""
+    color: str = ""
+    steps_done: list[str] = []
+    date_debut: str = ""
+    assigned: bool = False
