@@ -1,7 +1,7 @@
-import reflex as rx
+from pydantic import BaseModel
 
 
-class ChangelogEntry(rx.Base):
+class ChangelogEntry(BaseModel):
     id: str = ""
     version: str = ""
     date: str = ""
@@ -10,46 +10,46 @@ class ChangelogEntry(rx.Base):
     type: str = "feature"   # "feature" | "fix" | "amélioration"
 
 
-class AstreinteEntry(rx.Base):
+class AstreinteEntry(BaseModel):
     period: str = ""
     slot_matin: str = ""
     slot_soir: str = ""
 
 
-class PlanningEntry(rx.Base):
+class PlanningEntry(BaseModel):
     tech_name: str = ""
     horaire: str = ""
     telework_days: str = ""
     bendoc_pause: str = ""
 
 
-class PlanningRow(rx.Base):
+class PlanningRow(BaseModel):
     technician_name: str = ""
     horaire: str = ""
     telework_days: str = ""
     bendoc_pause: str = ""
 
 
-class TechPresence(rx.Base):
+class TechPresence(BaseModel):
     nom: str = ""
     initials: str = ""
     color: str = ""
     status: str = ""  # "present" | "tt" | "absent" | "repos"
 
 
-class TicketTrend(rx.Base):
+class TicketTrend(BaseModel):
     week: str = ""
     crees: int = 0
     resolus: int = 0
 
 
-class QuickLink(rx.Base):
+class QuickLink(BaseModel):
     id: str = ""
     nom: str = ""
     url: str = ""
 
 
-class LogEntry(rx.Base):
+class LogEntry(BaseModel):
     timestamp: str = ""
     user_nom: str = ""
     action: str = ""
@@ -57,7 +57,7 @@ class LogEntry(rx.Base):
     detail: str = ""
 
 
-class PermRow(rx.Base):
+class PermRow(BaseModel):
     id: str = ""
     nom: str = ""
     planning_edit: bool = False
@@ -70,7 +70,7 @@ class PermRow(rx.Base):
     doc_edit: bool = False
 
 
-class FeedbackItem(rx.Base):
+class FeedbackItem(BaseModel):
     id: str = ""
     titre: str = ""
     description: str = ""
@@ -82,7 +82,7 @@ class FeedbackItem(rx.Base):
     votes_count: int = 0
 
 
-class ActualiteItem(rx.Base):
+class ActualiteItem(BaseModel):
     id: str = ""
     titre: str = ""
     contenu: str = ""
@@ -92,7 +92,7 @@ class ActualiteItem(rx.Base):
     date_creation: str = ""
 
 
-class DocumentItem(rx.Base):
+class DocumentItem(BaseModel):
     id: str = ""
     type: str = ""
     nom_original: str = ""
@@ -102,7 +102,7 @@ class DocumentItem(rx.Base):
     description: str = ""
 
 
-class GabaritItem(rx.Base):
+class GabaritItem(BaseModel):
     id: str = ""
     titre: str = ""
     categorie: str = ""
@@ -112,17 +112,17 @@ class GabaritItem(rx.Base):
     is_custom: bool = False
 
 
-class GabaritColumn(rx.Base):
+class GabaritColumn(BaseModel):
     category: str = ""
     items: list[GabaritItem] = []
 
 
-class DocGroup(rx.Base):
+class DocGroup(BaseModel):
     name: str = ""
     docs: list[DocumentItem] = []
 
 
-class MatrixSuggestion(rx.Base):
+class MatrixSuggestion(BaseModel):
     key: str = ""
     perimetre: str = ""
     typologie: str = ""
@@ -131,7 +131,7 @@ class MatrixSuggestion(rx.Base):
     wp_n2: str = ""
 
 
-class TicketItem(rx.Base):
+class TicketItem(BaseModel):
     id: str = ""
     titre: str = ""
     ticket_pere: str = ""
@@ -150,7 +150,7 @@ class TicketItem(rx.Base):
     escalade_typologie: str = ""
 
 
-class TechnicienItem(rx.Base):
+class TechnicienItem(BaseModel):
     id: str = ""
     nom: str = ""
     matricule: str = ""
@@ -159,7 +159,7 @@ class TechnicienItem(rx.Base):
     active: bool = True
 
 
-class EscaladeEntry(rx.Base):
+class EscaladeEntry(BaseModel):
     perimetre: str = ""
     typologie: str = ""
     categorie_fresh: str = ""
@@ -176,7 +176,7 @@ class EscaladeEntry(rx.Base):
     doc_url: str = ""
 
 
-class QueteItem(rx.Base):
+class QueteItem(BaseModel):
     id: str = ""
     titre: str = ""
     description: str = ""
@@ -193,7 +193,7 @@ class QueteItem(rx.Base):
     has_prog: bool = False
 
 
-class LeaderboardEntry(rx.Base):
+class LeaderboardEntry(BaseModel):
     user_id: str = ""
     nom: str = ""
     color: str = ""
@@ -204,7 +204,7 @@ class LeaderboardEntry(rx.Base):
     position: int = 1
 
 
-class AmeliorationItem(rx.Base):
+class AmeliorationItem(BaseModel):
     id: str = ""
     titre: str = ""
     description: str = ""
@@ -215,7 +215,7 @@ class AmeliorationItem(rx.Base):
     date_creation: str = ""
 
 
-class ProcSuiviRow(rx.Base):
+class ProcSuiviRow(BaseModel):
     perimetre: str = ""
     typologie: str = ""
     categorie_fresh: str = ""
@@ -225,7 +225,7 @@ class ProcSuiviRow(rx.Base):
     doc_url: str = ""
 
 
-class PendingValidation(rx.Base):
+class PendingValidation(BaseModel):
     quete_id: str = ""
     quete_titre: str = ""
     quete_icone: str = ""
@@ -234,13 +234,13 @@ class PendingValidation(rx.Base):
     user_nom: str = ""
 
 
-class DocPickerItem(rx.Base):
+class DocPickerItem(BaseModel):
     id: str = ""
     nom: str = ""
     url: str = ""
 
 
-class GlobalSearchResult(rx.Base):
+class GlobalSearchResult(BaseModel):
     type: str = ""       # "ticket" | "matrice" | "document" | "gabarit"
     title: str = ""
     subtitle: str = ""
@@ -249,7 +249,7 @@ class GlobalSearchResult(rx.Base):
     extra: str = ""      # contenu gabarit pour copie
 
 
-class TechStatItem(rx.Base):
+class TechStatItem(BaseModel):
     nom: str = ""
     color: str = ""
     total: int = 0
@@ -258,14 +258,14 @@ class TechStatItem(rx.Base):
     escalades: int = 0
 
 
-class ProcVersionItem(rx.Base):
+class ProcVersionItem(BaseModel):
     version: int = 0
     steps: list[str] = []
     date: str = ""
     auteur: str = ""
 
 
-class AutoMatchProposal(rx.Base):
+class AutoMatchProposal(BaseModel):
     doc_id: str = ""
     doc_name: str = ""
     doc_url: str = ""
