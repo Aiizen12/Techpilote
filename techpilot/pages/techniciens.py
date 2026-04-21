@@ -92,6 +92,20 @@ class TechniciensState(rx.State):
         action = "modifié" if self.edit_id else "créé"
         yield rx.toast.success(f"Technicien {action} avec succès.")
 
+    async def delete(self, tid: str):
+        auth = await self.get_state(AuthState)
+        if auth.user_role != "manager" and not auth.permissions.get("technicians_edit", False):
+            yield rx.toast.error("Vous n'avez pas le droit de supprimer un technicien.")
+            return
+        db = load_db()
+        tech = next((t for t in db["technicians"] if str(t.get("id")) == tid), None)
+        if tech:
+            db["technicians"] = [t for t in db["technicians"] if str(t.get("id")) != tid]
+            save_db(db)
+            log_activity(auth.user_nom, "DELETE", "technicien", f"Supprimé: {tech.get('nom', tid)}")
+            self.load()
+            yield rx.toast.success(f"{tech.get('nom', '')} supprimé.")
+
     async def toggle_active(self, tid: str):
         auth = await self.get_state(AuthState)
         if auth.user_role != "manager" and not auth.permissions.get("technicians_edit", False):
@@ -144,6 +158,14 @@ def tech_card(tech: TechnicienItem) -> rx.Component:
                         background="transparent", color=MUTED,
                         border=f"1px solid {BORDER}", border_radius="6px",
                         padding="5px 12px", font_size="0.78rem", cursor="pointer",
+                    ),
+                    rx.button(
+                        rx.icon("trash-2", size=13),
+                        on_click=TechniciensState.delete(tech["id"]),
+                        background="transparent", color="#ef4444",
+                        border="1px solid rgba(239,68,68,0.3)", border_radius="6px",
+                        padding="5px 10px", font_size="0.78rem", cursor="pointer",
+                        _hover={"background": "rgba(239,68,68,0.1)"},
                     ),
                     spacing="2",
                 ),
