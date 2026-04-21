@@ -1390,201 +1390,173 @@ def tickets_content() -> rx.Component:
                         rx.box(
                             rx.icon("shield-alert", size=18, color="white"),
                             background="rgba(255,255,255,0.2)",
-                            border_radius="10px",
-                            padding="8px",
-                            display="flex",
-                            align_items="center",
-                            justify_content="center",
+                            border_radius="10px", padding="8px",
+                            display="flex", align_items="center", justify_content="center",
                         ),
                         rx.vstack(
-                            rx.text("Déclarer un incident", color="white", font_size="1rem", font_weight="700"),
+                            rx.text("Nouvel incident", color="white", font_size="1rem", font_weight="700"),
                             rx.text("Renseigner les informations de l'incident",
                                     color="rgba(255,255,255,0.7)", font_size="0.72rem"),
-                            spacing="0",
-                            align="start",
+                            spacing="0", align="start",
                         ),
-                        spacing="3",
-                        align="center",
+                        rx.spacer(),
+                        rx.icon_button(
+                            rx.icon("x", size=15),
+                            on_click=TicketsState.close_form,
+                            background="rgba(255,255,255,0.15)", color="white",
+                            border_radius="7px", size="2", cursor="pointer",
+                            _hover={"background": "rgba(255,255,255,0.25)"},
+                        ),
+                        spacing="3", align="center", width="100%",
                     ),
                     background=f"linear-gradient(135deg, {RED}, #b91c1c)",
                     border_radius="12px 12px 0 0",
-                    padding="1.25rem 1.5rem",
-                    width="100%",
+                    padding="1.1rem 1.25rem",
+                    margin="-24px -24px 0 -24px",
                 ),
 
+                # ── Corps du formulaire ──────────────────────────────────────
                 rx.vstack(
-                    # Ticket père + Titre
-                    rx.hstack(
-                        rx.vstack(
-                            rx.text("TICKET PÈRE", color=MUTED, font_size="0.68rem", font_weight="700",
-                                    letter_spacing="0.07em"),
+
+                    # Titre *
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("type", size=13, color=MUTED),
+                            rx.text("Titre", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            rx.text("*", color=RED, font_size="0.75rem"),
+                            spacing="1", align="center",
+                        ),
+                        rx.box(
                             rx.input(
-                                placeholder="INC-12345",
-                                value=TicketsState.form["ticket_pere"],
-                                on_change=lambda v: TicketsState.set_field("ticket_pere", v),
-                                background="#1c2138", color=TEXT,
+                                placeholder="Entrez le titre de l'incident",
+                                value=TicketsState.form["titre"],
+                                on_change=TicketsState.set_titre,
+                                background="#0d1021", color=TEXT,
                                 border=f"1px solid {BORDER}", border_radius="8px",
-                                font_family="monospace", font_size="0.82rem",
+                                width="100%", font_size="0.875rem",
+                                _focus={"border_color": RED, "outline": "none"},
+                                _placeholder={"color": "#475569"},
                             ),
-                            spacing="1",
-                            align="start",
-                            width="160px",
-                        ),
-                        rx.vstack(
-                            rx.hstack(
-                                rx.text("TITRE", color=MUTED, font_size="0.68rem", font_weight="700",
-                                        letter_spacing="0.07em"),
-                                rx.text("*", color=RED, font_size="0.75rem"),
-                                spacing="1",
-                            ),
-                            rx.box(
-                                rx.input(
-                                    placeholder="Titre court et descriptif",
-                                    value=TicketsState.form["titre"],
-                                    on_change=TicketsState.set_titre,
-                                    background="#1c2138", color=TEXT,
-                                    border=f"1px solid {BORDER}", border_radius="8px", width="100%",
-                                ),
-                                rx.cond(
-                                    TicketsState.title_suggestions.length() > 0,
-                                    rx.box(
-                                        rx.hstack(
-                                            rx.icon("sparkles", size=11, color="#fbbf24"),
-                                            rx.text("Suggestions matrice", color=MUTED,
-                                                    font_size="0.62rem", font_style="italic"),
-                                            spacing="1", align="center",
-                                            padding="0.3rem 0.85rem",
-                                            border_bottom=f"1px solid {BORDER}",
-                                        ),
-                                        rx.foreach(
-                                            TicketsState.title_suggestions,
-                                            lambda s, i: title_suggestion_item(s, i),
-                                        ),
-                                        position="absolute",
-                                        top="100%",
-                                        left="0",
-                                        right="0",
-                                        z_index="300",
-                                        background="#0d1021",
-                                        border="1px solid rgba(251,191,36,0.3)",
-                                        border_radius="8px",
-                                        max_height="220px",
-                                        overflow_y="auto",
-                                        width="100%",
-                                        margin_top="4px",
-                                        box_shadow="0 8px 24px rgba(0,0,0,0.5)",
+                            rx.cond(
+                                TicketsState.title_suggestions.length() > 0,
+                                rx.box(
+                                    rx.hstack(
+                                        rx.icon("sparkles", size=11, color="#fbbf24"),
+                                        rx.text("Suggestions matrice", color=MUTED,
+                                                font_size="0.62rem", font_style="italic"),
+                                        spacing="1", align="center",
+                                        padding="0.3rem 0.85rem",
+                                        border_bottom=f"1px solid {BORDER}",
                                     ),
+                                    rx.foreach(
+                                        TicketsState.title_suggestions,
+                                        lambda s, i: title_suggestion_item(s, i),
+                                    ),
+                                    position="absolute", top="100%", left="0", right="0",
+                                    z_index="300", background="#0d1021",
+                                    border="1px solid rgba(251,191,36,0.3)",
+                                    border_radius="8px", max_height="220px",
+                                    overflow_y="auto", width="100%",
+                                    margin_top="4px", box_shadow="0 8px 24px rgba(0,0,0,0.5)",
                                 ),
-                                position="relative",
-                                width="100%",
                             ),
-                            spacing="1",
-                            align="start",
-                            flex="1",
+                            position="relative", width="100%",
                         ),
-                        spacing="3",
-                        align="end",
-                        width="100%",
+                        spacing="1", align="start", width="100%",
                     ),
+                    rx.divider(border_color=BORDER + "55"),
+
+                    # N° Ticket père
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("hash", size=13, color=MUTED),
+                            rx.text("N° Ticket père", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            spacing="1", align="center",
+                        ),
+                        rx.input(
+                            placeholder="INC-12345",
+                            value=TicketsState.form["ticket_pere"],
+                            on_change=lambda v: TicketsState.set_field("ticket_pere", v),
+                            background="#0d1021", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px",
+                            font_family="monospace", font_size="0.875rem", width="100%",
+                            _focus={"border_color": RED, "outline": "none"},
+                            _placeholder={"color": "#475569"},
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.divider(border_color=BORDER + "55"),
 
                     # Description
                     rx.vstack(
-                        rx.text("DESCRIPTION DE L'INCIDENT", color=MUTED, font_size="0.68rem",
-                                font_weight="700", letter_spacing="0.07em"),
+                        rx.hstack(
+                            rx.icon("align-left", size=13, color=MUTED),
+                            rx.text("Description de l'incident", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            spacing="1", align="center",
+                        ),
                         rx.text_area(
-                            placeholder="Décrivez l'incident : symptômes observés, utilisateurs impactés, périmètre...",
+                            placeholder="Symptômes observés, utilisateurs impactés, périmètre…",
                             value=TicketsState.form["description"],
                             on_change=lambda v: TicketsState.set_field("description", v),
-                            background="#1c2138", color=TEXT,
-                            border=f"1px solid {BORDER}", border_radius="8px", width="100%",
-                            rows="3",
+                            background="#0d1021", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px",
+                            width="100%", rows="3", font_size="0.875rem",
+                            _focus={"border_color": RED, "outline": "none"},
+                            _placeholder={"color": "#475569"},
                         ),
-                        spacing="1",
-                        align="start",
-                        width="100%",
+                        spacing="1", align="start", width="100%",
                     ),
+                    rx.divider(border_color=BORDER + "55"),
 
-                    # Impact (4 boutons)
+                    # Impact
                     rx.vstack(
-                        rx.text("IMPACT", color=MUTED, font_size="0.68rem", font_weight="700",
-                                letter_spacing="0.07em"),
+                        rx.hstack(
+                            rx.icon("zap", size=13, color=MUTED),
+                            rx.text("Impact", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            spacing="1", align="center",
+                        ),
                         rx.hstack(
                             _impact_btn("basse",    "Faible",   "#6ee7b7", "rgba(34,197,94,0.15)"),
                             _impact_btn("normale",  "Modéré",   "#93c5fd", "rgba(59,130,246,0.15)"),
                             _impact_btn("haute",    "Haute",    "#fcd34d", "rgba(245,158,11,0.15)"),
                             _impact_btn("critique", "Critique", "#f87171", "rgba(239,68,68,0.15)"),
-                            spacing="2",
-                            width="100%",
+                            spacing="2", width="100%",
                         ),
-                        spacing="1",
-                        align="start",
-                        width="100%",
+                        spacing="1", align="start", width="100%",
                     ),
+                    rx.divider(border_color=BORDER + "55"),
 
-                    # Périmètre + Technicien
-                    rx.hstack(
-                        rx.vstack(
-                            rx.text("PÉRIMÈTRE", color=MUTED, font_size="0.68rem", font_weight="700",
-                                    letter_spacing="0.07em"),
-                            rx.input(
-                                placeholder="Réseau, Impression...",
-                                value=TicketsState.form["perimetre"],
-                                on_change=lambda v: TicketsState.set_field("perimetre", v),
-                                background="#1c2138", color=TEXT,
-                                border=f"1px solid {BORDER}", border_radius="8px", width="100%",
-                            ),
-                            spacing="1",
-                            align="start",
-                            flex="1",
+                    # Périmètre
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("layers", size=13, color=MUTED),
+                            rx.text("Périmètre", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            spacing="1", align="center",
                         ),
-                        rx.vstack(
-                            rx.text("TECHNICIEN RÉFÉRENT", color=MUTED, font_size="0.68rem",
-                                    font_weight="700", letter_spacing="0.07em"),
-                            rx.flex(
-                                rx.button(
-                                    "Non assigné",
-                                    on_click=TicketsState.set_tech("_none"),
-                                    style={
-                                        "background": rx.cond(
-                                            TicketsState.form["technicien_id"] == "",
-                                            "rgba(99,102,241,0.2)", "transparent"
-                                        ),
-                                        "color": rx.cond(
-                                            TicketsState.form["technicien_id"] == "",
-                                            PRIMARY, MUTED
-                                        ),
-                                        "border": rx.cond(
-                                            TicketsState.form["technicien_id"] == "",
-                                            "1px solid rgba(99,102,241,0.4)", f"1px solid {BORDER}"
-                                        ),
-                                        "border_radius": "20px", "padding": "3px 10px",
-                                        "font_size": "0.75rem", "cursor": "pointer",
-                                        "white_space": "nowrap", "font_weight": "500",
-                                    },
-                                ),
-                                rx.foreach(TicketsState.technicians, _tech_pill),
-                                flex_wrap="wrap", gap="6px",
-                            ),
-                            spacing="1",
-                            align="start",
-                            flex="1",
+                        rx.input(
+                            placeholder="Réseau, Impression, Poste de travail…",
+                            value=TicketsState.form["perimetre"],
+                            on_change=lambda v: TicketsState.set_field("perimetre", v),
+                            background="#0d1021", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px",
+                            width="100%", font_size="0.875rem",
+                            _focus={"border_color": RED, "outline": "none"},
+                            _placeholder={"color": "#475569"},
                         ),
-                        spacing="3",
-                        width="100%",
+                        spacing="1", align="start", width="100%",
                     ),
+                    rx.divider(border_color=BORDER + "55"),
 
-                    # Lien matrice
+                    # Lien matrice d'escalade
                     rx.vstack(
                         rx.hstack(
                             rx.icon("git-branch", size=13, color=PRIMARY),
-                            rx.text("LIEN MATRICE D'ESCALADE", color=MUTED, font_size="0.68rem",
-                                    font_weight="700", letter_spacing="0.07em"),
-                            rx.text("(optionnel)", color=MUTED, font_size="0.65rem"),
-                            spacing="2", align="center",
+                            rx.text("Lien matrice d'escalade", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            rx.text("— optionnel", color=MUTED, font_size="0.68rem"),
+                            spacing="1", align="center",
                         ),
                         rx.cond(
                             TicketsState.matrix_selected.key != "",
-                            # Entrée sélectionnée
                             rx.hstack(
                                 rx.box(
                                     rx.vstack(
@@ -1614,35 +1586,25 @@ def tickets_content() -> rx.Component:
                                     ),
                                     background="rgba(99,102,241,0.08)",
                                     border="1px solid rgba(99,102,241,0.25)",
-                                    border_radius="10px",
-                                    padding="0.7rem 0.9rem",
-                                    flex="1",
+                                    border_radius="10px", padding="0.7rem 0.9rem", flex="1",
                                 ),
                                 rx.icon_button(
                                     rx.icon("x", size=13),
                                     on_click=TicketsState.clear_matrix,
-                                    background="transparent",
-                                    color=MUTED,
-                                    border_radius="7px",
-                                    size="1",
-                                    cursor="pointer",
-                                    _hover={"color": RED},
-                                    title="Retirer le lien",
+                                    background="transparent", color=MUTED,
+                                    border_radius="7px", size="1", cursor="pointer",
+                                    _hover={"color": RED}, title="Retirer le lien",
                                 ),
                                 spacing="2", align="start", width="100%",
                             ),
-                            # Barre de recherche + dropdown absolu
                             rx.box(
                                 rx.input(
                                     placeholder="Rechercher par périmètre, typologie, interlocuteur…",
                                     value=TicketsState.matrix_search,
                                     on_change=TicketsState.search_matrix,
-                                    background="#1c2138",
-                                    color=TEXT,
-                                    border=f"1px solid {BORDER}",
-                                    border_radius="8px",
-                                    width="100%",
-                                    font_size="0.82rem",
+                                    background="#0d1021", color=TEXT,
+                                    border=f"1px solid {BORDER}", border_radius="8px",
+                                    width="100%", font_size="0.875rem",
                                     _focus={"border_color": PRIMARY, "outline": "none"},
                                     _placeholder={"color": "#475569"},
                                 ),
@@ -1650,55 +1612,82 @@ def tickets_content() -> rx.Component:
                                     TicketsState.matrix_results.length() > 0,
                                     rx.box(
                                         rx.foreach(TicketsState.matrix_results, lambda s, i: matrix_result_item(s, i)),
-                                        position="absolute",
-                                        top="100%",
-                                        left="0",
-                                        right="0",
-                                        z_index="200",
-                                        background="#0d1021",
-                                        border=f"1px solid {BORDER}",
-                                        border_radius="8px",
-                                        max_height="220px",
-                                        overflow_y="auto",
-                                        width="100%",
-                                        margin_top="4px",
-                                        box_shadow="0 8px 24px rgba(0,0,0,0.5)",
+                                        position="absolute", top="100%", left="0", right="0",
+                                        z_index="200", background="#0d1021",
+                                        border=f"1px solid {BORDER}", border_radius="8px",
+                                        max_height="220px", overflow_y="auto", width="100%",
+                                        margin_top="4px", box_shadow="0 8px 24px rgba(0,0,0,0.5)",
                                     ),
                                 ),
-                                position="relative",
-                                width="100%",
+                                position="relative", width="100%",
                             ),
                         ),
-                        spacing="2",
-                        align="start",
-                        width="100%",
+                        spacing="2", align="start", width="100%",
                     ),
+                    rx.divider(border_color=BORDER + "55"),
 
-                    # État
+                    # Technicien référent
                     rx.vstack(
-                        rx.text("ÉTAT DE L'INCIDENT", color=MUTED, font_size="0.68rem",
-                                font_weight="700", letter_spacing="0.07em"),
+                        rx.hstack(
+                            rx.icon("user", size=13, color=MUTED),
+                            rx.text("Technicien référent", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            spacing="1", align="center",
+                        ),
+                        rx.flex(
+                            rx.button(
+                                "Non assigné",
+                                on_click=TicketsState.set_tech("_none"),
+                                style={
+                                    "background": rx.cond(
+                                        TicketsState.form["technicien_id"] == "",
+                                        "rgba(239,68,68,0.15)", "transparent"
+                                    ),
+                                    "color": rx.cond(
+                                        TicketsState.form["technicien_id"] == "", RED, MUTED
+                                    ),
+                                    "border": rx.cond(
+                                        TicketsState.form["technicien_id"] == "",
+                                        f"1px solid {RED}55", f"1px solid {BORDER}"
+                                    ),
+                                    "border_radius": "20px", "padding": "4px 12px",
+                                    "font_size": "0.78rem", "cursor": "pointer",
+                                    "white_space": "nowrap", "font_weight": "500",
+                                },
+                            ),
+                            rx.foreach(TicketsState.technicians, _tech_pill),
+                            flex_wrap="wrap", gap="6px",
+                        ),
+                        spacing="1", align="start", width="100%",
+                    ),
+                    rx.divider(border_color=BORDER + "55"),
+
+                    # Statut *
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("activity", size=13, color=MUTED),
+                            rx.text("Statut", color=MUTED, font_size="0.75rem", font_weight="600"),
+                            rx.text("*", color=RED, font_size="0.75rem"),
+                            spacing="1", align="center",
+                        ),
                         rx.hstack(
                             _etat_btn("en_cours", "En cours", "clock",
                                       RED, f"linear-gradient(135deg, {RED}, #b91c1c)"),
                             _etat_btn("resolu",   "Résolu",   "circle-check",
                                       GREEN, "linear-gradient(135deg, #059669, #10b981)"),
-                            spacing="3",
-                            width="100%",
+                            spacing="3", width="100%",
                         ),
-                        spacing="1",
-                        align="start",
-                        width="100%",
+                        spacing="1", align="start", width="100%",
                     ),
+                    rx.divider(border_color=BORDER + "55"),
 
-                    # Notes + Quick gabarit
+                    # Notes / Actions menées + gabarit
                     rx.vstack(
                         rx.hstack(
-                            rx.text("NOTES / ACTIONS MENÉES", color=MUTED, font_size="0.68rem",
-                                    font_weight="700", letter_spacing="0.07em"),
+                            rx.icon("file-text", size=13, color=MUTED),
+                            rx.text("Notes / Actions menées", color=MUTED, font_size="0.75rem", font_weight="600"),
                             rx.spacer(),
                             rx.button(
-                                rx.icon("file-text", size=12), "Gabarit",
+                                rx.icon("copy", size=11), "Gabarit",
                                 on_click=TicketsState.toggle_quick_gabarit,
                                 size="1",
                                 style={
@@ -1706,15 +1695,9 @@ def tickets_content() -> rx.Component:
                                         TicketsState.show_quick_gabarit,
                                         "rgba(99,102,241,0.2)", "transparent"
                                     ),
-                                    "color": rx.cond(
-                                        TicketsState.show_quick_gabarit,
-                                        PRIMARY, MUTED
-                                    ),
-                                    "border": f"1px solid {BORDER}",
-                                    "border_radius": "6px",
-                                    "cursor": "pointer",
-                                    "font_size": "0.7rem",
-                                    "padding": "2px 8px",
+                                    "color": rx.cond(TicketsState.show_quick_gabarit, PRIMARY, MUTED),
+                                    "border": f"1px solid {BORDER}", "border_radius": "6px",
+                                    "cursor": "pointer", "font_size": "0.7rem", "padding": "2px 8px",
                                 },
                             ),
                             width="100%", align="center",
@@ -1726,10 +1709,9 @@ def tickets_content() -> rx.Component:
                                     placeholder="Rechercher un gabarit…",
                                     value=TicketsState.quick_gabarit_search,
                                     on_change=TicketsState.set_quick_gabarit_search,
-                                    background="#0d1117", style={"color": TEXT},
+                                    background="#0d1021", style={"color": TEXT},
                                     border=f"1px solid {BORDER}", border_radius="7px",
-                                    font_size="0.8rem", width="100%",
-                                    auto_focus=True,
+                                    font_size="0.8rem", width="100%", auto_focus=True,
                                 ),
                                 rx.box(
                                     rx.foreach(
@@ -1748,12 +1730,11 @@ def tickets_content() -> rx.Component:
                                                        "border_radius": "5px", "cursor": "pointer"},
                                             ),
                                             spacing="2", align="center", width="100%",
-                                            padding="5px 8px",
-                                            border_bottom=f"1px solid {BORDER}",
+                                            padding="5px 8px", border_bottom=f"1px solid {BORDER}",
                                             _hover={"background": "rgba(255,255,255,0.03)"},
                                         ),
                                     ),
-                                    background="#0d1117", border=f"1px solid {BORDER}",
+                                    background="#0d1021", border=f"1px solid {BORDER}",
                                     border_radius="8px", max_height="180px",
                                     overflow_y="auto", width="100%",
                                 ),
@@ -1761,50 +1742,53 @@ def tickets_content() -> rx.Component:
                             ),
                         ),
                         rx.text_area(
-                            placeholder="Actions effectuées, contournements mis en place...",
+                            placeholder="Actions effectuées, contournements mis en place…",
                             value=TicketsState.form["notes"],
                             on_change=lambda v: TicketsState.set_field("notes", v),
-                            background="#1c2138", color=TEXT,
-                            border=f"1px solid {BORDER}", border_radius="8px", width="100%",
-                            rows="2",
+                            background="#0d1021", color=TEXT,
+                            border=f"1px solid {BORDER}", border_radius="8px",
+                            width="100%", rows="3", font_size="0.875rem",
+                            _focus={"border_color": RED, "outline": "none"},
+                            _placeholder={"color": "#475569"},
                         ),
-                        spacing="1",
-                        align="start",
-                        width="100%",
+                        spacing="1", align="start", width="100%",
                     ),
 
-                    # Boutons
+                    # Footer boutons
                     rx.hstack(
-                        rx.button("Annuler", on_click=TicketsState.close_form,
-                                  background="transparent", color=MUTED,
-                                  border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
                         rx.button(
-                            rx.icon("check", size=15),
-                            "Créer l'incident",
+                            "Annuler", on_click=TicketsState.close_form,
+                            background="transparent", color=MUTED,
+                            border=f"1px solid {BORDER}", border_radius="8px",
+                            cursor="pointer", font_size="0.875rem",
+                        ),
+                        rx.button(
+                            rx.icon("shield-alert", size=14), "Créer l'incident",
                             on_click=TicketsState.create,
                             background=f"linear-gradient(135deg, {RED}, #b91c1c)",
                             color="white", border_radius="8px", cursor="pointer",
-                            font_weight="700",
-                            spacing="2",
+                            font_weight="700", font_size="0.875rem", spacing="2",
+                            _hover={"opacity": "0.9"},
                         ),
                         spacing="3", justify="end", width="100%",
+                        padding_top="0.5rem",
                     ),
 
-                    spacing="4",
-                    width="100%",
-                    padding="1.25rem 1.5rem 1.5rem 1.5rem",
+                    spacing="3", width="100%",
+                    padding_top="1.25rem",
                 ),
 
                 background="#111524",
                 border=f"1px solid {BORDER}",
                 border_radius="16px",
-                padding="0",
-                max_width="560px",
+                padding="24px",
+                max_width="580px",
                 overflow_y="auto",
                 max_height="92vh",
             ),
             open=TicketsState.show_form,
         ),
+
 
         # Dialog détail ticket
         ticket_detail_dialog(),
