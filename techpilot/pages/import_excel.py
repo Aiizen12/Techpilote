@@ -125,7 +125,6 @@ def _parse_planning(wb) -> list[dict]:
 
     # Charger les noms depuis la DB (configurable via page Techniciens)
     tech_names = _get_tech_names()
-    print(f"[IMPORT] tech_names chargés : {tech_names}")
 
     # Repérer TOUS les blocs d'en-têtes de semaines dans la feuille
     header_indices = [i for i, row in enumerate(rows) if is_week_header(row)]
@@ -147,14 +146,12 @@ def _parse_planning(wb) -> list[dict]:
             first = str(row[0]).strip() if row[0] else (str(row[1]).strip() if len(row) > 1 and row[1] else "")
             tech_name = next((n for n in tech_names if first.lower().startswith(n.lower())), None)
             if not tech_name:
-                print(f"[IMPORT] Ligne ignorée (nom inconnu): '{first}'")
                 continue
             for week in weeks:
                 c = week["col"]
                 horaire = str(row[c]).strip() if c < len(row) and row[c] else ""
                 bendoc  = str(row[c+1]).strip() if c+1 < len(row) and row[c+1] else ""
                 tt      = str(row[c+2]).strip() if c+2 < len(row) and row[c+2] else ""
-                print(f"[IMPORT] {tech_name} | {week['label']} | horaire='{horaire}' | tt='{tt}'")
                 if not horaire and not tt:
                     continue
                 key = f"{tech_name}|{week['label']}"
