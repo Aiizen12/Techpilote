@@ -147,8 +147,12 @@ def init_db():
     _cache = {k: v for k, v in doc.items() if k != "_id"}
 
     # Ajoute les techniciens du DEFAULT_DB manquants dans la DB existante
-    existing_ids = {str(t.get("id")) for t in _cache.get("technicians", [])}
-    missing = [t for t in DEFAULT_DB["technicians"] if str(t.get("id")) not in existing_ids]
+    existing_ids   = {str(t.get("id")) for t in _cache.get("technicians", [])}
+    existing_names = {str(t.get("nom", "")).lower() for t in _cache.get("technicians", [])}
+    missing = [
+        t for t in DEFAULT_DB["technicians"]
+        if str(t.get("id")) not in existing_ids and str(t.get("nom", "")).lower() not in existing_names
+    ]
     if missing:
         _cache.setdefault("technicians", []).extend(missing)
         _collection.update_one(
