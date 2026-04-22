@@ -20,6 +20,9 @@ ENV PYTHONPATH=/app
 ENV PORT=8080
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
+# Reflex 0.8.x calls npm with cwd=/app at backend startup — provide a stub package.json
+RUN echo '{"name":"techpilot","version":"1.0.0","private":true}' > /app/package.json
+
 # Init Reflex — creates /app/.web/ with package.json and Next.js scaffold
 RUN reflex init
 
