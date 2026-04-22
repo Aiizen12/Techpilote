@@ -1,5 +1,6 @@
 #!/bin/sh
-set -x  # trace every command to stderr (unbuffered)
+exec 2>&1  # merge stderr into stdout so Railway captures everything
+set -x
 export PATH="/opt/venv/bin:$PATH"
 export PYTHONPATH=/app
 

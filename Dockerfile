@@ -24,8 +24,10 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN reflex init
 RUN reflex export --frontend-only --no-zip 2>&1 || echo "WARNING: reflex export failed"
 
-# Copy built frontend to canonical location
-RUN FOUND=$(find /app/.web /app/frontend -name "index.html" 2>/dev/null | head -1); \
+# Copy built frontend — exclude node_modules to avoid picking up library demo files
+RUN FOUND=$(find /app/.web /app/frontend -name "index.html" \
+      -not -path "*/node_modules/*" \
+      2>/dev/null | head -1); \
     if [ -n "$FOUND" ]; then \
       cp -r "$(dirname $FOUND)" /app/frontend_built; \
       echo "Frontend built at: $(dirname $FOUND)"; \
