@@ -7,6 +7,7 @@ PORT="${PORT:-8080}"
 # ── Detect pre-built frontend location ───────────────────────────────────────
 FRONTEND_DIR=""
 for candidate in \
+    /app/frontend_built \
     /app/.web/build/client \
     /app/.web/_static \
     /app/.web/out \
@@ -64,7 +65,9 @@ NGINXEOF
     sleep 3
 
 else
-    echo "WARNING: no pre-built frontend — running full reflex (may be slow/OOM)"
+    echo "WARNING: no pre-built frontend — building at runtime (may be slow)"
+    # Ensure .web/ is properly initialised before running reflex
+    reflex init
     # Fallback: proxy to Reflex's own frontend server on port 3000
     sed -i "s/PORT_PLACEHOLDER/${PORT}/g" /etc/nginx/conf.d/default.conf
     export NODE_OPTIONS="--max-old-space-size=1536"

@@ -2,6 +2,7 @@ import os
 import copy
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from techpilot.gabarits_data import GABARIT_CATEGORIES_DEFAULT
 
 load_dotenv()
 
@@ -183,6 +184,16 @@ def init_db():
             {"$set": {"onboarding_steps": _cache["onboarding_steps"]}},
         )
         print(f"[DB] Étapes onboarding ajoutées : {len(missing_ob)}")
+
+    # Migre les catégories gabarits si elles ont changé
+    saved_cats = _cache.get("gabarit_categories")
+    if saved_cats != GABARIT_CATEGORIES_DEFAULT:
+        _cache["gabarit_categories"] = list(GABARIT_CATEGORIES_DEFAULT)
+        _collection.update_one(
+            {"_id": "main"},
+            {"$set": {"gabarit_categories": _cache["gabarit_categories"]}},
+        )
+        print(f"[DB] Catégories gabarits mises à jour : {GABARIT_CATEGORIES_DEFAULT}")
 
     print(f"[DB] MongoDB connecté — {len(_cache.get('technicians', []))} techniciens")
 

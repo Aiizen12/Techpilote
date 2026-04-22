@@ -25,12 +25,18 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 # Init Reflex (generates .web/ scaffold and config)
 RUN reflex init
 
-# Build the frontend at image-build time (Docker build containers have ~8 GB RAM)
-# The output lands in .web/build/client/ (React Router v7 convention)
-RUN reflex export --frontend-only --no-zip
+# Build the frontend at image-build time
+RUN reflex export --frontend-only --no-zip || echo "WARNING: reflex export failed, frontend will be built at runtime"
 
-# Discover where the built index.html ended up and print it for diagnostics
-RUN find /app/.web -name "index.html" 2>/dev/null | head -5 || echo "No index.html found in .web"
+# Discover where index.html ended up and copy to canonical location
+RUN FOUND=$(find /app/.web /app/frontend -name "index.html" 2>/dev/null | head -1); \
+    if [ -n "$FOUND" ]; then \
+      DIR=$(dirname "$FOUND"); \
+      echo "Frontend built at: $DIR"; \
+      cp -r "$DIR" /app/frontend_built; \
+    else \
+      echo "No pre-built frontend found — will build at runtime"; \
+    fi
 
 # Copy nginx config template
 COPY nginx.conf /etc/nginx/conf.d/default.conf
