@@ -20,8 +20,9 @@ ENV PYTHONPATH=/app
 ENV PORT=8080
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Reflex 0.8.x calls npm with cwd=/app at backend startup — provide a stub package.json
-RUN echo '{"name":"techpilot","version":"1.0.0","private":true}' > /app/package.json
+# Reflex 0.8.x calls "npm start" with cwd=/app — provide a stub that starts a static
+# file server on port 3000 so Reflex is satisfied and can proceed.
+RUN printf '{\n  "name": "techpilot",\n  "version": "1.0.0",\n  "private": true,\n  "scripts": {\n    "start": "python3 -m http.server 3000 --directory /app/frontend_built 2>/dev/null || python3 -m http.server 3000 --directory /app/.web/out",\n    "build": "echo build-handled-by-docker",\n    "dev": "echo dev-not-supported"\n  }\n}\n' > /app/package.json
 
 # Init Reflex — creates /app/.web/ with package.json and Next.js scaffold
 RUN reflex init
