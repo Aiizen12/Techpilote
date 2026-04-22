@@ -1,17 +1,14 @@
 #!/bin/sh
-exec 2>&1  # merge stderr into stdout so Railway captures everything
-set -x
 export PATH="/opt/venv/bin:$PATH"
 export PYTHONPATH=/app
 
 PORT="${PORT:-8080}"
 echo "[start.sh] PORT=$PORT"
-echo "[start.sh] PYTHONPATH=$PYTHONPATH"
 
 # ── Detect pre-built frontend ─────────────────────────────────────────────────
 FRONTEND_DIR=""
 for candidate in /app/frontend_built /app/.web/build/client /app/.web/_static /app/.web/out /app/frontend; do
-    if [ -f "$candidate/index.html" ]; then
+    if [ -d "$candidate/_next" ] || [ -f "$candidate/index.html" ]; then
         FRONTEND_DIR="$candidate"
         echo "[start.sh] Frontend found: $FRONTEND_DIR"
         break

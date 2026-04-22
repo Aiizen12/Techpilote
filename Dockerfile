@@ -20,24 +20,24 @@ ENV PYTHONPATH=/app
 ENV PORT=8080
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Reflex init + export (the proper way to build the frontend)
 RUN reflex init
+
+# Build frontend — reflex export creates /app/.web/build/client/
 RUN reflex export --frontend-only --no-zip 2>&1 || echo "WARNING: reflex export failed"
 
-# Copy built frontend — exclude node_modules to avoid picking up library demo files
-RUN FOUND=$(find /app/.web /app/frontend -name "index.html" \
-      -not -path "*/node_modules/*" \
-      2>/dev/null | head -1); \
-    if [ -n "$FOUND" ]; then \
-      cp -r "$(dirname $FOUND)" /app/frontend_built; \
-      echo "Frontend built at: $(dirname $FOUND)"; \
+# Copy the build output root directly (not a subdirectory found by find)
+RUN if [ -d /app/.web/build/client ]; then \
+      cp -r /app/.web/build/client /app/frontend_built; \
+      echo "Frontend copied from /app/.web/build/client"; \
+    elif [ -d /app/.web/out ]; then \
+      cp -r /app/.web/out /app/frontend_built; \
+      echo "Frontend copied from /app/.web/out"; \
     else \
       echo "No pre-built frontend found"; \
     fi
 
-# Reflex calls "npm start" in /app at runtime — provide a stub that serves
-# the static frontend on port 3000 using Python (always available, no next needed)
-RUN printf '{\n  "name": "techpilot",\n  "version": "1.0.0",\n  "private": true,\n  "scripts": {\n    "start": "python3 -m http.server 3000 --directory /app/frontend_built",\n    "build": "echo ok",\n    "dev": "echo ok"\n  }\n}\n' > /app/package.json
+# Reflex calls "npm start" in /app at runtime — provide a harmless stub
+RUN printf '{\n  "name": "techpilot",\n  "version": "1.0.0",\n  "private": true,\n  "scripts": {\n    "start": "echo frontend-ok",\n    "build": "echo ok",\n    "dev": "echo ok"\n  }\n}\n' > /app/package.json
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN chmod +x /app/start.sh
