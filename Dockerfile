@@ -35,8 +35,11 @@ RUN cd /app/.web && npm pkg set scripts.start="next start -p 3000"
 # Build frontend — show full output so we can debug failures
 RUN cd /app/.web && npm run build 2>&1 || echo "=== WARNING: npm build failed — will try at runtime ==="
 
-# /app/package.json: Reflex calls npm in /app — delegate to .web/
-RUN printf '{"name":"techpilot","version":"1.0.0","private":true,"scripts":{"start":"npm --prefix /app/.web start","build":"npm --prefix /app/.web run build","dev":"npm --prefix /app/.web run dev"}}\n' > /app/package.json
+# Verify next binary exists
+RUN ls /app/.web/node_modules/.bin/next && echo "next OK" || echo "next MISSING — checking package.json"
+
+# /app/package.json: Reflex calls npm in /app — use absolute path to next binary
+RUN printf '{"name":"techpilot","version":"1.0.0","private":true,"scripts":{"start":"cd /app/.web && node_modules/.bin/next start -p 3000","build":"cd /app/.web && node_modules/.bin/next build","dev":"cd /app/.web && node_modules/.bin/next dev -p 3000"}}\n' > /app/package.json
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
