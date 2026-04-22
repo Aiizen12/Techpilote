@@ -1,4 +1,5 @@
 #!/bin/sh
+set -x  # trace every command to stderr (unbuffered)
 export PATH="/opt/venv/bin:$PATH"
 export PYTHONPATH=/app
 
