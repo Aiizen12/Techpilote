@@ -20,31 +20,25 @@ ENV PYTHONPATH=/app
 ENV PORT=8080
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Init Reflex — creates /app/.web/ with Next.js scaffold
+# Reflex init + export (the proper way to build the frontend)
 RUN reflex init
+RUN reflex export --frontend-only --no-zip 2>&1 || echo "WARNING: reflex export failed"
 
-# Show what the generated package.json looks like
-RUN echo "=== .web/package.json ===" && cat /app/.web/package.json || echo "(not found)"
+# Copy built frontend to canonical location
+RUN FOUND=$(find /app/.web /app/frontend -name "index.html" 2>/dev/null | head -1); \
+    if [ -n "$FOUND" ]; then \
+      cp -r "$(dirname $FOUND)" /app/frontend_built; \
+      echo "Frontend built at: $(dirname $FOUND)"; \
+    else \
+      echo "No pre-built frontend found"; \
+    fi
 
-# Install frontend deps
-RUN cd /app/.web && npm install
-
-# Add missing start script to .web/package.json (Reflex 0.8.x doesn't generate one)
-RUN cd /app/.web && npm pkg set scripts.start="next start -p 3000"
-
-# Build frontend — show full output so we can debug failures
-RUN cd /app/.web && npm run build 2>&1 || echo "=== WARNING: npm build failed — will try at runtime ==="
-
-# Verify next binary exists
-RUN ls /app/.web/node_modules/.bin/next && echo "next OK" || echo "next MISSING — checking package.json"
-
-# /app/package.json: Reflex calls npm in /app — use absolute path to next binary
-RUN printf '{"name":"techpilot","version":"1.0.0","private":true,"scripts":{"start":"cd /app/.web && node_modules/.bin/next start -p 3000","build":"cd /app/.web && node_modules/.bin/next build","dev":"cd /app/.web && node_modules/.bin/next dev -p 3000"}}\n' > /app/package.json
+# Reflex calls "npm start" in /app at runtime — provide a stub that serves
+# the static frontend on port 3000 using Python (always available, no next needed)
+RUN printf '{\n  "name": "techpilot",\n  "version": "1.0.0",\n  "private": true,\n  "scripts": {\n    "start": "python3 -m http.server 3000 --directory /app/frontend_built",\n    "build": "echo ok",\n    "dev": "echo ok"\n  }\n}\n' > /app/package.json
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
 RUN chmod +x /app/start.sh
 
 EXPOSE 8080
-
 CMD ["/app/start.sh"]
