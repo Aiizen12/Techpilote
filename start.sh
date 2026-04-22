@@ -21,7 +21,6 @@ done
 
 # ── Write nginx config ────────────────────────────────────────────────────────
 if [ -n "$FRONTEND_DIR" ]; then
-    # Serve static files directly — no proxy to port 3000 needed
     cat > /etc/nginx/conf.d/default.conf <<NGINXEOF
 map \$http_upgrade \$connection_upgrade {
     default upgrade;
@@ -31,7 +30,6 @@ server {
     listen ${PORT} default_server;
     port_in_redirect off;
 
-    # Backend API / WebSocket
     location ~* ^/(_event|_upload|_ping|backend_health) {
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
@@ -42,7 +40,6 @@ server {
         proxy_send_timeout 86400;
     }
 
-    # Static assets with long-term caching
     location ~* \.(js|css|png|svg|ico|woff2?|ttf|map|json)$ {
         root ${FRONTEND_DIR};
         try_files \$uri =404;
@@ -50,7 +47,6 @@ server {
         gzip_static on;
     }
 
-    # SPA catch-all
     location / {
         root ${FRONTEND_DIR};
         try_files \$uri \$uri/ /index.html;
@@ -65,21 +61,20 @@ NGINXEOF
 
 else
     echo "WARNING: no pre-built frontend — building at runtime"
+    echo "NOTE: /app/.web/ was created by 'reflex init' during Docker build"
     export NODE_OPTIONS="--max-old-space-size=1536"
 
-    # Init Reflex to create /app/.web/ structure
-    reflex init
+    # DO NOT run 'reflex init' here — it calls npm in /app (cwd) before .web/ exists.
+    # The Dockerfile already ran 'reflex init', so /app/.web/ and its package.json exist.
 
-    # Build frontend explicitly in .web/ (avoids npm running in /app)
     echo "Running npm install in /app/.web ..."
-    (cd /app/.web && npm install)
+    (cd /app/.web && npm install) || echo "npm install failed"
 
     echo "Running npm build in /app/.web ..."
-    (cd /app/.web && npm run build) || echo "npm build failed, trying next build..."
-    (cd /app/.web && npx next build 2>/dev/null) || true
+    (cd /app/.web && npm run build) || echo "npm build failed"
 
     # Re-check for index.html after build
-    for candidate in /app/.web/build/client /app/.web/_static /app/.web/out /app/.web/.next /app/.web/dist; do
+    for candidate in /app/.web/out /app/.web/build/client /app/.web/_static /app/.web/.next /app/.web/dist; do
         if [ -f "$candidate/index.html" ]; then
             FRONTEND_DIR="$candidate"
             echo "Frontend built at: $FRONTEND_DIR"
@@ -88,7 +83,6 @@ else
     done
 
     if [ -n "$FRONTEND_DIR" ]; then
-        # Update nginx to serve the newly built frontend
         cat > /etc/nginx/conf.d/default.conf <<NGINXEOF2
 map \$http_upgrade \$connection_upgrade {
     default upgrade;
@@ -118,12 +112,12 @@ server {
     }
 }
 NGINXEOF2
-        python /app/run_backend.py &
     else
         echo "ERROR: could not build frontend. Starting backend only."
         sed -i "s/PORT_PLACEHOLDER/${PORT}/g" /etc/nginx/conf.d/default.conf
-        python /app/run_backend.py &
     fi
+
+    python /app/run_backend.py &
     sleep 3
 fi
 
