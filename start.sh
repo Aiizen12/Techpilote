@@ -60,8 +60,7 @@ server {
 NGINXEOF
 
     echo "nginx configured to serve static files from $FRONTEND_DIR"
-    # Backend only — frontend already built
-    reflex run --env prod --backend-only --backend-host 127.0.0.1 --backend-port 8000 &
+    python /app/run_backend.py &
     sleep 3
 
 else
@@ -119,11 +118,11 @@ server {
     }
 }
 NGINXEOF2
-        reflex run --env prod --backend-only --backend-host 127.0.0.1 --backend-port 8000 &
+        python /app/run_backend.py &
     else
         echo "ERROR: could not build frontend. Starting backend only."
         sed -i "s/PORT_PLACEHOLDER/${PORT}/g" /etc/nginx/conf.d/default.conf
-        reflex run --env prod --backend-only --backend-host 127.0.0.1 --backend-port 8000 &
+        python /app/run_backend.py &
     fi
     sleep 3
 fi
