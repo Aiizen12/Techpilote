@@ -29,8 +29,11 @@ RUN echo "=== .web/package.json ===" && cat /app/.web/package.json || echo "(not
 # Install frontend deps
 RUN cd /app/.web && npm install
 
+# Add missing start script to .web/package.json (Reflex 0.8.x doesn't generate one)
+RUN cd /app/.web && npm pkg set scripts.start="next start -p 3000"
+
 # Build frontend — show full output so we can debug failures
-RUN cd /app/.web && npm run build 2>&1 || echo "=== WARNING: npm build failed — will use next start without pre-build ==="
+RUN cd /app/.web && npm run build 2>&1 || echo "=== WARNING: npm build failed — will try at runtime ==="
 
 # /app/package.json: Reflex calls npm in /app — delegate to .web/
 RUN printf '{"name":"techpilot","version":"1.0.0","private":true,"scripts":{"start":"npm --prefix /app/.web start","build":"npm --prefix /app/.web run build","dev":"npm --prefix /app/.web run dev"}}\n' > /app/package.json
