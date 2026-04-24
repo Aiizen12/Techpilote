@@ -640,6 +640,56 @@
       <div id="citrixOutput" class="empty-state">Renseignez les réponses ci-dessus pour obtenir l’analyse Citrix.</div>
     </section>
 
+    <section class="panel" id="bvSection" style="display:none; margin-bottom:20px;">
+      <div class="results-header">
+        <div>
+          <h2>Arbre de décision — Bureau virtuel Citrix ne se lance pas</h2>
+          <div class="summary">Répondez aux questions pour qualifier l'incident, identifier si le problème est local, lié aux droits ou à la plateforme.</div>
+        </div>
+        <button id="resetBvBtn">Réinitialiser</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <strong>Progression</strong>
+          <span id="bvProgressText">0 / 10 réponses</span>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="bvProgressBar"></div></div>
+      </div>
+
+      <div class="decision-grid">
+        <section class="question-card">
+          <h3>1. Accès au portail</h3>
+          <div class="field"><label for="bvPortal">Le portail Citrix s'ouvre-t-il dans le navigateur ?</label><select id="bvPortal"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="bvInternet">Internet / intranet fonctionne sur ce poste ?</label><select id="bvInternet"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+          <div class="field"><label for="bvIconVisible">L'icône "Bureau virtuel" est-elle visible dans le portail ?</label><select id="bvIconVisible"><option value="">Sélectionner</option><option value="yes">Oui</option><option value="no">Non</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>2. Comportement au clic</h3>
+          <div class="field"><label for="bvClick">Que se passe-t-il au clic sur "Bureau virtuel" ?</label><select id="bvClick"><option value="">Sélectionner</option><option value="nothing">Rien (pas de réaction)</option><option value="loading">Chargement indéfini / roue qui tourne</option><option value="closes">Connexion puis fermeture immédiate</option><option value="blackscreen">Fenêtre noire puis fermeture</option><option value="error">Message d'erreur</option></select></div>
+          <div class="field"><label for="bvError">Message d'erreur affiché (si applicable)</label><select id="bvError"><option value="">Aucun / non précisé</option><option value="no-resource">Aucune ressource disponible</option><option value="timeout">Délai dépassé / connexion expirée</option><option value="refused">Connexion refusée</option><option value="session-active">Session déjà active / session en cours</option><option value="cannot-complete">Cannot complete your request</option><option value="other">Autre message</option></select></div>
+          <div class="field"><label for="bvOtherApps">D'autres applications Citrix (ex. Anaël, PLD) fonctionnent-elles ?</label><select id="bvOtherApps"><option value="">Non testé</option><option value="yes">Oui, elles fonctionnent</option><option value="no">Non, elles ne fonctionnent pas non plus</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>3. Périmètre de l'incident</h3>
+          <div class="field"><label for="bvScope">Plusieurs utilisateurs ont le même problème au même moment ?</label><select id="bvScope"><option value="">Sélectionner</option><option value="isolated">Non, utilisateur isolé</option><option value="multiple">Oui, plusieurs utilisateurs</option></select></div>
+          <div class="field"><label for="bvOtherPc">Même compte testé sur un autre poste ?</label><select id="bvOtherPc"><option value="">Non testé</option><option value="ok">OK sur autre poste</option><option value="ko">KO sur autre poste aussi</option></select></div>
+          <div class="field"><label for="bvOtherAccount">Autre compte testé sur ce poste ?</label><select id="bvOtherAccount"><option value="">Non testé</option><option value="ok">OK avec autre compte</option><option value="ko">KO avec autre compte aussi</option></select></div>
+        </section>
+
+        <section class="question-card">
+          <h3>4. Actions réalisées</h3>
+          <div class="field"><label for="bvRights">Droits AD vérifiés (groupes Citrix présents) ?</label><select id="bvRights"><option value="">Non vérifié</option><option value="ok">Vérifiés — droits présents</option><option value="ko">Vérifiés — droits manquants</option></select></div>
+          <div class="field"><label for="bvReset">Quitter Workspace + Reset Citrix Workspace</label><select id="bvReset"><option value="">Non fait</option><option value="done_ok">Fait — résolu</option><option value="done_ko">Fait — toujours KO</option></select></div>
+          <div class="field"><label for="bvRestart">Redémarrage du poste</label><select id="bvRestart"><option value="">Non fait</option><option value="done_ok">Fait — résolu</option><option value="done_ko">Fait — toujours KO</option></select></div>
+        </section>
+      </div>
+
+      <div id="bvOutput" class="empty-state">Renseignez les réponses ci-dessus pour obtenir l'analyse.</div>
+    </section>
+
     <section class="panel" id="browserSection" style="display:none; margin-bottom:20px;">
       <div class="results-header">
         <div>
@@ -769,7 +819,7 @@
       'Vérifier les câbles électriques et réseau sur la machine et sur les prises murales.'
     ];
 
-    const subjectOrder = ['Panne matériels', 'Panne Citrix', 'Panne navigateur / application web', 'Panne réseau'];
+    const subjectOrder = ['Panne matériels', 'Panne Citrix', 'Citrix — Bureau virtuel', 'Panne navigateur / application web', 'Panne réseau'];
     const materialOrder = ['poste', 'écran externe', 'imprimante', 'téléphone IP', 'téléphone mobile', 'réseau'];
 
     const ticketInfo = {
@@ -844,6 +894,10 @@
     const citrixOutput = document.getElementById('citrixOutput');
     const citrixProgressText = document.getElementById('citrixProgressText');
     const citrixProgressBar = document.getElementById('citrixProgressBar');
+    const bvSection = document.getElementById('bvSection');
+    const bvOutput = document.getElementById('bvOutput');
+    const bvProgressText = document.getElementById('bvProgressText');
+    const bvProgressBar = document.getElementById('bvProgressBar');
     const browserSection = document.getElementById('browserSection');
     const browserOutput = document.getElementById('browserOutput');
     const browserProgressText = document.getElementById('browserProgressText');
@@ -976,11 +1030,13 @@
     function toggleSubjectViews() {
       const materialSelected = selectedSubjects.has('Panne matériels');
       const citrixSelected = selectedSubjects.has('Panne Citrix');
+      const bvSelected = selectedSubjects.has('Citrix — Bureau virtuel');
       const browserSelected = selectedSubjects.has('Panne navigateur / application web');
       const reseauSelected = selectedSubjects.has('Panne réseau');
       materialBanner.style.display = materialSelected ? '' : 'none';
       materialLayout.style.display = materialSelected ? 'grid' : 'none';
       citrixSection.style.display = citrixSelected ? 'block' : 'none';
+      bvSection.style.display = bvSelected ? 'block' : 'none';
       browserSection.style.display = browserSelected ? 'block' : 'none';
       reseauSection.style.display = reseauSelected ? 'block' : 'none';
       updateActiveModeBanner();
@@ -999,6 +1055,7 @@
           toggleSubjectViews();
           updateSearchSelections();
           renderCitrixDecision();
+          renderBvDecision();
           renderBrowserDecision();
         });
       });
@@ -1451,6 +1508,163 @@
       });
     }
 
+    function bindBvInputs() {
+      ['bvPortal','bvInternet','bvIconVisible','bvClick','bvError','bvOtherApps','bvScope','bvOtherPc','bvOtherAccount','bvRights','bvReset','bvRestart'].forEach(function(id) {
+        document.getElementById(id).addEventListener('change', renderBvDecision);
+      });
+      document.getElementById('resetBvBtn').addEventListener('click', function() {
+        ['bvPortal','bvInternet','bvIconVisible','bvClick','bvError','bvOtherApps','bvScope','bvOtherPc','bvOtherAccount','bvRights','bvReset','bvRestart'].forEach(function(id) {
+          document.getElementById(id).value = '';
+        });
+        renderBvDecision();
+      });
+    }
+
+    function renderBvDecision() {
+      updateDecisionProgress(['bvPortal','bvInternet','bvIconVisible','bvClick','bvError','bvOtherApps','bvScope','bvOtherPc','bvOtherAccount','bvRights'], bvProgressText, bvProgressBar);
+      if (!selectedSubjects.has('Citrix — Bureau virtuel')) {
+        bvOutput.innerHTML = 'Renseignez les réponses ci-dessus pour obtenir l\'analyse.';
+        return;
+      }
+
+      const portal    = getValue('bvPortal');
+      const internet  = getValue('bvInternet');
+      const icon      = getValue('bvIconVisible');
+      const click     = getValue('bvClick');
+      const error     = getValue('bvError');
+      const otherApps = getValue('bvOtherApps');
+      const scope     = getValue('bvScope');
+      const otherPc   = getValue('bvOtherPc');
+      const otherAcc  = getValue('bvOtherAccount');
+      const rights    = getValue('bvRights');
+      const reset     = getValue('bvReset');
+      const restart   = getValue('bvRestart');
+
+      let status = 'Qualification en cours';
+      const resolution = [];
+      const actions = [];
+      const interpretations = [];
+      const escalation = [];
+
+      // Internet KO → hors périmètre
+      if (internet === 'no') {
+        status = 'Hors périmètre Citrix';
+        resolution.push('Internet ne fonctionne pas sur ce poste. Ce n\'est pas un incident Citrix — traiter d\'abord la connectivité réseau.');
+      }
+
+      // Portail inaccessible alors qu'Internet OK
+      if (portal === 'no' && internet === 'yes') {
+        escalation.push('Le portail Citrix est inaccessible alors qu\'Internet fonctionne. Vérifier le DNS, le proxy ou l\'accès à la plateforme.');
+      }
+
+      // Icône manquante
+      if (portal === 'yes' && icon === 'no') {
+        if (rights === 'ko') {
+          actions.push('Les droits AD sont manquants : ajouter les groupes Citrix requis dans l\'AD.');
+          escalation.push('Droits AD insuffisants — l\'icône Bureau virtuel n\'apparaît pas dans le portail.');
+        } else if (rights === '') {
+          actions.push('L\'icône n\'est pas visible : vérifier dans l\'AD que l\'utilisateur dispose des groupes Citrix requis (Groupes_Droits_par_applications).');
+        } else {
+          escalation.push('L\'icône Bureau virtuel est absente du portail malgré des droits AD corrects — signaler à N2 (publication manquante ou droits côté plateforme).');
+        }
+      }
+
+      // Plusieurs utilisateurs touchés
+      if (scope === 'multiple') {
+        escalation.push('Plusieurs utilisateurs sont touchés simultanément — incident de plateforme probable, escalade N2 immédiate.');
+      }
+
+      // Session déjà active
+      if (error === 'session-active') {
+        actions.push('Session fantôme détectée : aller dans Citrix Studio, trouver la session de l\'utilisateur sur le serveur concerné, activer le mode maintenance, redémarrer le service "Citrix Desktop Service", puis reconnecter l\'utilisateur.');
+        actions.push('Après résolution, ouvrir un ticket vers SI Infra pour planifier le redémarrage du serveur Citrix impacté hors heures de bureau.');
+      }
+
+      // Messages d'erreur spécifiques
+      if (error === 'no-resource')    escalation.push('Message "Aucune ressource disponible" : signaler à N2 (quota serveur, publication ou droits plateforme).');
+      if (error === 'cannot-complete') escalation.push('Message "Cannot complete your request" : signaler à N2.');
+      if (error === 'refused')        escalation.push('Connexion refusée : vérifier pare-feu, proxy, ou contacter N2.');
+      if (error === 'timeout')        actions.push('Délai dépassé : vérifier la qualité de la connexion réseau, puis retenter. Si persistant, escalader.');
+
+      // Comportement au clic
+      if (click === 'closes' || click === 'blackscreen') {
+        actions.push('Fermeture immédiate ou écran noir : faire Quitter Workspace, puis Reset Citrix Workspace (Paramètres → Reset).');
+        actions.push('Redémarrer le poste et retester.');
+      }
+      if (click === 'loading') {
+        actions.push('Chargement indéfini : attendre 2 minutes, puis forcer la fermeture de Workspace et relancer.');
+      }
+
+      // Tests croisés — interprétation
+      if (otherPc === 'ok')  interpretations.push('Le même compte fonctionne sur un autre poste : le problème est local (Workspace, poste ou profil Windows).');
+      if (otherPc === 'ko')  interpretations.push('Le même compte ne fonctionne nulle part : problème de droits, de profil Citrix ou de plateforme.');
+      if (otherAcc === 'ok') interpretations.push('Un autre compte fonctionne sur ce poste : le problème est lié au compte ou aux droits de l\'utilisateur.');
+      if (otherAcc === 'ko') interpretations.push('Aucun compte ne fonctionne sur ce poste : le problème est local au poste ou à Workspace.');
+      if (otherApps === 'yes') interpretations.push('D\'autres applications Citrix fonctionnent : le problème est spécifique au Bureau virtuel (publication, droits ou serveur dédié).');
+      if (otherApps === 'no')  interpretations.push('Aucune application Citrix ne fonctionne : problème global Citrix Workspace ou accès portail.');
+
+      // Actions de base si pas encore faites
+      if (!reset)   actions.push('Faire Quitter Workspace puis Reset Citrix Workspace si ce n\'est pas encore fait.');
+      if (!restart) actions.push('Redémarrer le poste si le reset n\'a pas résolu la situation.');
+
+      // Résolutions
+      if (reset === 'done_ok')   { status = 'Résolu'; resolution.push('Résolu après Reset Citrix Workspace.'); }
+      if (restart === 'done_ok') { status = 'Résolu'; resolution.push('Résolu après redémarrage du poste.'); }
+
+      // Escalade après toutes les actions
+      if (reset === 'done_ko' && restart === 'done_ko') {
+        escalation.push('Reset Workspace + redémarrage réalisés, toujours KO — escalade N2 requise.');
+      }
+
+      if (escalation.length && status !== 'Résolu' && status !== 'Hors périmètre Citrix') status = 'Escalade N2 recommandée';
+      if (!escalation.length && !resolution.length && status !== 'Hors périmètre Citrix') status = 'Actions N1 à poursuivre';
+
+      const mapClick = { '': 'non renseigné', 'nothing': 'rien', 'loading': 'chargement indéfini', 'closes': 'connexion puis fermeture', 'blackscreen': 'fenêtre noire puis fermeture', 'error': 'message d\'erreur' };
+      const mapAction = { '': 'non fait', 'done_ok': 'fait — résolu', 'done_ko': 'fait — toujours KO' };
+      const mapSimple = { '': 'non renseigné', 'yes': 'oui', 'no': 'non', 'ok': 'OK', 'ko': 'KO', 'isolated': 'isolé', 'multiple': 'plusieurs utilisateurs' };
+      const mapOtherPc = { '': 'non testé', 'ok': 'OK sur autre poste', 'ko': 'KO sur autre poste' };
+      const mapOtherAcc = { '': 'non testé', 'ok': 'OK avec autre compte', 'ko': 'KO avec autre compte' };
+      const mapRights = { '': 'non vérifié', 'ok': 'OK — droits présents', 'ko': 'KO — droits manquants' };
+      const mapError = { '': 'aucun', 'no-resource': 'Aucune ressource disponible', 'timeout': 'Délai dépassé', 'refused': 'Connexion refusée', 'session-active': 'Session déjà active', 'cannot-complete': 'Cannot complete your request', 'other': 'Autre' };
+
+      const ticket = [
+        'Utilisateur / login / site : à compléter.',
+        'Portail accessible : ' + (mapSimple[portal] || 'non renseigné') + '.',
+        'Icône Bureau virtuel visible : ' + (mapSimple[icon] || 'non renseigné') + '.',
+        'Comportement au clic : ' + (mapClick[click] || 'non renseigné') + '.',
+        'Message d\'erreur : ' + (mapError[error] || 'aucun') + '.',
+        'Autres applis Citrix OK : ' + (mapSimple[otherApps] || 'non testé') + '.',
+        'Périmètre : ' + (mapSimple[scope] || 'non précisé') + '.',
+        'Test autre poste (même compte) : ' + (mapOtherPc[otherPc] || 'non testé') + '.',
+        'Test autre compte (même poste) : ' + (mapOtherAcc[otherAcc] || 'non testé') + '.',
+        'Droits AD : ' + (mapRights[rights] || 'non vérifié') + '.',
+        'Actions faites : Reset Workspace = ' + (mapAction[reset] || 'non fait') + ', Redémarrage = ' + (mapAction[restart] || 'non fait') + '.',
+        'Message exact + capture si possible : à compléter.',
+        'Horodatage des tests : à compléter.'
+      ];
+
+      const bvCopySummary = [
+        'Statut : ' + status + '.',
+        'Portail accessible : ' + (mapSimple[portal] || 'non renseigné') + '.',
+        'Icône Bureau virtuel visible : ' + (mapSimple[icon] || 'non renseigné') + '.',
+        'Comportement au clic : ' + (mapClick[click] || 'non renseigné') + '.',
+        'Message d\'erreur : ' + (mapError[error] || 'aucun') + '.',
+        'Périmètre : ' + (mapSimple[scope] || 'non précisé') + '.',
+        'Droits AD : ' + (mapRights[rights] || 'non vérifié') + '.',
+        'Actions faites : Reset=' + (mapAction[reset] || 'non fait') + ', Redémarrage=' + (mapAction[restart] || 'non fait') + '.',
+        'Motifs d\'escalade : ' + (escalation.length ? escalation.join(' ; ') : 'aucun pour le moment')
+      ].join('\n');
+
+      let html = '<div class="decision-status">' + status + '</div>';
+      if (resolution.length)      html += '<section class="section diagnostic"><h4>Résolution</h4><ul>' + resolution.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul></section>';
+      if (actions.length)         html += '<section class="section diagnostic"><h4>Actions N1 à faire</h4><ul>' + actions.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul></section>';
+      if (interpretations.length) html += '<section class="section ticket"><h4>Interprétation</h4><ul>' + interpretations.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul></section>';
+      if (escalation.length)      html += '<section class="section escalation"><h4>Escalader si / motifs N2</h4><ul>' + escalation.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul></section>';
+      html += '<section class="section procedures"><h4>Finir la qualification / ticket N1</h4><ul>' + ticket.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul></section>';
+      html += '<section class="section ticket copy-card"><h4>Synthèse prête à copier</h4><textarea id="bvCopyText" class="copy-box" readonly>' + escapeHtml(bvCopySummary) + '</textarea><div class="summary-actions"><button type="button" onclick="copyTextById(\'bvCopyText\', this)">Copier la synthèse</button></div></section>';
+      bvOutput.innerHTML = html;
+    }
+
     function bindBrowserInputs() {
       ['browserAppName','browserUrl','browserUsed','browserCase','browserError','browserImpact','browserMultiSites','browserUpdated','browserDateTime','browserPopups','browserVpnProxy','browserReproduce','browserForcedRefresh','browserPrivate','browserCacheCookies','browserOtherBrowser','browserOtherBrowserResult','browserProfileDisconnect','browserNewProfile','browserSyncRetest'].forEach(function(id) {
         document.getElementById(id).addEventListener('input', renderBrowserDecision);
@@ -1504,6 +1718,7 @@
     renderMaterialFilters();
     syncIncidentFilter();
     bindCitrixInputs();
+    bindBvInputs();
     bindBrowserInputs();
     toggleSubjectViews();
     renderSymptoms();
