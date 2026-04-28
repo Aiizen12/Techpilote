@@ -231,16 +231,22 @@ class EscaladeState(rx.State):
 
         if self.search:
             q = self.search.lower()
-            results = [
-                r for r in results
-                if q in (r.get("typologie") or "").lower()
-                or q in (r.get("perimetre") or "").lower()
-                or q in (r.get("categorie_fresh") or "").lower()
-                or q in (r.get("traitement_n1") or "").lower()
-                or q in (r.get("interlocuteur") or "").lower()
-                or q in (r.get("traitement_n2n3") or "").lower()
-                or q in (r.get("conditions_escalade") or "").lower()
-            ]
+            if self.mode == "libre":
+                results = [
+                    r for r in results
+                    if q in (r.get("typologie") or "").lower()
+                    or q in (r.get("perimetre") or "").lower()
+                    or q in (r.get("categorie_fresh") or "").lower()
+                    or q in (r.get("traitement_n1") or "").lower()
+                    or q in (r.get("interlocuteur") or "").lower()
+                    or q in (r.get("traitement_n2n3") or "").lower()
+                    or q in (r.get("conditions_escalade") or "").lower()
+                ]
+            else:
+                results = [
+                    r for r in results
+                    if q in (r.get("typologie") or "").lower()
+                ]
 
         if self.selected_perimetres:
             results = [r for r in results if r.get("perimetre") in self.selected_perimetres]
