@@ -280,6 +280,15 @@ def sidebar_content(mobile: bool = False) -> rx.Component:
             mobile=mobile,
         ),
 
+        rx.divider(border_color=BORDER, margin_y="0"),
+
+        # Tableaux de bord
+        nav_group(
+            section_label("TABLEAUX DE BORD", mobile=mobile),
+            nav_item("Suivi procédures", "bar-chart-2", "/bdc-procedures", mobile=mobile),
+            mobile=mobile,
+        ),
+
         # Admin
         rx.cond(
             AuthState.is_manager,

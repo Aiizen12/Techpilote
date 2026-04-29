@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TechPilot — Tableau de bord BDC</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #1a1b2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #12122a 0%, #1e1e3f 100%);
+    border-bottom: 1px solid #2d2d5e;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #4c9fff, #7c4dff);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .header-title { font-size: 20px; font-weight: 600; color: #fff; }
+  .header-sub { font-size: 13px; color: #888; margin-top: 2px; }
+  .header-badge {
+    margin-left: auto;
+    background: #4c9fff22;
+    border: 1px solid #4c9fff44;
+    color: #4c9fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    background: #12122a;
+    border-bottom: 1px solid #2d2d5e;
+    padding: 10px 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .filter-label { font-size: 12px; color: #888; margin-right: 4px; }
+  .filter-chip {
+    padding: 4px 12px;
+    border-radius: 16px;
+    border: 1px solid #3a3a6e;
+    background: transparent;
+    color: #aaa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-chip:hover { border-color: #4c9fff; color: #4c9fff; }
+  .filter-chip.active {
+    background: #4c9fff22;
+    border-color: #4c9fff;
+    color: #4c9fff;
+    font-weight: 600;
+  }
+  .filter-reset {
+    margin-left: auto;
+    padding: 4px 14px;
+    border-radius: 16px;
+    border: 1px solid #ff4c6033;
+    background: #ff4c6011;
+    color: #ff7c8e;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-reset:hover { border-color: #ff4c60; color: #ff4c60; }
+
+  /* MAIN */
+  .main { padding: 20px 28px; }
+
+  /* KPI ROW */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: #12122a;
+    border: 1px solid #2d2d5e;
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi-card.blue::before  { background: linear-gradient(90deg, #4c9fff, #7c4dff); }
+  .kpi-card.red::before   { background: linear-gradient(90deg, #ff4c60, #ff7043); }
+  .kpi-card.green::before { background: linear-gradient(90deg, #00c9a7, #26d6a0); }
+  .kpi-card.amber::before { background: linear-gradient(90deg, #ffb347, #ffd93d); }
+  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: #777; margin-bottom: 6px; }
+  .kpi-value { font-size: 32px; font-weight: 700; color: #fff; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: #666; margin-top: 4px; }
+  .kpi-icon {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    font-size: 28px; opacity: .15;
+  }
+
+  /* CHARTS GRID */
+  .charts-row {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .charts-row.col-2-1 { grid-template-columns: 1fr 1.6fr; }
+  .charts-row.col-1-1 { grid-template-columns: 1fr 1fr; }
+  .charts-row.col-3 { grid-template-columns: repeat(3, 1fr); }
+  .charts-row.col-1 { grid-template-columns: 1fr; }
+
+  .chart-card {
+    background: #12122a;
+    border: 1px solid #2d2d5e;
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccc;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .chart-wrap { position: relative; }
+  canvas { max-width: 100%; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { border-bottom: 2px solid #2d2d5e; }
+  th {
+    text-align: left; padding: 8px 12px;
+    color: #888; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .6px; font-size: 11px;
+  }
+  tbody tr { border-bottom: 1px solid #1e1e3f; transition: background .1s; }
+  tbody tr:hover { background: #1e1e3f; }
+  td { padding: 8px 12px; color: #ccc; }
+  .pill {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 10px; font-size: 11px; font-weight: 600;
+  }
+  .pill-red    { background: #ff4c6022; color: #ff7c8e; }
+  .pill-amber  { background: #ffb34722; color: #ffcc70; }
+  .pill-green  { background: #00c9a722; color: #26d6a0; }
+  .pill-blue   { background: #4c9fff22; color: #7cbfff; }
+  .pill-grey   { background: #44444422; color: #888; }
+  .bar-inline {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bar-bg {
+    flex: 1; height: 6px; background: #1e1e3f; border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 3px; }
+
+  /* LEGEND */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 10px; font-size: 11px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px; color: #999;
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 11px;
+    color: #444;
+    border-top: 1px solid #1e1e3f;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">📊</div>
+  <div>
+    <div class="header-title">Base de Connaissances — Tableau de bord</div>
+    <div class="header-sub">TechPilot · Helpdesk N1 · 413 lignes de la matrice d'escalade</div>
+  </div>
+  <div class="header-badge">Mis à jour : Avril 2026</div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Filtrer par domaine :</span>
+  <button class="filter-chip active" data-domain="all">Tous</button>
+  <button class="filter-chip" data-domain="Active Directory">Active Directory</button>
+  <button class="filter-chip" data-domain="Applicatifs métiers">Applicatifs métiers</button>
+  <button class="filter-chip" data-domain="Citrix">Citrix</button>
+  <button class="filter-chip" data-domain="Divers">Divers</button>
+  <button class="filter-chip" data-domain="Gestion des comptes">Gestion des comptes</button>
+  <button class="filter-chip" data-domain="Google Workspace">Google Workspace</button>
+  <button class="filter-chip" data-domain="MFP">MFP</button>
+  <button class="filter-chip" data-domain="Poste de travail">Poste de travail</button>
+  <button class="filter-chip" data-domain="Réseau">Réseau</button>
+  <button class="filter-chip" data-domain="Sécurité">Sécurité</button>
+  <button class="filter-chip" data-domain="Téléphonie fixe">Tél. fixe</button>
+  <button class="filter-chip" data-domain="Téléphonie mobile">Tél. mobile</button>
+  <button class="filter-chip" data-domain="Ulteam/Trustelem">Ulteam</button>
+  <button class="filter-reset" id="resetFilter">✕ Réinitialiser</button>
+</div>
+
+<div class="main">
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card red" id="kpi-total">
+      <div class="kpi-label">Lignes totales</div>
+      <div class="kpi-value" id="kpi-total-val">413</div>
+      <div class="kpi-sub">Matrice de production</div>
+      <span class="kpi-icon">📋</span>
+    </div>
+    <div class="kpi-card amber" id="kpi-traiter">
+      <div class="kpi-label">À traiter</div>
+      <div class="kpi-value" id="kpi-traiter-val">341</div>
+      <div class="kpi-sub" id="kpi-traiter-pct">82.6% des lignes</div>
+      <span class="kpi-icon">⏳</span>
+    </div>
+    <div class="kpi-card blue" id="kpi-doclié">
+      <div class="kpi-label">Doc lié / Gabarit</div>
+      <div class="kpi-value" id="kpi-doc-val">68</div>
+      <div class="kpi-sub" id="kpi-doc-pct">16.5% des lignes</div>
+      <span class="kpi-icon">📎</span>
+    </div>
+    <div class="kpi-card green" id="kpi-proc">
+      <div class="kpi-label">Procédure créée</div>
+      <div class="kpi-value" id="kpi-proc-val">4</div>
+      <div class="kpi-sub" id="kpi-proc-pct">1.0% des lignes</div>
+      <span class="kpi-icon">✅</span>
+    </div>
+  </div>
+
+  <!-- ROW 1 : Donut domaine + Bar statut -->
+  <div class="charts-row col-2-1">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#4c9fff"></span>Répartition par domaine</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartDomaine"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#ffb347"></span>Statut de la ressource</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartStatut"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2 : Type + Priorité -->
+  <div class="charts-row col-1-1">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#00c9a7"></span>Répartition par type</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chartType"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#ff4c60"></span>Répartition par priorité</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chartPrio"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3 : Table domaine x statut -->
+  <div class="charts-row col-1">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:#7c4dff"></span>Couverture par domaine — détail statuts</div>
+      <div class="table-wrap">
+        <table id="tableStatut">
+          <thead>
+            <tr>
+              <th>Domaine</th>
+              <th>Total</th>
+              <th>À traiter</th>
+              <th>Doc lié</th>
+              <th>Gabarit créé</th>
+              <th>Procédure créée</th>
+              <th>Couverture</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">TechPilot · Base de Connaissances Helpdesk N1 · 2026</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+const CROSS_STATUT = {
+  "Active Directory":    { "À traiter": 11, "Doc lié": 1,  "Gabarit créé": 1 },
+  "Applicatifs métiers": { "À traiter": 134,"Doc lié": 12, "Gabarit créé": 11 },
+  "Citrix":              { "À traiter": 2,  "Procédure créée": 3 },
+  "Divers":              { "À traiter": 45, "Doc lié": 4 },
+  "Gestion des comptes": { "À traiter": 22, "Gabarit créé": 3, "Doc lié": 2 },
+  "Google Workspace":    { "À traiter": 14, "Gabarit créé": 1, "Doc lié": 6 },
+  "MFP":                 { "À traiter": 2,  "Gabarit créé": 1, "Doc lié": 4 },
+  "Poste de travail":    { "À traiter": 48, "Doc lié": 9 },
+  "Réseau":              { "À traiter": 20 },
+  "Sécurité":            { "À traiter": 5,  "Procédure créée": 1 },
+  "Téléphonie fixe":     { "À traiter": 18, "Doc lié": 4 },
+  "Téléphonie mobile":   { "À traiter": 12, "Gabarit créé": 1, "Doc lié": 2 },
+  "Ulteam/Trustelem":    { "Gabarit créé": 5,"À traiter": 8,  "Doc lié": 1 }
+};
+
+const CROSS_TYPE = {
+  "Active Directory":    { "demande de service": 8, "Incident": 4, "Les 2": 1 },
+  "Applicatifs métiers": { "Incident": 22, "Les 2": 10, "demande de service": 36, "?": 89 },
+  "Citrix":              { "?": 5 },
+  "Divers":              { "?": 49 },
+  "Gestion des comptes": { "demande de service": 8, "?": 19 },
+  "Google Workspace":    { "?": 21 },
+  "MFP":                 { "?": 7 },
+  "Poste de travail":    { "demande de service": 14, "Les 2": 11, "Incident": 32 },
+  "Réseau":              { "demande de service": 2, "Incident": 12, "Les 2": 6 },
+  "Sécurité":            { "?": 6 },
+  "Téléphonie fixe":     { "?": 22 },
+  "Téléphonie mobile":   { "?": 14, "demande de service": 1 },
+  "Ulteam/Trustelem":    { "?": 14 }
+};
+
+const CROSS_PRIO = {
+  "Active Directory":    { "faible": 6, "?": 7 },
+  "Applicatifs métiers": { "?": 130, "faible": 27 },
+  "Citrix":              { "?": 5 },
+  "Divers":              { "?": 49 },
+  "Gestion des comptes": { "faible": 8, "?": 19 },
+  "Google Workspace":    { "?": 21 },
+  "MFP":                 { "?": 7 },
+  "Poste de travail":    { "Moyen": 21, "faible": 18, "Elevé": 18 },
+  "Réseau":              { "Elevé": 8, "Urgent": 12 },
+  "Sécurité":            { "?": 6 },
+  "Téléphonie fixe":     { "?": 22 },
+  "Téléphonie mobile":   { "?": 14, "faible": 1 },
+  "Ulteam/Trustelem":    { "?": 14 }
+};
+
+const ALL_DOMAINS = Object.keys(CROSS_STATUT);
+const STATUT_KEYS  = ["À traiter", "Doc lié", "Gabarit créé", "Procédure créée"];
+const TYPE_KEYS    = ["Incident", "demande de service", "Les 2", "?"];
+const PRIO_KEYS    = ["Urgent", "Elevé", "Moyen", "faible", "?"];
+
+const STATUT_COLORS = {
+  "À traiter":       "#ff7043",
+  "Doc lié":         "#4c9fff",
+  "Gabarit créé":    "#ffb347",
+  "Procédure créée": "#00c9a7"
+};
+const TYPE_COLORS = {
+  "Incident":           "#ff4c60",
+  "demande de service": "#4c9fff",
+  "Les 2":              "#7c4dff",
+  "?":                  "#444"
+};
+const PRIO_COLORS = {
+  "Urgent": "#ff1744",
+  "Elevé":  "#ff5722",
+  "Moyen":  "#ffb347",
+  "faible": "#00c9a7",
+  "?":      "#444"
+};
+
+const DOMAIN_COLORS = [
+  '#4c9fff','#7c4dff','#ff4c60','#00c9a7','#ffb347','#26d6a0',
+  '#ff7043','#5c6bc0','#26c6da','#ef5350','#66bb6a','#ab47bc','#ffa726'
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let activeDomain = 'all';
+let charts = {};
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function getTotal(domain) {
+  const src = domain === 'all' ? ALL_DOMAINS : [domain];
+  return src.reduce((s, d) => s + Object.values(CROSS_STATUT[d] || {}).reduce((a, b) => a + b, 0), 0);
+}
+function getStatutCount(statut, domain) {
+  const src = domain === 'all' ? ALL_DOMAINS : [domain];
+  return src.reduce((s, d) => s + (CROSS_STATUT[d]?.[statut] || 0), 0);
+}
+function getTypeCount(type, domain) {
+  const src = domain === 'all' ? ALL_DOMAINS : [domain];
+  return src.reduce((s, d) => s + (CROSS_TYPE[d]?.[type] || 0), 0);
+}
+function getPrioCount(prio, domain) {
+  const src = domain === 'all' ? ALL_DOMAINS : [domain];
+  return src.reduce((s, d) => s + (CROSS_PRIO[d]?.[prio] || 0), 0);
+}
+
+// ═══════════════════════════════════════════
+// KPI UPDATE
+// ═══════════════════════════════════════════
+function updateKPIs(domain) {
+  const total   = getTotal(domain);
+  const traiter = getStatutCount("À traiter", domain);
+  const docLie  = getStatutCount("Doc lié", domain) + getStatutCount("Gabarit créé", domain);
+  const proc    = getStatutCount("Procédure créée", domain);
+  document.getElementById('kpi-total-val').textContent  = total;
+  document.getElementById('kpi-traiter-val').textContent = traiter;
+  document.getElementById('kpi-traiter-pct').textContent = total ? (traiter/total*100).toFixed(1)+'% des lignes' : '—';
+  document.getElementById('kpi-doc-val').textContent    = docLie;
+  document.getElementById('kpi-doc-pct').textContent    = total ? (docLie/total*100).toFixed(1)+'% des lignes' : '—';
+  document.getElementById('kpi-proc-val').textContent   = proc;
+  document.getElementById('kpi-proc-pct').textContent   = total ? (proc/total*100).toFixed(1)+'% des lignes' : '—';
+}
+
+// ═══════════════════════════════════════════
+// CHART DEFAULTS
+// ═══════════════════════════════════════════
+Chart.defaults.color = '#888';
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ═══════════════════════════════════════════
+// CHART: DOMAINE (donut, always shows all)
+// ═══════════════════════════════════════════
+function buildChartDomaine() {
+  destroyChart('domaine');
+  const labels = ALL_DOMAINS;
+  const data   = labels.map(d => getTotal(d));
+  charts['domaine'] = new Chart(document.getElementById('chartDomaine'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: DOMAIN_COLORS, borderWidth: 1, borderColor: '#12122a', hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { padding: 12, boxWidth: 12, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} (${(ctx.raw/413*100).toFixed(1)}%)`
+          }
+        }
+      },
+      onClick: (evt, elements) => {
+        if (elements.length > 0) {
+          const dom = ALL_DOMAINS[elements[0].index];
+          setDomain(dom === activeDomain ? 'all' : dom);
+        }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// CHART: STATUT
+// ═══════════════════════════════════════════
+function buildChartStatut(domain) {
+  destroyChart('statut');
+  const data = STATUT_KEYS.map(k => getStatutCount(k, domain));
+  const total = data.reduce((a,b)=>a+b,0);
+  charts['statut'] = new Chart(document.getElementById('chartStatut'), {
+    type: 'bar',
+    data: {
+      labels: STATUT_KEYS,
+      datasets: [{
+        data,
+        backgroundColor: STATUT_KEYS.map(k => STATUT_COLORS[k] + 'cc'),
+        borderColor:      STATUT_KEYS.map(k => STATUT_COLORS[k]),
+        borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw} (${(ctx.raw/total*100).toFixed(1)}%)` } }
+      },
+      scales: {
+        x: { grid: { color: '#1e1e3f' }, ticks: { color: '#666' } },
+        y: { grid: { display: false }, ticks: { color: '#aaa', font: { size: 12 } } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// CHART: TYPE
+// ═══════════════════════════════════════════
+function buildChartType(domain) {
+  destroyChart('type');
+  const labels = ["Incident", "Demande service", "Les deux", "Non défini"];
+  const dataKeys = TYPE_KEYS;
+  const data = dataKeys.map(k => getTypeCount(k, domain));
+  const total = data.reduce((a,b)=>a+b,0);
+  charts['type'] = new Chart(document.getElementById('chartType'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: dataKeys.map(k => TYPE_COLORS[k] + 'cc'),
+        borderColor:      dataKeys.map(k => TYPE_COLORS[k]),
+        borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw} (${total ? (ctx.raw/total*100).toFixed(1) : 0}%)` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#aaa' } },
+        y: { grid: { color: '#1e1e3f' }, ticks: { color: '#666' } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// CHART: PRIORITÉ
+// ═══════════════════════════════════════════
+function buildChartPrio(domain) {
+  destroyChart('prio');
+  const labels = ["Urgent", "Elevé", "Moyen", "Faible", "Non défini"];
+  const dataKeys = PRIO_KEYS;
+  const data = dataKeys.map(k => getPrioCount(k, domain));
+  const total = data.reduce((a,b)=>a+b,0);
+  charts['prio'] = new Chart(document.getElementById('chartPrio'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: dataKeys.map(k => PRIO_COLORS[k] + 'cc'),
+        borderColor:      dataKeys.map(k => PRIO_COLORS[k]),
+        borderWidth: 1, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw} (${total ? (ctx.raw/total*100).toFixed(1) : 0}%)` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#aaa' } },
+        y: { grid: { color: '#1e1e3f' }, ticks: { color: '#666' } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// TABLE
+// ═══════════════════════════════════════════
+function buildTable(domain) {
+  const domains = domain === 'all' ? ALL_DOMAINS : [domain];
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  const maxTotal = Math.max(...ALL_DOMAINS.map(d =>
+    Object.values(CROSS_STATUT[d] || {}).reduce((a,b)=>a+b,0)
+  ));
+
+  domains.forEach(d => {
+    const s = CROSS_STATUT[d] || {};
+    const traiter = s["À traiter"] || 0;
+    const docLie  = s["Doc lié"] || 0;
+    const gabarit = s["Gabarit créé"] || 0;
+    const proc    = s["Procédure créée"] || 0;
+    const total   = traiter + docLie + gabarit + proc;
+    const covered = docLie + gabarit + proc;
+    const pct     = total ? Math.round(covered / total * 100) : 0;
+
+    let pillClass = 'pill-red';
+    if (pct >= 50) pillClass = 'pill-green';
+    else if (pct >= 20) pillClass = 'pill-amber';
+
+    const barColor = pct >= 50 ? '#00c9a7' : pct >= 20 ? '#ffb347' : '#ff4c60';
+
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td style="font-weight:500;color:#ddd">${d}</td>
+        <td>
+          <div class="bar-inline">
+            <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(total/maxTotal*100)}%;background:#4c9fff55"></div></div>
+            <span style="min-width:28px;text-align:right">${total}</span>
+          </div>
+        </td>
+        <td><span class="pill pill-red">${traiter}</span></td>
+        <td><span class="pill pill-blue">${docLie}</span></td>
+        <td><span class="pill pill-amber">${gabarit}</span></td>
+        <td><span class="pill pill-green">${proc}</span></td>
+        <td>
+          <div class="bar-inline">
+            <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+            <span class="${'pill ' + pillClass}" style="min-width:42px;text-align:center">${pct}%</span>
+          </div>
+        </td>
+      </tr>
+    `);
+  });
+}
+
+// ═══════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════
+function render(domain) {
+  updateKPIs(domain);
+  buildChartStatut(domain);
+  buildChartType(domain);
+  buildChartPrio(domain);
+  buildTable(domain);
+  // Donut is built once, highlight selection
+  highlightDomainOnDonut(domain);
+}
+
+function highlightDomainOnDonut(domain) {
+  const c = charts['domaine'];
+  if (!c) return;
+  if (domain === 'all') {
+    c.data.datasets[0].backgroundColor = DOMAIN_COLORS;
+  } else {
+    const idx = ALL_DOMAINS.indexOf(domain);
+    c.data.datasets[0].backgroundColor = DOMAIN_COLORS.map((col, i) =>
+      i === idx ? col : col + '44'
+    );
+  }
+  c.update();
+}
+
+function setDomain(domain) {
+  activeDomain = domain;
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.domain === domain);
+  });
+  render(domain);
+}
+
+// ═══════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════
+document.querySelectorAll('.filter-chip').forEach(btn => {
+  btn.addEventListener('click', () => setDomain(btn.dataset.domain));
+});
+document.getElementById('resetFilter').addEventListener('click', () => setDomain('all'));
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+buildChartDomaine();
+render('all');
+</script>
+</body>
+</html>
