@@ -317,12 +317,6 @@ function polarXY(cx, cy, r, deg) {
   const rad = (deg - 90) * Math.PI / 180;
   return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
 }
-function arcPath(cx, cy, r, start, end) {
-  const [sx, sy] = polarXY(cx, cy, r, end);
-  const [ex, ey] = polarXY(cx, cy, r, start);
-  const large = end - start > 180 ? 1 : 0;
-  return `M ${sx} ${sy} A ${r} ${r} 0 ${large} 0 ${ex} ${ey}`;
-}
 function buildDonut() {
   const svg = document.getElementById('donutSvg');
   const leg = document.getElementById('donutLegend');
@@ -338,14 +332,15 @@ function buildDonut() {
     if (span < 0.5) { angle += span; return; }
     const endAngle = angle + span;
     const op = activeDomain === 'all' || activeDomain === d ? '1' : '0.2';
+    const large = span > 180 ? 1 : 0;
 
-    // Outer arc
-    const outerPath = arcPath(cx, cy, r, angle, endAngle);
-    // Inner arc (reversed)
-    const [ix1, iy1] = polarXY(cx, cy, ri, angle);
-    const [ix2, iy2] = polarXY(cx, cy, ri, endAngle);
-    const largeArc = span > 180 ? 1 : 0;
-    const fullPath = outerPath + ` L ${ix2} ${iy2} A ${ri} ${ri} 0 ${largeArc} 1 ${ix1} ${iy1} Z`;
+    const [ox1, oy1] = polarXY(cx, cy, r,  angle);     // outer start
+    const [ox2, oy2] = polarXY(cx, cy, r,  endAngle);  // outer end
+    const [ix1, iy1] = polarXY(cx, cy, ri, angle);     // inner start
+    const [ix2, iy2] = polarXY(cx, cy, ri, endAngle);  // inner end
+
+    // outer cw start→end, line to inner end, inner ccw end→start, close
+    const fullPath = `M ${ox1} ${oy1} A ${r} ${r} 0 ${large} 1 ${ox2} ${oy2} L ${ix2} ${iy2} A ${ri} ${ri} 0 ${large} 0 ${ix1} ${iy1} Z`;
 
     svgHtml += `<path d="${fullPath}" fill="${c}" opacity="${op}" stroke="#1a1b2e" stroke-width="1.5" style="cursor:pointer;transition:opacity .2s" onclick="setDomain('${d === activeDomain ? 'all' : d}')"><title>${d}: ${v}</title></path>`;
     angle = endAngle;
