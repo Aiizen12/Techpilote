@@ -114,70 +114,107 @@ def _statut_color(statut) -> rx.Var:
 
 def feedback_card(f: FeedbackItem) -> rx.Component:
     return rx.box(
+        # En-tête : badges + date
         rx.hstack(
-            rx.vstack(
-                rx.hstack(
-                    rx.badge(f["type"], color_scheme="indigo", variant="soft", radius="full"),
-                    rx.badge(f["statut"], color_scheme=_statut_color(f["statut"]), variant="soft", radius="full"),
-                    rx.badge(f["priorite"], color_scheme="gray", variant="soft", radius="full"),
-                    rx.spacer(),
-                    rx.text(f["date_creation"][:10], color=MUTED, font_size="0.75rem"),
-                    spacing="2", align="center", width="100%",
-                ),
-                rx.text(f["titre"], color=TEXT, font_weight="600", font_size="0.9rem"),
-                rx.text(f["description"], color=MUTED, font_size="0.82rem"),
-                rx.text("Par " + f["auteur_nom"], color=MUTED, font_size="0.72rem"),
-                spacing="2", align="start", width="100%",
-            ),
-            rx.vstack(
-                rx.button(
-                    rx.icon("thumbs-up", size=14), f["votes_count"].to_string(),
-                    on_click=FeedbacksState.vote(f["id"]),
-                    background="rgba(99,102,241,0.1)", color=PRIMARY,
-                    border=f"1px solid rgba(99,102,241,0.3)", border_radius="8px",
-                    padding="6px 10px", font_size="0.78rem", cursor="pointer", spacing="1",
-                ),
-                rx.cond(
-                    AuthState.is_manager,
-                    rx.select(
-                        STATUTS, value=f["statut"],
-                        on_change=lambda v: FeedbacksState.update_statut(f["id"], v),
-                        background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}",
-                        border_radius="6px", font_size="0.75rem", width="110px",
-                    ),
-                ),
-                rx.cond(
-                    AuthState.is_manager,
-                    rx.icon_button(
-                        rx.icon("trash-2", size=13),
-                        on_click=FeedbacksState.delete(f["id"]),
-                        background="transparent", color=MUTED,
-                        size="1", cursor="pointer", border_radius="6px",
-                        _hover={"color": "#ef4444"},
-                        title="Supprimer",
-                    ),
-                ),
-                spacing="2", align="center",
-            ),
-            spacing="3", align="start", width="100%",
+            rx.badge(f["type"], color_scheme="indigo", variant="soft", radius="full"),
+            rx.badge(f["statut"], color_scheme=_statut_color(f["statut"]), variant="soft", radius="full"),
+            rx.badge(f["priorite"], color_scheme="gray", variant="soft", radius="full"),
+            rx.spacer(),
+            rx.text(f["date_creation"][:10], color=MUTED, font_size="0.72rem"),
+            spacing="2", align="center", width="100%", flex_wrap="wrap",
         ),
-        background=CARD_BG, border=f"1px solid {BORDER}", border_radius="12px", padding="1rem 1.2rem",
+        # Titre
+        rx.text(
+            f["titre"], color=TEXT, font_weight="600", font_size="0.9rem",
+            margin_top="0.5rem",
+        ),
+        # Description
+        rx.text(
+            f["description"], color=MUTED, font_size="0.82rem",
+            overflow="hidden",
+            display="-webkit-box",
+            style={"-webkit-line-clamp": "3", "-webkit-box-orient": "vertical"},
+        ),
+        # Pied : auteur + actions
+        rx.hstack(
+            rx.text("Par " + f["auteur_nom"], color=MUTED, font_size="0.72rem"),
+            rx.spacer(),
+            rx.button(
+                rx.icon("thumbs-up", size=13), f["votes_count"].to_string(),
+                on_click=FeedbacksState.vote(f["id"]),
+                background="rgba(99,102,241,0.1)", color=PRIMARY,
+                border=f"1px solid rgba(99,102,241,0.25)", border_radius="7px",
+                padding="5px 10px", font_size="0.75rem", cursor="pointer",
+            ),
+            rx.cond(
+                AuthState.is_manager,
+                rx.select(
+                    STATUTS, value=f["statut"],
+                    on_change=lambda v: FeedbacksState.update_statut(f["id"], v),
+                    background="#1c2138", style={"color": TEXT, "font_size": "0.75rem"},
+                    border=f"1px solid {BORDER}", border_radius="6px", width="110px",
+                ),
+            ),
+            rx.cond(
+                AuthState.is_manager,
+                rx.icon_button(
+                    rx.icon("trash-2", size=13),
+                    on_click=FeedbacksState.delete(f["id"]),
+                    background="transparent", color=MUTED,
+                    size="1", cursor="pointer", border_radius="6px",
+                    _hover={"color": "#ef4444"},
+                ),
+            ),
+            spacing="2", align="center", width="100%", margin_top="0.75rem", flex_wrap="wrap",
+        ),
+        background=CARD_BG,
+        border=f"1px solid {BORDER}",
+        border_radius="12px",
+        padding="1rem 1.2rem",
+        width="100%",
+        _hover={"border_color": "rgba(99,102,241,0.35)"},
+        transition="border-color 0.15s",
     )
 
 
 def feedbacks_content() -> rx.Component:
     return rx.vstack(
+        # Barre de filtres + bouton
         rx.hstack(
-            rx.select(STATUTS, placeholder="Tous les statuts", value=FeedbacksState.filter_statut, on_change=FeedbacksState.set_filter, background="#1c2138", style={"color": TEXT}, border=f"1px solid {BORDER}", border_radius="8px"),
+            rx.select(
+                STATUTS, placeholder="Tous les statuts",
+                value=FeedbacksState.filter_statut,
+                on_change=FeedbacksState.set_filter,
+                background="#1c2138", style={"color": TEXT},
+                border=f"1px solid {BORDER}", border_radius="8px",
+            ),
             rx.cond(
                 FeedbacksState.filter_statut != "",
-                rx.icon_button(rx.icon("x", size=14), on_click=FeedbacksState.clear_filter, background="transparent", color=MUTED, border=f"1px solid {BORDER}", border_radius="8px", size="2", cursor="pointer", _hover={"color": TEXT}),
+                rx.icon_button(
+                    rx.icon("x", size=14), on_click=FeedbacksState.clear_filter,
+                    background="transparent", color=MUTED,
+                    border=f"1px solid {BORDER}", border_radius="8px",
+                    size="2", cursor="pointer", _hover={"color": TEXT},
+                ),
             ),
             rx.spacer(),
-            rx.button(rx.icon("plus", size=16), "Nouveau feedback", on_click=FeedbacksState.open_form, background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)", color="white", border_radius="8px", padding="8px 16px", font_size="0.85rem", cursor="pointer", spacing="2"),
-            width="100%", align="center",
+            rx.button(
+                rx.icon("plus", size=15), "Nouveau feedback",
+                on_click=FeedbacksState.open_form,
+                background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                color="white", border_radius="8px",
+                padding="8px 16px", font_size="0.85rem", cursor="pointer",
+            ),
+            width="100%", align="center", flex_wrap="wrap", gap="2",
         ),
-        rx.vstack(rx.foreach(FeedbacksState.feedbacks, feedback_card), spacing="3", width="100%"),
+        # Grille 2 colonnes responsive
+        rx.box(
+            rx.foreach(FeedbacksState.feedbacks, feedback_card),
+            display="grid",
+            grid_template_columns="repeat(auto-fill, minmax(420px, 1fr))",
+            gap="0.875rem",
+            width="100%",
+        ),
         rx.dialog.root(
             rx.dialog.content(
                 rx.dialog.title(rx.text("Nouveau feedback", color=TEXT, font_weight="700")),
