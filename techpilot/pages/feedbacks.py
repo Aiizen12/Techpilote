@@ -16,6 +16,11 @@ class FeedbacksState(rx.State):
     filter_statut: str = ""
     show_form: bool = False
     form: dict = {"titre": "", "description": "", "type": "bug", "priorite": "normale"}
+    # Détail / notes
+    show_detail: bool = False
+    detail_id: str = ""
+    detail: FeedbackItem = FeedbackItem()
+    note_draft: str = ""
 
     def load(self):
         db = load_db()
@@ -32,6 +37,7 @@ class FeedbacksState(rx.State):
                 auteur_nom=item.get("auteur_nom") or "",
                 date_creation=item.get("date_creation") or "",
                 votes_count=len(item.get("votes") or []),
+                notes=item.get("notes") or "",
             )
             for item in filtered
         ]
@@ -68,6 +74,7 @@ class FeedbacksState(rx.State):
             "auteur_id": auth.user_id,
             "auteur_nom": auth.user_nom,
             "votes": [],
+            "notes": "",
             "date_creation": datetime.utcnow().isoformat(),
         })
         save_db(db)
@@ -101,7 +108,46 @@ class FeedbacksState(rx.State):
         db = load_db()
         db["feedbacks"] = [f for f in (db.get("feedbacks") or []) if f.get("id") != fid]
         save_db(db)
+        self.show_detail = False
         self.load()
+
+    # ── Détail ──────────────────────────────────────────
+    def open_detail(self, fid: str):
+        db = load_db()
+        item = next((f for f in (db.get("feedbacks") or []) if f.get("id") == fid), None)
+        if not item:
+            return
+        self.detail = FeedbackItem(
+            id=str(item.get("id") or ""),
+            titre=item.get("titre") or "",
+            description=item.get("description") or "",
+            type=item.get("type") or "",
+            statut=item.get("statut") or "",
+            priorite=item.get("priorite") or "",
+            auteur_nom=item.get("auteur_nom") or "",
+            date_creation=item.get("date_creation") or "",
+            votes_count=len(item.get("votes") or []),
+            notes=item.get("notes") or "",
+        )
+        self.note_draft = item.get("notes") or ""
+        self.detail_id = fid
+        self.show_detail = True
+
+    def close_detail(self):
+        self.show_detail = False
+
+    def set_note_draft(self, v: str):
+        self.note_draft = v
+
+    def save_note(self):
+        db = load_db()
+        for f in db.get("feedbacks") or []:
+            if f.get("id") == self.detail_id:
+                f["notes"] = self.note_draft
+        save_db(db)
+        self.detail = FeedbackItem(**{**dict(self.detail), "notes": self.note_draft})
+        self.load()
+        return rx.toast.success("Note enregistrée")
 
 
 def _statut_color(statut) -> rx.Var:
@@ -172,8 +218,10 @@ def feedback_card(f: FeedbackItem) -> rx.Component:
         border_radius="12px",
         padding="1rem 1.2rem",
         width="100%",
-        _hover={"border_color": "rgba(99,102,241,0.35)"},
-        transition="border-color 0.15s",
+        cursor="pointer",
+        on_click=FeedbacksState.open_detail(f["id"]),
+        _hover={"border_color": "rgba(99,102,241,0.45)", "background": "#141728"},
+        transition="all 0.15s",
     )
 
 
@@ -236,6 +284,121 @@ def feedbacks_content() -> rx.Component:
                 background="#111524", border=f"1px solid {BORDER}", border_radius="16px", padding="1.5rem", max_width="480px",
             ),
             open=FeedbacksState.show_form,
+        ),
+        # ── Modal détail ──────────────────────────────────
+        rx.dialog.root(
+            rx.dialog.content(
+                rx.vstack(
+                    # En-tête modal
+                    rx.hstack(
+                        rx.vstack(
+                            rx.hstack(
+                                rx.badge(FeedbacksState.detail["type"], color_scheme="indigo", variant="soft", radius="full"),
+                                rx.badge(FeedbacksState.detail["statut"], color_scheme=_statut_color(FeedbacksState.detail["statut"]), variant="soft", radius="full"),
+                                rx.badge(FeedbacksState.detail["priorite"], color_scheme="gray", variant="soft", radius="full"),
+                                spacing="2",
+                            ),
+                            rx.text(FeedbacksState.detail["titre"], color=TEXT, font_weight="700", font_size="1rem"),
+                            spacing="2", align="start",
+                        ),
+                        rx.spacer(),
+                        rx.icon_button(
+                            rx.icon("x", size=16),
+                            on_click=FeedbacksState.close_detail,
+                            background="transparent", color=MUTED,
+                            size="2", cursor="pointer", border_radius="8px",
+                            _hover={"background": "rgba(255,255,255,0.07)", "color": TEXT},
+                        ),
+                        width="100%", align="start",
+                    ),
+                    rx.divider(border_color=BORDER),
+                    # Description complète
+                    rx.box(
+                        rx.text(FeedbacksState.detail["description"], color=MUTED, font_size="0.875rem", line_height="1.6"),
+                        padding="0.75rem 1rem",
+                        background="rgba(255,255,255,0.03)",
+                        border=f"1px solid {BORDER}",
+                        border_radius="8px",
+                        width="100%",
+                    ),
+                    rx.hstack(
+                        rx.text("Par " + FeedbacksState.detail["auteur_nom"], color=MUTED, font_size="0.75rem"),
+                        rx.spacer(),
+                        rx.text(FeedbacksState.detail["date_creation"][:10], color=MUTED, font_size="0.75rem"),
+                        width="100%",
+                    ),
+                    rx.divider(border_color=BORDER),
+                    # Zone notes / actions effectuées
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("clipboard-list", size=14, color=PRIMARY),
+                            rx.text("Actions effectuées / Notes de suivi", color=TEXT, font_size="0.85rem", font_weight="600"),
+                            spacing="2", align="center",
+                        ),
+                        rx.text_area(
+                            placeholder="Décris les actions effectuées, les décisions prises, les blocages…",
+                            value=FeedbacksState.note_draft,
+                            on_change=FeedbacksState.set_note_draft,
+                            background="#1c2138",
+                            style={"color": TEXT, "font_size": "0.85rem", "line_height": "1.6"},
+                            border=f"1px solid {BORDER}",
+                            border_radius="8px",
+                            width="100%",
+                            rows="5",
+                            _focus={"border_color": PRIMARY, "outline": "none"},
+                            _placeholder={"color": "#4a5568"},
+                        ),
+                        spacing="3", width="100%", align="start",
+                    ),
+                    # Actions bas de modal
+                    rx.hstack(
+                        rx.cond(
+                            AuthState.is_manager,
+                            rx.hstack(
+                                rx.select(
+                                    STATUTS, value=FeedbacksState.detail["statut"],
+                                    on_change=lambda v: FeedbacksState.update_statut(FeedbacksState.detail_id, v),
+                                    background="#1c2138", style={"color": TEXT, "font_size": "0.8rem"},
+                                    border=f"1px solid {BORDER}", border_radius="7px", width="120px",
+                                ),
+                                rx.icon_button(
+                                    rx.icon("trash-2", size=14),
+                                    on_click=FeedbacksState.delete(FeedbacksState.detail_id),
+                                    background="transparent", color=MUTED,
+                                    size="2", cursor="pointer", border_radius="7px",
+                                    _hover={"color": "#ef4444", "background": "rgba(239,68,68,0.1)"},
+                                    title="Supprimer",
+                                ),
+                                spacing="2", align="center",
+                            ),
+                        ),
+                        rx.spacer(),
+                        rx.button(
+                            "Annuler",
+                            on_click=FeedbacksState.close_detail,
+                            background="transparent", color=MUTED,
+                            border=f"1px solid {BORDER}", border_radius="8px",
+                            cursor="pointer", font_size="0.85rem",
+                        ),
+                        rx.button(
+                            rx.icon("save", size=14), "Enregistrer la note",
+                            on_click=FeedbacksState.save_note,
+                            background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                            color="white", border_radius="8px",
+                            cursor="pointer", font_size="0.85rem",
+                        ),
+                        spacing="3", align="center", width="100%",
+                    ),
+                    spacing="4", width="100%",
+                ),
+                background="#111524",
+                border=f"1px solid {BORDER}",
+                border_radius="16px",
+                padding="1.5rem",
+                max_width="580px",
+                width="95vw",
+            ),
+            open=FeedbacksState.show_detail,
         ),
         spacing="4", width="100%", on_mount=FeedbacksState.load,
     )

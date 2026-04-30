@@ -80,6 +80,7 @@ class FeedbackItem(BaseModel):
     auteur_nom: str = ""
     date_creation: str = ""
     votes_count: int = 0
+    notes: str = ""
 
 
 class ActualiteItem(BaseModel):
