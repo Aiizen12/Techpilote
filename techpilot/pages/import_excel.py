@@ -17,8 +17,9 @@ def _get_tech_names() -> list[str]:
     db = load_db()
     return [t.get("nom", "") for t in db.get("technicians", []) if t.get("nom")]
 
-COLOR_MATRIX  = "#9333ea"
-COLOR_PLANNING = "#059669"
+COLOR_MATRIX    = "#9333ea"
+COLOR_PLANNING  = "#059669"
+COLOR_ASTREINTE = "#f59e0b"
 
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
@@ -89,6 +90,61 @@ def _parse_escalade_matrix(wb) -> list[dict]:
             "conditions_escalade": get(col_conditions),
             "notes":              get(col_notes),
         })
+    return entries
+
+
+def _parse_astreintes(wb) -> list[dict]:
+    """Parse astreintes depuis l'onglet 'Prévision Astreinte'.
+    Structure attendue :
+      Ligne 1 : semaines (col B+ = S15, S19, S24, S28, S32…)
+      Ligne 2 : mois     (col B+ = Mars, Avril, Mai…)
+      Ligne 3 : 06h00-08h00 → noms des techs par période
+      Ligne 4 : 18h00-20h00 → noms des techs par période
+    """
+    sheet_name = None
+    for name in wb.sheetnames:
+        nl = name.lower()
+        if "astreinte" in nl or "prévision" in nl or "prevision" in nl:
+            sheet_name = name
+            break
+    if not sheet_name:
+        return []
+
+    ws = wb[sheet_name]
+    rows = list(ws.iter_rows(values_only=True))
+    if len(rows) < 4:
+        return []
+
+    week_row  = rows[0]   # S15, S19…
+    month_row = rows[1]   # Mars, Avril…
+    matin_row = rows[2]   # techs 06h-08h
+    soir_row  = rows[3]   # techs 18h-20h
+
+    entries = []
+    for col_idx in range(1, len(week_row)):
+        week_val  = week_row[col_idx]
+        month_val = month_row[col_idx] if col_idx < len(month_row) else None
+
+        week_str  = str(week_val).strip()  if week_val  else ""
+        month_str = str(month_val).strip() if month_val else ""
+
+        if not week_str or week_str.lower() == "none":
+            continue
+
+        matin = str(matin_row[col_idx]).strip() if col_idx < len(matin_row) and matin_row[col_idx] else ""
+        soir  = str(soir_row[col_idx]).strip()  if col_idx < len(soir_row)  and soir_row[col_idx]  else ""
+
+        if not matin and not soir:
+            continue
+
+        period = f"{week_str} ({month_str})" if month_str else week_str
+
+        entries.append({
+            "period":     period,
+            "slot_matin": matin,
+            "slot_soir":  soir,
+        })
+
     return entries
 
 
@@ -191,10 +247,18 @@ class ImportExcelState(rx.State):
     planning_db_count: int = 0
     planning_filename: str = ""
 
+    # Astreintes
+    astreinte_status: str = ""
+    astreinte_msg: str = ""
+    astreinte_count: int = 0
+    astreinte_db_count: int = 0
+    astreinte_filename: str = ""
+
     def load_counts(self):
         db = load_db()
-        self.matrix_db_count  = len(db.get("escalation_matrix") or [])
-        self.planning_db_count = len(db.get("planning") or [])
+        self.matrix_db_count    = len(db.get("escalation_matrix") or [])
+        self.planning_db_count  = len(db.get("planning") or [])
+        self.astreinte_db_count = len(db.get("astreintes") or [])
 
     async def handle_matrix_upload(self, files: list[rx.UploadFile]):
         if not files:
@@ -344,6 +408,71 @@ class ImportExcelState(rx.State):
             self.planning_status = "error"
             self.planning_msg = f"Erreur : {str(e)} — {detail}"
             log_activity("import", "LOGIN_FAIL", "import", f"Planning ERREUR : {str(e)}")
+
+    async def handle_astreinte_upload(self, files: list[rx.UploadFile]):
+        if not files:
+            self.astreinte_status = "error"
+            self.astreinte_msg = "Aucun fichier sélectionné. Déposez un fichier avant de cliquer."
+            return
+
+        fname = files[0].name
+        self.astreinte_filename = fname
+        self.astreinte_status = "loading"
+        self.astreinte_msg = f"Lecture de « {fname} »…"
+        yield
+
+        try:
+            import openpyxl
+            data = await files[0].read()
+            size_kb = round(len(data) / 1024, 1)
+
+            self.astreinte_msg = f"Fichier reçu ({size_kb} Ko) — ouverture du classeur…"
+            yield
+
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            sheets = wb.sheetnames
+
+            self.astreinte_msg = f"Onglets détectés : {', '.join(sheets)} — recherche de l'onglet astreintes…"
+            yield
+
+            entries = _parse_astreintes(wb)
+
+            if not entries:
+                self.astreinte_status = "error"
+                self.astreinte_msg = (
+                    f"Aucune entrée trouvée dans les onglets : {', '.join(sheets)}. "
+                    f"L'onglet doit contenir « Astreinte » ou « Prévision » dans son nom."
+                )
+                log_activity("import", "LOGIN_FAIL", "import", f"Astreintes : 0 entrée — onglets={sheets}")
+                return
+
+            self.astreinte_msg = f"{len(entries)} périodes parsées — sauvegarde en base…"
+            yield
+
+            db = load_db()
+            old_count = len(db.get("astreintes") or [])
+            db["astreintes"] = entries
+            save_db(db)
+
+            self.astreinte_count    = len(entries)
+            self.astreinte_db_count = len(entries)
+            self.astreinte_status   = "success"
+            self.astreinte_msg      = (
+                f"{len(entries)} périodes importées "
+                f"(avant : {old_count}, après : {len(entries)})."
+            )
+            auth = await self.get_state(AuthState)
+            log_activity(
+                auth.user_nom, "UPDATE", "import",
+                f"Astreintes OK : {len(entries)} entrées depuis « {fname} » (onglets : {', '.join(sheets)})"
+            )
+
+        except Exception as e:
+            import traceback
+            detail = traceback.format_exc().splitlines()[-1]
+            self.astreinte_status = "error"
+            self.astreinte_msg = f"Erreur : {str(e)} — {detail}"
+            log_activity("import", "LOGIN_FAIL", "import", f"Astreintes ERREUR : {str(e)}")
 
 
 # ── Composants ────────────────────────────────────────────────────────────────
@@ -607,6 +736,29 @@ def _format_card() -> rx.Component:
                 spacing="3",
                 align="start",
             ),
+            rx.divider(border_color=BORDER),
+            rx.hstack(
+                rx.box(
+                    rx.icon("alarm-clock", size=13, color=COLOR_ASTREINTE),
+                    background="rgba(245,158,11,0.1)",
+                    border_radius="5px",
+                    padding="4px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Astreintes", color=TEXT, font_size="0.8rem", font_weight="600"),
+                    rx.text(
+                        "Fichier « Prévision planning ACTUAL 2026.xlsx » — onglet « Prévision Astreinte » : "
+                        "ligne 1 = semaines (S15, S19…), ligne 2 = mois, ligne 3 = 06h-08h (tech), ligne 4 = 18h-20h (tech)",
+                        color=MUTED, font_size="0.73rem", line_height="1.5",
+                    ),
+                    spacing="0", align="start",
+                ),
+                spacing="3",
+                align="start",
+            ),
             spacing="3",
         ),
         background="#0d1021",
@@ -670,6 +822,18 @@ def import_excel_content() -> rx.Component:
                 msg=ImportExcelState.planning_msg,
                 db_count=ImportExcelState.planning_db_count,
                 filename=ImportExcelState.planning_filename,
+            ),
+            _upload_zone(
+                title="Astreintes",
+                subtitle="Onglet : Prévision Astreinte",
+                icon_name="alarm-clock",
+                accent=COLOR_ASTREINTE,
+                upload_id="astreinte_upload",
+                handler=ImportExcelState.handle_astreinte_upload,
+                status=ImportExcelState.astreinte_status,
+                msg=ImportExcelState.astreinte_msg,
+                db_count=ImportExcelState.astreinte_db_count,
+                filename=ImportExcelState.astreinte_filename,
             ),
             spacing="5",
             width="100%",
