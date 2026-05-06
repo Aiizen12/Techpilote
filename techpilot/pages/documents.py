@@ -296,6 +296,7 @@ def _gabarit_dialog() -> rx.Component:
 def gabarit_kanban_card(g: GabaritItem) -> rx.Component:
     return rx.box(
         rx.hstack(
+            # Titre cliquable → ouvre l'édition
             rx.text(
                 g["titre"],
                 font_size="0.82rem",
@@ -307,44 +308,25 @@ def gabarit_kanban_card(g: GabaritItem) -> rx.Component:
                 text_overflow="ellipsis",
                 white_space="nowrap",
                 line_height="1.4",
+                cursor="pointer",
+                on_click=DocumentsState.open_edit_gabarit_form(
+                    g["id"], g["titre"], g["categorie"], g["contenu"]
+                ),
+                _hover={"color": "#a5b4fc"},
             ),
-            rx.hstack(
-                rx.icon_button(
-                    rx.icon("copy", size=12),
-                    on_click=DocumentsState.copy_gabarit(g["contenu"]),
-                    background="transparent",
-                    color=MUTED,
-                    border="none",
-                    size="1",
-                    cursor="pointer",
-                    _hover={"color": "#22c55e", "background": "rgba(34,197,94,0.12)"},
-                ),
-                rx.icon_button(
-                    rx.icon("pencil", size=12),
-                    on_click=DocumentsState.open_edit_gabarit_form(
-                        g["id"], g["titre"], g["categorie"], g["contenu"]
-                    ),
-                    background="transparent",
-                    color=MUTED,
-                    border="none",
-                    size="1",
-                    cursor="pointer",
-                    _hover={"color": "#a5b4fc", "background": "rgba(99,102,241,0.12)"},
-                ),
-                rx.icon_button(
-                    rx.icon("trash-2", size=12),
-                    on_click=DocumentsState.delete_gabarit(g["id"]),
-                    background="transparent",
-                    color=MUTED,
-                    border="none",
-                    size="1",
-                    cursor="pointer",
-                    _hover={"color": "#ef4444", "background": "rgba(239,68,68,0.12)"},
-                ),
-                spacing="0",
+            # × discret pour suppression
+            rx.icon_button(
+                rx.icon("x", size=11),
+                on_click=DocumentsState.delete_gabarit(g["id"]),
+                background="transparent",
+                color="rgba(148,163,184,0.25)",
+                border="none",
+                size="1",
+                cursor="pointer",
                 flex_shrink="0",
+                _hover={"color": "#ef4444", "background": "rgba(239,68,68,0.12)"},
             ),
-            spacing="2",
+            spacing="1",
             align="center",
             width="100%",
         ),
