@@ -20,6 +20,7 @@ def _get_tech_names() -> list[str]:
 COLOR_MATRIX    = "#9333ea"
 COLOR_PLANNING  = "#059669"
 COLOR_ASTREINTE = "#f59e0b"
+COLOR_DOCUMENTS = "#3b82f6"
 
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
@@ -90,6 +91,108 @@ def _parse_escalade_matrix(wb) -> list[dict]:
             "conditions_escalade": get(col_conditions),
             "notes":              get(col_notes),
         })
+    return entries
+
+
+_DOC_SKIP_NAMES = {"gabarits brouillon", "archive gabarit"}
+
+def _categorize_document(nom: str) -> tuple[str, str]:
+    n = nom.lower()
+    if n.startswith("fiche n1") or n.startswith("fiche n°1"):
+        return "Procédures", "Fiches Applications pour le N1"
+    if any(kw in n for kw in ["téléphon", "telephon", "centile", "smartphone", "mobile", "bouygues", "apn", "mms", "fixe", "myistra"]):
+        return "Procédures", "SI - Téléphonie"
+    if any(kw in n for kw in ["keeper", "vol de poste"]):
+        return "Procédures", "SI - Sécurité"
+    if any(kw in n for kw in ["réseau", "reseau", "routeur"]):
+        return "Procédures", "SI - Réseau et internet"
+    if any(kw in n for kw in ["chrome", "drive", "meet", "gmail", "google", "navigateur", "freshdesk", "délégation", "delegation"]):
+        return "Procédures", "SI - Outils collaboratifs"
+    if any(kw in n for kw in ["impression", "matériel", "pmad", "qualys", "demande d'applic", "phone océan", "active directory"]):
+        return "Procédures", "SI - Poste de travail et périphériques"
+    if "process" in n and ("n1" in n or "prévisoft" in n):
+        return "Procédures", "Arbres & process N1"
+    if ("groupes" in n and "droits" in n) or "droits_par" in n:
+        return "Groupes de droits", ""
+    if any(kw in n for kw in ["bonne pratique", "validation des doc", "identifier l'entité"]):
+        return "Général", "Généralités"
+    if "citrix" in n:
+        return "Procédures", "SI - AUTRES APPLICATIONS"
+    return "Procédures", "SI - AUTRES APPLICATIONS"
+
+
+def _parse_documents(data_bytes: bytes) -> list[dict]:
+    """Parse les liens de procédures depuis l'onglet 'Suivi des procédures'.
+    Nécessite read_only=False pour lire les hyperliens des cellules.
+    Structure : col D = nom (+ hyperlien), col J = URL version modifiée (texte).
+    """
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(data_bytes), data_only=True)
+
+    sheet_name = None
+    for name in wb.sheetnames:
+        nl = name.lower()
+        if "suivi" in nl and "proc" in nl:
+            sheet_name = name
+            break
+    if not sheet_name:
+        for name in wb.sheetnames:
+            if "proc" in name.lower():
+                sheet_name = name
+                break
+    if not sheet_name:
+        return []
+
+    ws = wb[sheet_name]
+    entries = []
+    seen_urls: set[str] = set()
+    counter = 0
+
+    for row in ws.iter_rows(min_row=2, values_only=False):
+        name_cell = row[3] if len(row) > 3 else None   # col D
+        link_cell = row[9] if len(row) > 9 else None   # col J
+
+        if not name_cell or not name_cell.value:
+            continue
+
+        nom = str(name_cell.value).strip()
+        if not nom:
+            continue
+        if nom.lower() in _DOC_SKIP_NAMES:
+            continue
+
+        # Nettoyer le nom (.docx résiduel, espaces doubles)
+        nom = nom.replace(".docx", "").replace("  ", " ").strip()
+
+        # URL : hyperlien col D → texte col J → hyperlien col J
+        url = None
+        if name_cell.hyperlink:
+            url = name_cell.hyperlink.target
+        if not url and link_cell:
+            val_j = str(link_cell.value).strip() if link_cell.value else ""
+            if val_j.startswith("http"):
+                url = val_j
+            elif link_cell.hyperlink:
+                url = link_cell.hyperlink.target
+
+        if not url:
+            continue
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+
+        counter += 1
+        cat, sous_cat = _categorize_document(nom)
+        entries.append({
+            "id":             f"doc-{counter:03d}",
+            "type":           "lien",
+            "nom_original":   nom,
+            "url":            url,
+            "categorie":      cat,
+            "sous_categorie": sous_cat,
+            "description":    "",
+        })
+
     return entries
 
 
@@ -254,11 +357,19 @@ class ImportExcelState(rx.State):
     astreinte_db_count: int = 0
     astreinte_filename: str = ""
 
+    # Documents (Suivi de procédures)
+    doc_status: str = ""
+    doc_msg: str = ""
+    doc_count: int = 0
+    doc_db_count: int = 0
+    doc_filename: str = ""
+
     def load_counts(self):
         db = load_db()
         self.matrix_db_count    = len(db.get("escalation_matrix") or [])
         self.planning_db_count  = len(db.get("planning") or [])
         self.astreinte_db_count = len(db.get("astreintes") or [])
+        self.doc_db_count       = len(db.get("documents") or [])
 
     async def handle_matrix_upload(self, files: list[rx.UploadFile]):
         if not files:
@@ -473,6 +584,78 @@ class ImportExcelState(rx.State):
             self.astreinte_status = "error"
             self.astreinte_msg = f"Erreur : {str(e)} — {detail}"
             log_activity("import", "LOGIN_FAIL", "import", f"Astreintes ERREUR : {str(e)}")
+
+    async def handle_doc_upload(self, files: list[rx.UploadFile]):
+        if not files:
+            self.doc_status = "error"
+            self.doc_msg = "Aucun fichier sélectionné. Déposez un fichier avant de cliquer."
+            return
+
+        fname = files[0].name
+        self.doc_filename = fname
+        self.doc_status = "loading"
+        self.doc_msg = f"Lecture de « {fname} »…"
+        yield
+
+        try:
+            data = await files[0].read()
+            size_kb = round(len(data) / 1024, 1)
+
+            self.doc_msg = f"Fichier reçu ({size_kb} Ko) — recherche de l'onglet 'Suivi des procédures'…"
+            yield
+
+            import openpyxl
+            wb_check = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            sheets = wb_check.sheetnames
+
+            self.doc_msg = f"Onglets : {', '.join(sheets)} — parsing des liens…"
+            yield
+
+            entries = _parse_documents(data)
+
+            if not entries:
+                self.doc_status = "error"
+                self.doc_msg = (
+                    f"Aucun lien trouvé dans les onglets : {', '.join(sheets)}. "
+                    f"L'onglet doit contenir « Suivi » et « proc » dans son nom."
+                )
+                log_activity("import", "LOGIN_FAIL", "import", f"Documents : 0 entrée — onglets={sheets}")
+                return
+
+            self.doc_msg = f"{len(entries)} liens parsés — mise à jour de la base…"
+            yield
+
+            db = load_db()
+            existing = db.get("documents") or []
+
+            # Conserver les documents ajoutés manuellement (IDs UUID) + remplacer ceux issus de l'import (IDs doc-XXX)
+            kept = [d for d in existing if not str(d.get("id", "")).startswith("doc-")]
+            existing_urls = {d["url"] for d in kept}
+            new_entries = [e for e in entries if e["url"] not in existing_urls]
+            merged = kept + entries  # les doc-XXX sont toujours remplacés intégralement
+
+            db["documents"] = merged
+            save_db(db)
+
+            self.doc_count    = len(entries)
+            self.doc_db_count = len(merged)
+            self.doc_status   = "success"
+            self.doc_msg      = (
+                f"{len(entries)} procédures importées, {len(kept)} documents manuels conservés "
+                f"(total : {len(merged)})."
+            )
+            auth = await self.get_state(AuthState)
+            log_activity(
+                auth.user_nom, "UPDATE", "import",
+                f"Documents OK : {len(entries)} depuis « {fname} » + {len(kept)} manuels (total={len(merged)})"
+            )
+
+        except Exception as e:
+            import traceback
+            detail = traceback.format_exc().splitlines()[-1]
+            self.doc_status = "error"
+            self.doc_msg = f"Erreur : {str(e)} — {detail}"
+            log_activity("import", "LOGIN_FAIL", "import", f"Documents ERREUR : {str(e)}")
 
 
 # ── Composants ────────────────────────────────────────────────────────────────
@@ -759,6 +942,30 @@ def _format_card() -> rx.Component:
                 spacing="3",
                 align="start",
             ),
+            rx.divider(border_color=BORDER),
+            rx.hstack(
+                rx.box(
+                    rx.icon("link", size=13, color=COLOR_DOCUMENTS),
+                    background="rgba(59,130,246,0.1)",
+                    border_radius="5px",
+                    padding="4px",
+                    display="flex",
+                    align_items="center",
+                    justify_content="center",
+                ),
+                rx.vstack(
+                    rx.text("Documents & procédures", color=TEXT, font_size="0.8rem", font_weight="600"),
+                    rx.text(
+                        "Fichier « Suivi de procédures.xlsx » — onglet « Suivi des procédures » : "
+                        "col D = nom (avec hyperlien), col J = lien version modifiée. "
+                        "Les documents ajoutés manuellement dans l'app sont conservés.",
+                        color=MUTED, font_size="0.73rem", line_height="1.5",
+                    ),
+                    spacing="0", align="start",
+                ),
+                spacing="3",
+                align="start",
+            ),
             spacing="3",
         ),
         background="#0d1021",
@@ -834,6 +1041,18 @@ def import_excel_content() -> rx.Component:
                 msg=ImportExcelState.astreinte_msg,
                 db_count=ImportExcelState.astreinte_db_count,
                 filename=ImportExcelState.astreinte_filename,
+            ),
+            _upload_zone(
+                title="Documents & procédures",
+                subtitle="Onglet : Suivi des procédures",
+                icon_name="link",
+                accent=COLOR_DOCUMENTS,
+                upload_id="doc_upload",
+                handler=ImportExcelState.handle_doc_upload,
+                status=ImportExcelState.doc_status,
+                msg=ImportExcelState.doc_msg,
+                db_count=ImportExcelState.doc_db_count,
+                filename=ImportExcelState.doc_filename,
             ),
             spacing="5",
             width="100%",
