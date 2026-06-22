@@ -302,3 +302,12 @@ class OnboardingTechProgress(BaseModel):
     steps_done: list[str] = []
     date_debut: str = ""
     assigned: bool = False
+
+
+class MigrationTask(BaseModel):
+    id: str = ""
+    titre: str = ""
+    description: str = ""
+    statut: str = "idee"       # "idee" | "en_cours" | "realise"
+    date_creation: str = ""
+    priorite: str = "normale"  # "basse" | "normale" | "haute"
