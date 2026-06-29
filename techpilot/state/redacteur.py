@@ -118,6 +118,20 @@ class RedacteurState(rx.State):
                 return p
         return {}
 
+    @rx.var
+    def view_embed_url(self) -> str:
+        p = self.view_procedure
+        url: str = p.get("google_doc_url", "") or ""
+        if not url:
+            return ""
+        # Nettoyer les paramètres, forcer /preview
+        base = url.split("?")[0].rstrip("/")
+        for suffix in ("/edit", "/preview", "/view", "/copy"):
+            if base.endswith(suffix):
+                base = base[: -len(suffix)]
+                break
+        return base + "/preview"
+
     @rx.event
     def open_view(self, proc_id: str):
         self.view_id = proc_id

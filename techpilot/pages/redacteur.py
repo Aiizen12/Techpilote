@@ -782,26 +782,81 @@ def _procedures_list() -> rx.Component:
 
 # ── Modal lecture procédure ───────────────────────────────────────────────────
 
-def _section_block(icon_name: str, title: str, content: str) -> rx.Component:
+def _view_statut_badge(statut: str) -> rx.Component:
+    return rx.match(
+        statut,
+        ("Brouillon",
+         rx.box(rx.text("Brouillon", color="#94a3b8", font_size="0.72rem", font_weight="700"),
+                background="rgba(148,163,184,0.15)", border="1px solid rgba(148,163,184,0.3)",
+                border_radius="20px", padding="3px 10px")),
+        ("En attente de validation",
+         rx.box(rx.text("En attente de validation", color=AMBER, font_size="0.72rem", font_weight="700"),
+                background="rgba(245,158,11,0.15)", border=f"1px solid {AMBER}55",
+                border_radius="20px", padding="3px 10px")),
+        ("Relecture N1",
+         rx.box(rx.text("Relecture N1", color="#06b6d4", font_size="0.72rem", font_weight="700"),
+                background="rgba(6,182,212,0.15)", border="1px solid #06b6d455",
+                border_radius="20px", padding="3px 10px")),
+        ("Relecture N2",
+         rx.box(rx.text("Relecture N2", color="#8b5cf6", font_size="0.72rem", font_weight="700"),
+                background="rgba(139,92,246,0.15)", border="1px solid #8b5cf655",
+                border_radius="20px", padding="3px 10px")),
+        ("Validé",
+         rx.box(rx.text("Validé", color=GREEN, font_size="0.72rem", font_weight="700"),
+                background="rgba(34,197,94,0.15)", border=f"1px solid {GREEN}55",
+                border_radius="20px", padding="3px 10px")),
+        ("Publié",
+         rx.box(rx.text("Publié", color="#10b981", font_size="0.72rem", font_weight="700"),
+                background="rgba(16,185,129,0.15)", border="1px solid #10b98155",
+                border_radius="20px", padding="3px 10px")),
+        ("Obsolète",
+         rx.box(rx.text("Obsolète", color="#ef4444", font_size="0.72rem", font_weight="700"),
+                background="rgba(239,68,68,0.15)", border="1px solid #ef444455",
+                border_radius="20px", padding="3px 10px")),
+        rx.box(rx.text(statut, color=MUTED, font_size="0.72rem"),
+               border_radius="20px", padding="3px 10px"),
+    )
+
+
+def _doc_section(
+    icon_name: str,
+    label: str,
+    content: str,
+    accent: str,
+    bg: str,
+) -> rx.Component:
     return rx.cond(
         content != "",
         rx.vstack(
+            # Label section
             rx.hstack(
-                rx.icon(icon_name, size=14, color=PRIMARY),
-                rx.text(title, color=PRIMARY, font_size="0.78rem", font_weight="700",
-                        text_transform="uppercase", letter_spacing="0.05em"),
-                spacing="1", align="center",
+                rx.box(
+                    rx.icon(icon_name, size=13, color=accent),
+                    background=f"rgba({_hex_to_rgb(accent)},0.15)",
+                    border_radius="6px", padding="5px",
+                    display="flex", align_items="center", justify_content="center",
+                ),
+                rx.text(
+                    label,
+                    color=accent, font_size="0.72rem", font_weight="800",
+                    text_transform="uppercase", letter_spacing="0.08em",
+                ),
+                spacing="2", align="center",
             ),
-            rx.text(
-                content,
-                color=TEXT, font_size="0.85rem", line_height="1.7",
-                white_space="pre-wrap",
+            # Contenu
+            rx.box(
+                rx.text(
+                    content,
+                    color=TEXT, font_size="0.88rem", line_height="1.8",
+                    white_space="pre-wrap",
+                ),
+                background=bg,
+                border_left=f"3px solid {accent}",
+                border_radius="0 10px 10px 0",
+                padding="14px 18px",
+                width="100%",
             ),
             spacing="2", width="100%",
-            background="rgba(99,102,241,0.04)",
-            border_left=f"3px solid {PRIMARY}55",
-            border_radius="0 8px 8px 0",
-            padding="10px 14px",
         ),
     )
 
@@ -811,133 +866,208 @@ def _view_modal() -> rx.Component:
     return rx.dialog.root(
         rx.dialog.content(
             rx.vstack(
-                # Header
-                rx.hstack(
+                # ── Header gradient ───────────────────────────────────────
+                rx.box(
                     rx.vstack(
+                        # Chips top
                         rx.hstack(
                             rx.cond(
                                 p["codification"] != "",
                                 rx.box(
-                                    rx.text(p["codification"], color="#a5b4fc",
-                                            font_size="0.75rem", font_weight="800"),
-                                    background="rgba(99,102,241,0.15)",
-                                    border="1px solid rgba(99,102,241,0.35)",
-                                    border_radius="6px", padding="2px 8px",
+                                    rx.text(
+                                        p["codification"],
+                                        color="white", font_size="0.75rem", font_weight="900",
+                                        letter_spacing="0.06em",
+                                    ),
+                                    background="rgba(255,255,255,0.2)",
+                                    border="1px solid rgba(255,255,255,0.35)",
+                                    border_radius="6px", padding="3px 10px",
                                 ),
                             ),
-                            rx.match(
-                                p["statut"],
-                                ("En attente de validation",
-                                 rx.box(rx.text("En attente", color=AMBER, font_size="0.7rem", font_weight="600"),
-                                        background="rgba(245,158,11,0.1)", border=f"1px solid {AMBER}44",
-                                        border_radius="6px", padding="2px 8px", display="inline-flex")),
-                                ("Relecture N1",
-                                 rx.box(rx.text("Relecture N1", color="#06b6d4", font_size="0.7rem", font_weight="600"),
-                                        background="rgba(6,182,212,0.1)", border="1px solid #06b6d444",
-                                        border_radius="6px", padding="2px 8px", display="inline-flex")),
-                                ("Validé",
-                                 rx.box(rx.text("Validé", color=GREEN, font_size="0.7rem", font_weight="600"),
-                                        background="rgba(34,197,94,0.1)", border=f"1px solid {GREEN}44",
-                                        border_radius="6px", padding="2px 8px", display="inline-flex")),
-                                ("Publié",
-                                 rx.box(rx.text("Publié", color="#10b981", font_size="0.7rem", font_weight="600"),
-                                        background="rgba(16,185,129,0.1)", border="1px solid #10b98144",
-                                        border_radius="6px", padding="2px 8px", display="inline-flex")),
-                                rx.box(rx.text(p["statut"], color=MUTED, font_size="0.7rem"),
-                                       border_radius="6px", padding="2px 8px", display="inline-flex"),
+                            _view_statut_badge(p["statut"]),
+                            rx.spacer(),
+                            # Boutons action
+                            rx.hstack(
+                                rx.cond(
+                                    p["google_doc_url"] != "",
+                                    rx.link(
+                                        rx.button(
+                                            rx.icon("external-link", size=13),
+                                            "Google Doc",
+                                            background="rgba(255,255,255,0.15)",
+                                            color="white",
+                                            border="1px solid rgba(255,255,255,0.3)",
+                                            border_radius="8px", padding="5px 14px",
+                                            font_size="0.78rem", font_weight="600",
+                                            cursor="pointer",
+                                            _hover={"background": "rgba(255,255,255,0.25)"},
+                                        ),
+                                        href=p["google_doc_url"], target="_blank",
+                                    ),
+                                ),
+                                rx.button(
+                                    rx.icon("pencil", size=13),
+                                    "Modifier",
+                                    on_click=[RedacteurState.close_view,
+                                              RedacteurState.edit_procedure(p["id"])],
+                                    background="rgba(255,255,255,0.15)",
+                                    color="white",
+                                    border="1px solid rgba(255,255,255,0.3)",
+                                    border_radius="8px", padding="5px 14px",
+                                    font_size="0.78rem", font_weight="600",
+                                    cursor="pointer",
+                                    _hover={"background": "rgba(255,255,255,0.25)"},
+                                ),
+                                rx.dialog.close(
+                                    rx.icon_button(
+                                        rx.icon("x", size=15),
+                                        on_click=RedacteurState.close_view,
+                                        background="rgba(255,255,255,0.12)",
+                                        color="white",
+                                        border="1px solid rgba(255,255,255,0.25)",
+                                        border_radius="8px", size="2", cursor="pointer",
+                                        _hover={"background": "rgba(255,255,255,0.25)"},
+                                    ),
+                                ),
+                                spacing="2", align="center",
                             ),
-                            spacing="2", align="center",
+                            width="100%", align="center",
                         ),
-                        rx.heading(p["titre"], color=TEXT, size="4", line_height="1.3"),
+
+                        # Titre
+                        rx.heading(
+                            p["titre"],
+                            color="white", size="5",
+                            line_height="1.3", font_weight="800",
+                        ),
+
+                        # Méta pills
                         rx.hstack(
-                            rx.cond(
-                                p["master_subject"] != "",
-                                rx.text(p["master_subject"], color=MUTED, font_size="0.75rem"),
-                            ),
                             rx.cond(
                                 p["nature"] != "",
                                 rx.hstack(
-                                    rx.text("·", color=MUTED),
-                                    rx.text(p["nature"], color=MUTED, font_size="0.75rem"),
-                                    spacing="1",
+                                    rx.icon("tag", size=11, color="rgba(255,255,255,0.6)"),
+                                    rx.text(p["nature"], color="rgba(255,255,255,0.75)",
+                                            font_size="0.75rem"),
+                                    spacing="1", align="center",
                                 ),
                             ),
-                            spacing="1", align="center",
+                            rx.cond(
+                                p["master_subject"] != "",
+                                rx.hstack(
+                                    rx.text("·", color="rgba(255,255,255,0.4)"),
+                                    rx.icon("layers", size=11, color="rgba(255,255,255,0.6)"),
+                                    rx.text(p["master_subject"], color="rgba(255,255,255,0.75)",
+                                            font_size="0.75rem"),
+                                    spacing="1", align="center",
+                                ),
+                            ),
+                            rx.cond(
+                                p["perimetre"] != "",
+                                rx.hstack(
+                                    rx.text("·", color="rgba(255,255,255,0.4)"),
+                                    rx.icon("app-window", size=11, color="rgba(255,255,255,0.6)"),
+                                    rx.text(p["perimetre"], color="rgba(255,255,255,0.75)",
+                                            font_size="0.75rem"),
+                                    spacing="1", align="center",
+                                ),
+                            ),
+                            rx.hstack(
+                                rx.text("·", color="rgba(255,255,255,0.4)"),
+                                rx.icon("file-text", size=11, color="rgba(255,255,255,0.6)"),
+                                rx.text(p["type_proc"], color="rgba(255,255,255,0.75)",
+                                        font_size="0.75rem"),
+                                spacing="1", align="center",
+                            ),
+                            spacing="1", align="center", flex_wrap="wrap",
                         ),
-                        spacing="1", align="start",
+
+                        spacing="3", width="100%",
                     ),
-                    rx.spacer(),
-                    rx.hstack(
+                    background="linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)",
+                    border_radius="14px 14px 0 0",
+                    padding="1.4rem 1.5rem",
+                    width="100%",
+                ),
+
+                # ── Corps : iframe Google Doc OU contenu formaté ──────────
+                rx.cond(
+                    RedacteurState.view_embed_url != "",
+                    # ─ iframe Google Doc ─
+                    rx.box(
+                        rx.el.iframe(
+                            src=RedacteurState.view_embed_url,
+                            width="100%",
+                            height="600px",
+                            style={"border": "none"},
+                            allow="autoplay",
+                        ),
+                        width="100%",
+                        background="white",
+                        border_radius="0",
+                        overflow="hidden",
+                    ),
+                    # ─ Contenu texte formaté ─
+                    rx.vstack(
                         rx.cond(
-                            p["google_doc_url"] != "",
-                            rx.link(
-                                rx.button(
-                                    rx.icon("external-link", size=13),
-                                    "Google Doc",
-                                    background="rgba(99,102,241,0.1)", color="#a5b4fc",
-                                    border=f"1px solid rgba(99,102,241,0.3)",
-                                    border_radius="8px", padding="5px 12px",
-                                    font_size="0.78rem", cursor="pointer",
+                            p["resume"] != "",
+                            rx.box(
+                                rx.hstack(
+                                    rx.icon("align-left", size=14, color="#a5b4fc"),
+                                    rx.text("Résumé", color="#a5b4fc", font_size="0.72rem",
+                                            font_weight="800", text_transform="uppercase",
+                                            letter_spacing="0.08em"),
+                                    spacing="2", align="center",
                                 ),
-                                href=p["google_doc_url"], target="_blank",
+                                rx.text(
+                                    p["resume"],
+                                    color=TEXT, font_size="0.88rem", line_height="1.75",
+                                    white_space="pre-wrap", margin_top="8px",
+                                ),
+                                background="rgba(99,102,241,0.07)",
+                                border="1px solid rgba(99,102,241,0.2)",
+                                border_radius="10px", padding="14px 16px", width="100%",
                             ),
                         ),
-                        rx.button(
-                            rx.icon("pencil", size=13),
-                            "Modifier",
-                            on_click=[RedacteurState.close_view,
-                                      RedacteurState.edit_procedure(p["id"])],
-                            background="rgba(99,102,241,0.1)", color=PRIMARY,
-                            border=f"1px solid rgba(99,102,241,0.3)",
-                            border_radius="8px", padding="5px 12px",
-                            font_size="0.78rem", cursor="pointer",
-                        ),
-                        rx.dialog.close(
-                            rx.icon_button(
-                                rx.icon("x", size=16),
-                                on_click=RedacteurState.close_view,
-                                background="transparent", color=MUTED,
-                                border=f"1px solid {BORDER}",
-                                border_radius="8px", size="2", cursor="pointer",
-                                _hover={"color": TEXT, "background": "rgba(255,255,255,0.05)"},
-                            ),
-                        ),
-                        spacing="2", align="center",
+                        _doc_section("alert-circle", "Situation",
+                                     p["situation"], AMBER, "rgba(245,158,11,0.05)"),
+                        _doc_section("info", "À savoir",
+                                     p["a_savoir"], "#06b6d4", "rgba(6,182,212,0.05)"),
+                        _doc_section("list-ordered", "Résolution",
+                                     p["steps_text"], PRIMARY, "rgba(99,102,241,0.06)"),
+                        _doc_section("check-circle", "Résultat attendu",
+                                     p["resultat_attendu"], GREEN, "rgba(34,197,94,0.05)"),
+                        _doc_section("arrow-up-right", "Escalade",
+                                     p["escalade_info"], RED, "rgba(239,68,68,0.05)"),
+                        spacing="4", width="100%",
+                        padding="1.25rem 1.5rem",
                     ),
-                    width="100%", align="start",
                 ),
 
-                rx.divider(border_color=BORDER),
-
-                # Contenu
-                rx.vstack(
-                    _section_block("align-left", "Résumé", p["resume"]),
-                    _section_block("alert-triangle", "Situation", p["situation"]),
-                    _section_block("info", "À savoir", p["a_savoir"]),
-                    _section_block("list-ordered", "Résolution", p["steps_text"]),
-                    _section_block("check-circle", "Résultat attendu", p["resultat_attendu"]),
-                    _section_block("arrow-up-right", "Escalade", p["escalade_info"]),
-                    spacing="3", width="100%",
-                ),
-
-                # Footer
+                # ── Footer ────────────────────────────────────────────────
                 rx.hstack(
-                    rx.text(
-                        "Rédigé par ", p["auteur_nom"], " · Modifié le ", p["date_maj"],
-                        color=MUTED, font_size="0.72rem",
-                    ),
-                    spacing="2",
+                    rx.icon("user", size=12, color=MUTED),
+                    rx.text("Rédigé par ", p["auteur_nom"],
+                            color=MUTED, font_size="0.73rem"),
+                    rx.text("·", color=BORDER),
+                    rx.icon("clock", size=12, color=MUTED),
+                    rx.text("Modifié le ", p["date_maj"],
+                            color=MUTED, font_size="0.73rem"),
+                    spacing="2", align="center",
+                    padding="0.75rem 1.5rem",
+                    border_top=f"1px solid {BORDER}",
+                    width="100%",
                 ),
 
-                spacing="4", width="100%",
+                spacing="0", width="100%",
             ),
             background=CARD_BG,
             border=f"1px solid {BORDER}",
             border_radius="16px",
-            padding="1.5rem",
-            max_width="760px",
-            width="90vw",
-            max_height="85vh",
+            padding="0",
+            max_width="820px",
+            width="92vw",
+            max_height="88vh",
             overflow_y="auto",
         ),
         open=RedacteurState.view_id != "",
