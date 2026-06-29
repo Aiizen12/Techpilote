@@ -10,57 +10,89 @@ from techpilot.db.database import load_db, save_db
 from techpilot.state.auth import AuthState
 
 PROC_TYPES   = ["N1", "Fiche N1", "Arbre de décision"]
-PROC_STATUTS = ["Brouillon", "En attente de validation", "Relecture N1", "Relecture N2", "Validé", "Publié"]
+PROC_STATUTS = ["Brouillon", "Relecture N1", "En attente de validation", "Relecture N2", "Validé", "Publié", "Obsolète"]
+
+# Master Subjects (code → libellé)
+MASTER_SUBJECTS: list[tuple[str, str]] = [
+    ("AM", "App métiers"),
+    ("AC", "App collaboratives"),
+    ("PT", "Poste de travail"),
+    ("IM", "Imprimantes"),
+    ("PE", "Périphériques"),
+    ("SY", "Systèmes"),
+    ("CI", "Citrix"),
+    ("AD", "Accès Droits Comptes"),
+    ("RE", "Réseau"),
+    ("IN", "Internet"),
+    ("SE", "Sécurité"),
+    ("TI", "Téléphonie IP"),
+    ("TM", "Téléphonie mobile"),
+]
+MASTER_SUBJECT_LABELS = [f"{code} – {label}" for code, label in MASTER_SUBJECTS]
+PROC_NATURES = ["I – Incident", "R – Request (Demande)"]
 
 _SYSTEM_PROMPT = """Tu es expert en rédaction de procédures N1 helpdesk IT en français.
-Rédige une procédure N1 complète et structurée en suivant EXACTEMENT ce format (conserve les titres ## tels quels) :
+Rédige une procédure N1 structurée en suivant EXACTEMENT ce format utilisé dans notre équipe :
 
-## OBJECTIF
-[Courte description de l'objectif de la procédure]
+**[TITRE DE LA PROCÉDURE]**
 
-## PRÉ-REQUIS
-• [Prérequis 1 — accès, droits ou outils nécessaires]
-• [Prérequis 2 si pertinent]
+**Résumé**
+[1-2 phrases décrivant l'objectif et le contexte de la procédure]
 
-## ÉTAPES
-1. [Étape 1 claire et actionnable]
+**Situation**
+[Description précise du cas déclencheur : symptôme observé, message d'erreur, situation de l'utilisateur]
+
+**À savoir** (si pertinent)
+[Cas particuliers, précautions, informations contextuelles importantes avant de commencer]
+
+**Résolution**
+1. [Étape 1 — action précise et actionnable]
 2. [Étape 2]
 3. [...]
 
-## RÉSULTAT ATTENDU
-[Description précise de ce qui doit se produire après les étapes]
+**Résultat attendu**
+[Ce qui doit se produire une fois les étapes terminées]
 
-## ESCALADE
-Si non résolu → Escalader à [N2/équipe/interlocuteur] via [WP/channel/process]
-Contact : [email ou Teams si connu]
+**Escalade**
+Si non résolu après les étapes → Escalader à [N2/équipe] via [WP/Teams/canal]
 
 Règles impératives :
 - Langage simple, accessible à un technicien N1 débutant
-- Étapes numérotées, précises, actionnables (pas de vague "vérifier")
-- Maximum 15 étapes
-- Mentionner les messages d'erreur courants si pertinent
-- Rester concis et pratique, pas de théorie"""
+- Étapes numérotées et actionnables (verbe d'action : "Ouvrir", "Cliquer", "Saisir"…)
+- Mentionner les messages d'erreur exactement comme ils apparaissent à l'écran
+- Maximum 15 étapes, rester concis et pratique
+- NE PAS inclure de bloc de métadonnées (rédigé par, date, version…), on les gère séparément"""
 
 
 def _extract_section(text: str, header: str) -> str:
-    pattern = rf"##\s+{re.escape(header)}\s*\n(.*?)(?=\n##\s|\Z)"
+    pattern = rf"\*?\*?{re.escape(header)}\*?\*?\s*\n(.*?)(?=\n\*?\*?(?:Résumé|Situation|À savoir|Résolution|Résultat attendu|Escalade)\*?\*?|\Z)"
     m = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
     return m.group(1).strip() if m else ""
+
+
+def _build_codification(nature: str, master_code: str, numero: str) -> str:
+    prefix = nature[0] if nature else "I"   # "I" ou "R"
+    return f"{prefix}{master_code}{numero}".upper() if master_code and numero else ""
 
 
 class RedacteurState(rx.State):
     # ── Champs formulaire ────────────────────────────────────────────────────
     titre: str = ""
     type_proc: str = "N1"
+    nature: str = "I – Incident"        # "I – Incident" | "R – Request (Demande)"
+    master_subject: str = ""            # ex: "AC – App collaboratives"
+    codification: str = ""              # ex: IAD003 (auto ou saisi)
     perimetre: str = ""
     description_brief: str = ""
-    objectif: str = ""
-    prerequis: str = ""
+    resume: str = ""
+    situation: str = ""
+    a_savoir: str = ""
     steps_text: str = ""
     resultat_attendu: str = ""
     escalade_info: str = ""
     statut: str = "Brouillon"
     google_doc_url: str = ""
+    service: str = ""                   # ex: SI-Travail Numérique
 
     # ── Mode édition ─────────────────────────────────────────────────────────
     edit_id: str = ""
@@ -111,10 +143,15 @@ class RedacteurState(rx.State):
         self.edit_id = ""
         self.titre = ""
         self.type_proc = "N1"
+        self.nature = "I – Incident"
+        self.master_subject = ""
+        self.codification = ""
         self.perimetre = ""
+        self.service = ""
         self.description_brief = ""
-        self.objectif = ""
-        self.prerequis = ""
+        self.resume = ""
+        self.situation = ""
+        self.a_savoir = ""
         self.steps_text = ""
         self.resultat_attendu = ""
         self.escalade_info = ""
@@ -132,10 +169,15 @@ class RedacteurState(rx.State):
                 self.edit_id = proc_id
                 self.titre = p.get("titre", "")
                 self.type_proc = p.get("type_proc", "N1")
+                self.nature = p.get("nature", "I – Incident")
+                self.master_subject = p.get("master_subject", "")
+                self.codification = p.get("codification", "")
                 self.perimetre = p.get("perimetre", "")
+                self.service = p.get("service", "")
                 self.description_brief = p.get("description_brief", "")
-                self.objectif = p.get("objectif", "")
-                self.prerequis = p.get("prerequis", "")
+                self.resume = p.get("resume", "")
+                self.situation = p.get("situation", "")
+                self.a_savoir = p.get("a_savoir", "")
                 self.steps_text = p.get("steps_text", "")
                 self.resultat_attendu = p.get("resultat_attendu", "")
                 self.escalade_info = p.get("escalade_info", "")
@@ -189,12 +231,32 @@ class RedacteurState(rx.State):
         self.description_brief = v
 
     @rx.event
-    def set_objectif(self, v: str):
-        self.objectif = v
+    def set_nature(self, v: str):
+        self.nature = v
 
     @rx.event
-    def set_prerequis(self, v: str):
-        self.prerequis = v
+    def set_master_subject(self, v: str):
+        self.master_subject = v
+
+    @rx.event
+    def set_codification(self, v: str):
+        self.codification = v
+
+    @rx.event
+    def set_service(self, v: str):
+        self.service = v
+
+    @rx.event
+    def set_resume(self, v: str):
+        self.resume = v
+
+    @rx.event
+    def set_situation(self, v: str):
+        self.situation = v
+
+    @rx.event
+    def set_a_savoir(self, v: str):
+        self.a_savoir = v
 
     @rx.event
     def set_steps_text(self, v: str):
@@ -239,13 +301,15 @@ class RedacteurState(rx.State):
         if not self.claude_generated:
             return
         text = self.claude_generated
-        objectif  = _extract_section(text, "OBJECTIF")
-        prerequis = _extract_section(text, "PRÉ-REQUIS")
-        etapes    = _extract_section(text, "ÉTAPES")
-        resultat  = _extract_section(text, "RÉSULTAT ATTENDU")
-        escalade  = _extract_section(text, "ESCALADE")
-        if objectif:  self.objectif = objectif
-        if prerequis: self.prerequis = prerequis
+        resume   = _extract_section(text, "Résumé")
+        situation = _extract_section(text, "Situation")
+        a_savoir  = _extract_section(text, "À savoir")
+        etapes    = _extract_section(text, "Résolution")
+        resultat  = _extract_section(text, "Résultat attendu")
+        escalade  = _extract_section(text, "Escalade")
+        if resume:    self.resume = resume
+        if situation: self.situation = situation
+        if a_savoir:  self.a_savoir = a_savoir
         if etapes:    self.steps_text = etapes
         if resultat:  self.resultat_attendu = resultat
         if escalade:  self.escalade_info = escalade
@@ -272,12 +336,18 @@ class RedacteurState(rx.State):
             parts.append(f"Titre : {self.titre}")
         if self.perimetre:
             parts.append(f"Application / Périmètre : {self.perimetre}")
-        if self.type_proc:
-            parts.append(f"Type : {self.type_proc}")
+        if self.master_subject:
+            parts.append(f"Master Subject : {self.master_subject}")
+        if self.nature:
+            parts.append(f"Nature : {self.nature}")
+        if self.codification:
+            parts.append(f"Codification : {self.codification}")
         if self.description_brief:
             parts.append(f"Contexte / description : {self.description_brief}")
+        if self.situation:
+            parts.append(f"Situation décrite par le rédacteur : {self.situation}")
 
-        user_prompt = "\n".join(parts) + "\n\nGénère la procédure complète."
+        user_prompt = "\n".join(parts) + "\n\nGénère la procédure complète en suivant le format demandé."
 
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
@@ -317,42 +387,37 @@ class RedacteurState(rx.State):
         procs = db.get("procedures_content", [])
         now = datetime.now().strftime("%d/%m/%Y")
 
+        fields = {
+            "titre":             self.titre,
+            "type_proc":         self.type_proc,
+            "nature":            self.nature,
+            "master_subject":    self.master_subject,
+            "codification":      self.codification,
+            "perimetre":         self.perimetre,
+            "service":           self.service,
+            "description_brief": self.description_brief,
+            "resume":            self.resume,
+            "situation":         self.situation,
+            "a_savoir":          self.a_savoir,
+            "steps_text":        self.steps_text,
+            "resultat_attendu":  self.resultat_attendu,
+            "escalade_info":     self.escalade_info,
+            "statut":            self.statut,
+            "google_doc_url":    self.google_doc_url,
+            "date_maj":          now,
+        }
+
         if self.edit_id:
             for i, p in enumerate(procs):
                 if p.get("id") == self.edit_id:
-                    procs[i] = {
-                        **p,
-                        "titre":             self.titre,
-                        "type_proc":         self.type_proc,
-                        "perimetre":         self.perimetre,
-                        "description_brief": self.description_brief,
-                        "objectif":          self.objectif,
-                        "prerequis":         self.prerequis,
-                        "steps_text":        self.steps_text,
-                        "resultat_attendu":  self.resultat_attendu,
-                        "escalade_info":     self.escalade_info,
-                        "statut":            self.statut,
-                        "google_doc_url":    self.google_doc_url,
-                        "date_maj":          now,
-                    }
+                    procs[i] = {**p, **fields}
                     break
         else:
             new_p = {
-                "id":                str(uuid.uuid4()),
-                "titre":             self.titre,
-                "type_proc":         self.type_proc,
-                "perimetre":         self.perimetre,
-                "description_brief": self.description_brief,
-                "objectif":          self.objectif,
-                "prerequis":         self.prerequis,
-                "steps_text":        self.steps_text,
-                "resultat_attendu":  self.resultat_attendu,
-                "escalade_info":     self.escalade_info,
-                "statut":            self.statut,
-                "google_doc_url":    self.google_doc_url,
-                "auteur_nom":        auteur,
-                "date_creation":     now,
-                "date_maj":          now,
+                "id":            str(uuid.uuid4()),
+                "auteur_nom":    auteur,
+                "date_creation": now,
+                **fields,
             }
             procs.insert(0, new_p)
             self.edit_id = new_p["id"]

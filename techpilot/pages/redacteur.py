@@ -1,7 +1,7 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.auth import AuthState
-from techpilot.state.redacteur import RedacteurState, PROC_TYPES, PROC_STATUTS
+from techpilot.state.redacteur import RedacteurState, PROC_TYPES, PROC_STATUTS, MASTER_SUBJECT_LABELS, PROC_NATURES
 
 TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
@@ -125,11 +125,33 @@ def _editor_panel() -> rx.Component:
         rx.vstack(
             _label("Titre *"),
             _input(RedacteurState.titre, RedacteurState.set_titre,
-                   placeholder="Ex : N1 - Citrix – le bureau virtuel ne se lance pas"),
+                   placeholder="Ex : N1 – Ulteam – Connexion impossible"),
             spacing="0", width="100%",
         ),
 
-        # Type + Périmètre
+        # Nature + Master Subject + Codification
+        rx.hstack(
+            rx.vstack(
+                _label("Nature"),
+                _select(RedacteurState.nature, RedacteurState.set_nature, PROC_NATURES),
+                spacing="0", width="100%",
+            ),
+            rx.vstack(
+                _label("Master Subject"),
+                _select(RedacteurState.master_subject, RedacteurState.set_master_subject,
+                        MASTER_SUBJECT_LABELS, placeholder="Sélectionner…"),
+                spacing="0", flex="2",
+            ),
+            rx.vstack(
+                _label("Codification"),
+                _input(RedacteurState.codification, RedacteurState.set_codification,
+                       placeholder="ex: IAD003"),
+                spacing="0", width="110px",
+            ),
+            spacing="3", width="100%",
+        ),
+
+        # Type + Périmètre + Service
         rx.hstack(
             rx.vstack(
                 _label("Type"),
@@ -142,41 +164,56 @@ def _editor_panel() -> rx.Component:
                        placeholder="Ex : Citrix, Gmail, AD..."),
                 spacing="0", width="100%",
             ),
+            rx.vstack(
+                _label("Service"),
+                _input(RedacteurState.service, RedacteurState.set_service,
+                       placeholder="Ex : SI-Travail Numérique"),
+                spacing="0", width="100%",
+            ),
             spacing="3", width="100%",
         ),
 
         # Description (pour Claude)
         rx.vstack(
-            _label("Description courte (contexte pour Claude)"),
+            _label("Contexte / description (pour Claude)"),
             _textarea(RedacteurState.description_brief, RedacteurState.set_description_brief,
-                      placeholder="Décris en quelques mots le cas : symptôme, usage, population concernée…",
+                      placeholder="Décris le cas en quelques mots : symptôme, usage, population concernée…",
                       rows="2"),
             spacing="0", width="100%",
         ),
 
         rx.divider(border_color=BORDER, margin_y="2px"),
 
-        # Objectif
+        # Résumé
         rx.vstack(
-            _label("Objectif"),
-            _textarea(RedacteurState.objectif, RedacteurState.set_objectif,
-                      placeholder="Objectif de la procédure…", rows="2"),
+            _label("Résumé"),
+            _textarea(RedacteurState.resume, RedacteurState.set_resume,
+                      placeholder="Ce document décrit les actions N1 pour…", rows="2"),
             spacing="0", width="100%",
         ),
 
-        # Pré-requis
+        # Situation
         rx.vstack(
-            _label("Pré-requis"),
-            _textarea(RedacteurState.prerequis, RedacteurState.set_prerequis,
-                      placeholder="• Accès X\n• Droits Y", rows="3"),
+            _label("Situation"),
+            _textarea(RedacteurState.situation, RedacteurState.set_situation,
+                      placeholder="Description du cas déclencheur (message d'erreur, symptôme…)",
+                      rows="3"),
             spacing="0", width="100%",
         ),
 
-        # Étapes
+        # À savoir
         rx.vstack(
-            _label("Étapes"),
+            _label("À savoir (optionnel)"),
+            _textarea(RedacteurState.a_savoir, RedacteurState.set_a_savoir,
+                      placeholder="Précautions, cas particuliers, délais à connaître…", rows="2"),
+            spacing="0", width="100%",
+        ),
+
+        # Résolution / Étapes
+        rx.vstack(
+            _label("Résolution (étapes numérotées)"),
             _textarea(RedacteurState.steps_text, RedacteurState.set_steps_text,
-                      placeholder="1. Première étape\n2. Deuxième étape\n3. …",
+                      placeholder="1. Ouvrir la console Google Admin\n2. Rechercher le compte\n3. …",
                       rows="8"),
             spacing="0", width="100%",
         ),
@@ -426,16 +463,31 @@ def _proc_list_row(p: dict) -> rx.Component:
     return rx.hstack(
         # Titre + périmètre
         rx.vstack(
-            rx.text(p["titre"], color=TEXT, font_size="0.85rem", font_weight="600",
-                    white_space="nowrap", overflow="hidden", text_overflow="ellipsis",
-                    max_width="300px"),
+            rx.hstack(
+                rx.cond(
+                    p["codification"] != "",
+                    rx.box(
+                        rx.text(p["codification"], color="#a5b4fc", font_size="0.68rem",
+                                font_weight="700"),
+                        background="rgba(99,102,241,0.12)",
+                        border="1px solid rgba(99,102,241,0.3)",
+                        border_radius="5px", padding="1px 6px",
+                    ),
+                ),
+                rx.text(p["titre"], color=TEXT, font_size="0.85rem", font_weight="600",
+                        white_space="nowrap", overflow="hidden", text_overflow="ellipsis"),
+                spacing="2", align="center", min_width="0", overflow="hidden",
+            ),
             rx.hstack(
                 rx.text(p["type_proc"], color=MUTED, font_size="0.72rem"),
                 rx.cond(
-                    p["perimetre"] != "",
-                    rx.text("·", color=MUTED, font_size="0.72rem"),
+                    p["master_subject"] != "",
+                    rx.hstack(
+                        rx.text("·", color=MUTED, font_size="0.72rem"),
+                        rx.text(p["master_subject"], color=MUTED, font_size="0.72rem"),
+                        spacing="1",
+                    ),
                 ),
-                rx.text(p["perimetre"], color=MUTED, font_size="0.72rem"),
                 spacing="1", align="center",
             ),
             spacing="0", align="start", flex="1", min_width="0",
