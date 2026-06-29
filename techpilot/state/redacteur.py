@@ -109,6 +109,22 @@ class RedacteurState(rx.State):
     # ── UI ───────────────────────────────────────────────────────────────────
     confirm_delete_id: str = ""
     save_success: bool = False
+    view_id: str = ""
+
+    @rx.var
+    def view_procedure(self) -> dict:
+        for p in self.procedures:
+            if p.get("id") == self.view_id:
+                return p
+        return {}
+
+    @rx.event
+    def open_view(self, proc_id: str):
+        self.view_id = proc_id
+
+    @rx.event
+    def close_view(self):
+        self.view_id = ""
 
     # ── Filtres liste ────────────────────────────────────────────────────────
     filter_statut: str = ""
