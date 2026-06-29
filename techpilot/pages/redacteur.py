@@ -1,7 +1,9 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
 from techpilot.state.auth import AuthState
-from techpilot.state.redacteur import RedacteurState, PROC_TYPES, PROC_STATUTS, MASTER_SUBJECT_LABELS, PROC_NATURES
+from techpilot.state.redacteur import (
+    RedacteurState, PROC_TYPES, PROC_STATUTS, MASTER_SUBJECT_LABELS, PROC_NATURES, MASTER_SUBJECTS,
+)
 
 TEXT    = "#f1f5f9"
 MUTED   = "#94a3b8"
@@ -11,6 +13,14 @@ PRIMARY = "#6366f1"
 GREEN   = "#22c55e"
 AMBER   = "#f59e0b"
 RED     = "#ef4444"
+
+# Couleur par code master subject
+_MS_COLORS: dict[str, str] = {
+    "AM": "#6366f1", "AC": "#8b5cf6", "PT": "#22c55e", "IM": "#f97316",
+    "PE": "#eab308", "SY": "#ef4444", "CI": "#06b6d4", "AD": "#ec4899",
+    "RE": "#14b8a6", "IN": "#3b82f6", "SE": "#f59e0b", "TI": "#f43f5e",
+    "TM": "#a855f7",
+}
 
 
 # ── Helpers UI ────────────────────────────────────────────────────────────────
@@ -457,6 +467,94 @@ def _assistant_panel() -> rx.Component:
     )
 
 
+# ── Statistiques par code ────────────────────────────────────────────────────
+
+def _ms_chip(item: dict) -> rx.Component:
+    code  = item["code"]
+    label = item["label"]
+    count = item["count"]
+    # couleur par code (fallback gris)
+    color = rx.match(
+        code,
+        ("AM", "#6366f1"), ("AC", "#8b5cf6"), ("PT", "#22c55e"), ("IM", "#f97316"),
+        ("PE", "#eab308"), ("SY", "#ef4444"), ("CI", "#06b6d4"), ("AD", "#ec4899"),
+        ("RE", "#14b8a6"), ("IN", "#3b82f6"), ("SE", "#f59e0b"), ("TI", "#f43f5e"),
+        ("TM", "#a855f7"),
+        "#64748b",
+    )
+    return rx.tooltip(
+        rx.hstack(
+            rx.box(
+                rx.text(code, font_size="0.68rem", font_weight="800", color="white"),
+                background=color,
+                border_radius="5px", padding="2px 6px",
+                flex_shrink="0",
+            ),
+            rx.text(
+                count.to_string(),
+                font_size="0.78rem", font_weight="700", color=TEXT,
+            ),
+            spacing="1", align="center",
+            background=CARD_BG,
+            border=f"1px solid {BORDER}",
+            border_radius="8px",
+            padding="4px 10px 4px 4px",
+            cursor="default",
+        ),
+        content=label,
+    )
+
+
+def _nature_pill(item: dict) -> rx.Component:
+    return rx.hstack(
+        rx.box(width="8px", height="8px", border_radius="50%", background=item["color"], flex_shrink="0"),
+        rx.text(item["label"], color=MUTED, font_size="0.75rem"),
+        rx.text(item["count"].to_string(), color=TEXT, font_size="0.8rem", font_weight="700"),
+        rx.text(
+            "(" + item["pct"].to_string() + "%)",
+            color=MUTED, font_size="0.72rem",
+        ),
+        spacing="1", align="center",
+    )
+
+
+def _stats_bar() -> rx.Component:
+    return rx.cond(
+        RedacteurState.procedures.length() > 0,
+        rx.vstack(
+            # Ligne 1 : total + nature
+            rx.hstack(
+                rx.hstack(
+                    rx.icon("bar-chart-2", size=14, color=PRIMARY),
+                    rx.text(
+                        RedacteurState.procedures.length().to_string() + " procédures",
+                        color=TEXT, font_size="0.82rem", font_weight="700",
+                    ),
+                    spacing="2", align="center",
+                ),
+                rx.box(width="1px", height="16px", background=BORDER),
+                rx.foreach(RedacteurState.nature_counts, _nature_pill),
+                spacing="3", align="center", flex_wrap="wrap",
+            ),
+            # Ligne 2 : chips par MS
+            rx.hstack(
+                rx.text("Master Subject :", color=MUTED, font_size="0.72rem", white_space="nowrap"),
+                rx.flex(
+                    rx.foreach(RedacteurState.ms_counts, _ms_chip),
+                    gap="6px",
+                    flex_wrap="wrap",
+                ),
+                spacing="2", align="center", width="100%",
+            ),
+            spacing="2", width="100%",
+            background=CARD_BG,
+            border=f"1px solid {BORDER}",
+            border_radius="12px",
+            padding="0.85rem 1rem",
+        ),
+    )
+
+
 # ── Liste des procédures ──────────────────────────────────────────────────────
 
 def _proc_list_row(p: dict) -> rx.Component:
@@ -575,6 +673,9 @@ def _proc_list_row(p: dict) -> rx.Component:
 
 def _procedures_list() -> rx.Component:
     return rx.vstack(
+        # Statistiques
+        _stats_bar(),
+
         # Header + filtres
         rx.hstack(
             rx.hstack(

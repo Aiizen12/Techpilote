@@ -131,6 +131,30 @@ class RedacteurState(rx.State):
     def pending_count(self) -> int:
         return sum(1 for p in self.procedures if p.get("statut") == "En attente de validation")
 
+    @rx.var
+    def ms_counts(self) -> list[dict]:
+        counts: dict[str, int] = {}
+        for p in self.procedures:
+            ms = p.get("master_subject", "") or ""
+            if not ms:
+                ms = "Sans catégorie"
+            counts[ms] = counts.get(ms, 0) + 1
+        result = []
+        for label, cnt in sorted(counts.items(), key=lambda x: -x[1]):
+            code = label.split(" – ")[0] if " – " in label else label
+            result.append({"code": code, "label": label, "count": cnt})
+        return result
+
+    @rx.var
+    def nature_counts(self) -> list[dict]:
+        i_c = sum(1 for p in self.procedures if (p.get("nature") or "").startswith("I"))
+        r_c = sum(1 for p in self.procedures if (p.get("nature") or "").startswith("R"))
+        total = len(self.procedures)
+        return [
+            {"label": "Incidents",  "count": i_c, "pct": round(i_c * 100 / total) if total else 0, "color": "#ef4444"},
+            {"label": "Demandes",   "count": r_c, "pct": round(r_c * 100 / total) if total else 0, "color": "#6366f1"},
+        ]
+
     # ── Events ───────────────────────────────────────────────────────────────
 
     @rx.event
