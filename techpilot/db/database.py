@@ -1,8 +1,11 @@
 import os
+import json
 import copy
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from techpilot.gabarits_data import GABARIT_CATEGORIES_DEFAULT
+
+_PROCEDURES_SEED_PATH = os.path.join(os.path.dirname(__file__), "..", "procedures_seed.json")
 
 load_dotenv()
 
@@ -391,6 +394,22 @@ def init_db():
             {"$set": {"documents": _cache["documents"]}},
         )
         print(f"[DB] Documents ajoutés : {len(missing_docs)}")
+
+    # Seed procedures_content depuis le fichier JSON si vide
+    if not _cache.get("procedures_content"):
+        try:
+            seed_path = os.path.normpath(_PROCEDURES_SEED_PATH)
+            with open(seed_path, encoding="utf-8") as f:
+                seeded = json.load(f)
+            _cache["procedures_content"] = seeded
+            if _collection is not None:
+                _collection.update_one(
+                    {"_id": "main"},
+                    {"$set": {"procedures_content": seeded}},
+                )
+            print(f"[DB] Procédures seedées depuis JSON : {len(seeded)} entrées")
+        except Exception as e:
+            print(f"[DB] Seed procedures ignoré : {e}")
 
     # Migre les catégories gabarits si elles ont changé
     saved_cats = _cache.get("gabarit_categories")
