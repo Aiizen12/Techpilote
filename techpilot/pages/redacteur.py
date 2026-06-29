@@ -923,7 +923,7 @@ def _view_modal() -> rx.Component:
                 # Footer
                 rx.hstack(
                     rx.text(
-                        "Rédigé par " + p["auteur_nom"] + " · Modifié le " + p["date_maj"],
+                        "Rédigé par ", p["auteur_nom"], " · Modifié le ", p["date_maj"],
                         color=MUTED, font_size="0.72rem",
                     ),
                     spacing="2",
