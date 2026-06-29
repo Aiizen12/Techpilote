@@ -304,6 +304,24 @@ class OnboardingTechProgress(BaseModel):
     assigned: bool = False
 
 
+class RedacteurProcedure(BaseModel):
+    id: str = ""
+    titre: str = ""
+    type_proc: str = "N1"           # "N1" | "Fiche N1" | "Arbre de décision"
+    perimetre: str = ""
+    description_brief: str = ""
+    objectif: str = ""
+    prerequis: str = ""
+    steps_text: str = ""
+    resultat_attendu: str = ""
+    escalade_info: str = ""
+    statut: str = "Brouillon"       # "Brouillon" | "En attente de validation" | "Relecture N1" | "Relecture N2" | "Validé" | "Publié"
+    auteur_nom: str = ""
+    date_creation: str = ""
+    date_maj: str = ""
+    google_doc_url: str = ""
+
+
 class MigrationTask(BaseModel):
     id: str = ""
     titre: str = ""

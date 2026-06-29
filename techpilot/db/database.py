@@ -265,6 +265,7 @@ DEFAULT_DB = {
         },
     ],
     "migration_tasks": [],
+    "procedures_content": [],
     "formation_modules": [],
     "onboarding_steps": [
         {"id": "ob-01", "titre": "Création du compte Active Directory", "description": "Création login, ajout aux groupes de sécurité N1", "categorie": "Accès", "ordre": 0},

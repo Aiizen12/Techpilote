@@ -300,6 +300,7 @@ def sidebar_content(mobile: bool = False) -> rx.Component:
                     nav_item("Audit",                "file-text",   "/audit",        mobile=mobile),
                     nav_item("Import Excel",         "file-up",     "/import-excel", mobile=mobile),
                     nav_item("Migration Loop→Drive", "git-branch",  "/migration",    mobile=mobile),
+                    nav_item("Rédacteur Procédures", "notebook-pen", "/redacteur",   mobile=mobile),
                     mobile=mobile,
                 ),
                 spacing="0", width="100%",
