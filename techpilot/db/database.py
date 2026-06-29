@@ -162,11 +162,12 @@ DEFAULT_DB = {
         {"id": "2", "nom": "Adrien",   "matricule": "529", "active": True, "permissions": {}},
         {"id": "3", "nom": "Mirgaël",  "matricule": "524", "active": True, "permissions": {}},
         {"id": "4", "nom": "Cédric",   "matricule": "518", "active": True, "permissions": {}},
-        {"id": "5", "nom": "Thaïs",    "matricule": "432", "active": True, "permissions": {}},
-        {"id": "6", "nom": "Alistair", "matricule": "556", "active": True, "permissions": {}},
-        {"id": "7", "nom": "Tiphaine", "matricule": "590", "active": True, "permissions": {}},
-        {"id": "8", "nom": "Sabrina",  "matricule": "",    "active": True, "permissions": {}},
-        {"id": "9", "nom": "Benjamin", "matricule": "",    "active": True, "permissions": {}},
+        {"id": "5",  "nom": "Thaïs",    "matricule": "432", "active": False, "permissions": {}},
+        {"id": "6",  "nom": "Alistair", "matricule": "556", "active": True,  "permissions": {}},
+        {"id": "7",  "nom": "Tiphaine", "matricule": "590", "active": True,  "permissions": {}},
+        {"id": "8",  "nom": "Sabrina",  "matricule": "",    "active": True,  "permissions": {}},
+        {"id": "9",  "nom": "Benjamin", "matricule": "",    "active": True,  "permissions": {}},
+        {"id": "10", "nom": "Axelle",   "matricule": "",    "active": True,  "permissions": {}},
     ],
     "planning": [],
     "astreintes": [
@@ -335,6 +336,19 @@ def init_db():
             {"$set": {"onboarding_steps": _cache["onboarding_steps"]}},
         )
         print(f"[DB] Étapes onboarding ajoutées : {len(missing_ob)}")
+
+    # Migration équipe : désactiver Thaïs (départ), Axelle déjà gérée par le sync ci-dessus
+    _team_changed = False
+    for t in _cache.get("technicians", []):
+        if t.get("nom", "").lower() in ("thaïs", "thais") and t.get("active", True):
+            t["active"] = False
+            _team_changed = True
+            print("[DB] Thaïs désactivée (départ)")
+    if _team_changed and _collection is not None:
+        _collection.update_one(
+            {"_id": "main"},
+            {"$set": {"technicians": _cache["technicians"]}},
+        )
 
     # Ajoute les documents par défaut manquants (vérification par URL)
     existing_doc_urls = {str(d.get("url")) for d in _cache.get("documents", [])}
