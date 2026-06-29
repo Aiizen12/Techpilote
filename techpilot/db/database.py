@@ -399,7 +399,7 @@ def init_db():
     if not _cache.get("procedures_content"):
         try:
             seed_path = os.path.normpath(_PROCEDURES_SEED_PATH)
-            with open(seed_path, encoding="utf-8") as f:
+            with open(seed_path, encoding="utf-8-sig") as f:
                 seeded = json.load(f)
             _cache["procedures_content"] = seeded
             if _collection is not None:
