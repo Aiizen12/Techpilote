@@ -64,11 +64,22 @@ class MigrationState(rx.State):
     def load(self):
         db = load_db()
         raw = db.get("migration_tasks") or []
-        self.tasks = [MigrationTask(**t) for t in raw]
+        self.tasks = [
+            MigrationTask(**t) if isinstance(t, dict) else t
+            for t in raw
+        ]
 
     def _save_all(self):
         db = load_db()
-        db["migration_tasks"] = [t.dict() for t in self.tasks]
+        records = []
+        for t in self.tasks:
+            if isinstance(t, dict):
+                records.append(t)
+            elif hasattr(t, "dict"):
+                records.append(t.dict())
+            elif hasattr(t, "model_dump"):
+                records.append(t.model_dump())
+        db["migration_tasks"] = records
         save_db(db)
 
     # ── Formulaire ────────────────────────────────────────────────────────────

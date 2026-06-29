@@ -350,6 +350,20 @@ def init_db():
             {"$set": {"technicians": _cache["technicians"]}},
         )
 
+    # Initialise les clés manquantes dans le document MongoDB existant
+    _missing_keys = {
+        k: DEFAULT_DB[k]
+        for k in DEFAULT_DB
+        if k not in _cache
+    }
+    if _missing_keys and _collection is not None:
+        _cache.update(_missing_keys)
+        _collection.update_one(
+            {"_id": "main"},
+            {"$set": _missing_keys},
+        )
+        print(f"[DB] Clés initialisées : {list(_missing_keys.keys())}")
+
     # Ajoute les documents par défaut manquants (vérification par URL)
     existing_doc_urls = {str(d.get("url")) for d in _cache.get("documents", [])}
     missing_docs = [d for d in DEFAULT_DOCUMENTS if d["url"] not in existing_doc_urls]
