@@ -43,6 +43,11 @@ class SkillMapState(rx.State):
     new_contenu_type:    str = "texte"
     new_contenu_titre:   str = ""
     new_contenu_body:    str = ""
+    new_contenu_codif:   str = ""   # pour les blocs de type "procedure"
+
+    # ── Procédures (pour la liaison dans les formations) ──────────────────────
+    procedures_all:      list[dict] = []
+    proc_search_query:   str = ""
 
     # ── Edition parcours ──────────────────────────────────────────────────────
     show_parcours_form: bool = False
@@ -134,14 +139,31 @@ class SkillMapState(rx.State):
                            "pct": round(done * 100 / total) if total else 0})
         return result
 
+    @rx.var
+    def filtered_procedures(self) -> list[dict]:
+        q = self.proc_search_query.lower().strip()
+        if not q:
+            return self.procedures_all[:12]
+        result = []
+        for p in self.procedures_all:
+            t  = (p.get("titre") or "").lower()
+            c  = (p.get("codification") or "").lower()
+            ms = (p.get("master_subject") or "").lower()
+            if q in t or q in c or q in ms:
+                result.append(p)
+            if len(result) >= 15:
+                break
+        return result
+
     # ── Load ──────────────────────────────────────────────────────────────────
 
     @rx.event
     async def load(self):
         db = load_db()
-        self.themes     = db.get("skill_themes", [])
-        self.formations = db.get("skill_formations", [])
-        self.parcours   = db.get("skill_parcours", [])
+        self.themes         = db.get("skill_themes", [])
+        self.formations     = db.get("skill_formations", [])
+        self.parcours       = db.get("skill_parcours", [])
+        self.procedures_all = db.get("procedures_content", [])
         auth = await self.get_state(AuthState)
         uid  = auth.user_id
         self.progress = [p for p in db.get("skill_progress", [])
@@ -227,6 +249,8 @@ class SkillMapState(rx.State):
         self.new_contenu_type  = "texte"
         self.new_contenu_titre = ""
         self.new_contenu_body  = ""
+        self.new_contenu_codif = ""
+        self.proc_search_query = ""
         self.show_formation_form = True
 
     @rx.event
@@ -243,6 +267,8 @@ class SkillMapState(rx.State):
                 self.new_contenu_type  = "texte"
                 self.new_contenu_titre = ""
                 self.new_contenu_body  = ""
+                self.new_contenu_codif = ""
+                self.proc_search_query = ""
                 self.show_formation_form = True
                 return
 
@@ -269,27 +295,56 @@ class SkillMapState(rx.State):
     @rx.event
     def set_th_description(self, v: str): self.th_description = v
     @rx.event
-    def set_new_contenu_type(self, v: str):  self.new_contenu_type = v
+    def set_new_contenu_type(self, v: str):
+        self.new_contenu_type  = v
+        self.proc_search_query = ""
+        self.new_contenu_codif = ""
+        self.new_contenu_titre = ""
+        self.new_contenu_body  = ""
     @rx.event
     def set_new_contenu_titre(self, v: str): self.new_contenu_titre = v
     @rx.event
     def set_new_contenu_body(self, v: str):  self.new_contenu_body = v
+    @rx.event
+    def set_proc_search_query(self, v: str): self.proc_search_query = v
+    @rx.event
+    def select_procedure_for_content(self, proc_id: str):
+        for p in self.procedures_all:
+            if p.get("id") == proc_id:
+                self.new_contenu_titre = p.get("titre", "")
+                self.new_contenu_codif = p.get("codification", "")
+                self.new_contenu_body  = p.get("google_doc_url", "")
+                self.proc_search_query = ""
+                return
 
     @rx.event
     def add_contenu(self):
-        if not self.new_contenu_body.strip():
-            return
-        c = {
-            "id":    uuid.uuid4().hex[:8],
-            "type":  self.new_contenu_type,
-            "titre": self.new_contenu_titre or self.new_contenu_type.capitalize(),
-            "body":  self.new_contenu_body,
-        }
-        if self.new_contenu_type == "quiz":
-            c["questions"] = []
-        self.fm_contenus = [*self.fm_contenus, c]
+        if self.new_contenu_type == "procedure":
+            if not self.new_contenu_titre.strip():
+                return
+            c = {
+                "id":           uuid.uuid4().hex[:8],
+                "type":         "procedure",
+                "titre":        self.new_contenu_titre,
+                "codification": self.new_contenu_codif or "Sans",
+                "body":         self.new_contenu_body,
+            }
+        else:
+            if not self.new_contenu_body.strip():
+                return
+            c = {
+                "id":    uuid.uuid4().hex[:8],
+                "type":  self.new_contenu_type,
+                "titre": self.new_contenu_titre or self.new_contenu_type.capitalize(),
+                "body":  self.new_contenu_body,
+            }
+            if self.new_contenu_type == "quiz":
+                c["questions"] = []
+        self.fm_contenus       = [*self.fm_contenus, c]
         self.new_contenu_titre = ""
         self.new_contenu_body  = ""
+        self.new_contenu_codif = ""
+        self.proc_search_query = ""
 
     @rx.event
     def remove_contenu(self, cid: str):

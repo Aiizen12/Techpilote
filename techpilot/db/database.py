@@ -432,21 +432,22 @@ def init_db():
         )
         print(f"[DB] Documents ajoutés : {len(missing_docs)}")
 
-    # Seed procedures_content depuis le fichier JSON si vide
-    if not _cache.get("procedures_content"):
-        try:
-            seed_path = os.path.normpath(_PROCEDURES_SEED_PATH)
-            with open(seed_path, encoding="utf-8-sig") as f:
-                seeded = json.load(f)
+    # Seed/re-seed procedures_content si le nombre d'entrées a changé
+    try:
+        seed_path = os.path.normpath(_PROCEDURES_SEED_PATH)
+        with open(seed_path, encoding="utf-8-sig") as f:
+            seeded = json.load(f)
+        current = _cache.get("procedures_content") or []
+        if len(seeded) != len(current):
             _cache["procedures_content"] = seeded
             if _collection is not None:
                 _collection.update_one(
                     {"_id": "main"},
                     {"$set": {"procedures_content": seeded}},
                 )
-            print(f"[DB] Procédures seedées depuis JSON : {len(seeded)} entrées")
-        except Exception as e:
-            print(f"[DB] Seed procedures ignoré : {e}")
+            print(f"[DB] Procédures re-seedées : {len(seeded)} entrées (était {len(current)})")
+    except Exception as e:
+        print(f"[DB] Seed procedures ignoré : {e}")
 
     # Migre les catégories gabarits si elles ont changé
     saved_cats = _cache.get("gabarit_categories")

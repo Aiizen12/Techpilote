@@ -260,11 +260,21 @@ def _contenu_block(c: dict) -> rx.Component:
          )),
         ("procedure",
          rx.hstack(
-             rx.icon("file-text", size=14, color="#06b6d4"),
-             rx.text("Procédure : ", c["titre"], color="#06b6d4", font_size="0.85rem"),
+             rx.badge(c["codification"], color_scheme="cyan", variant="surface",
+                      font_size="0.62rem", flex_shrink="0"),
+             rx.text(c["titre"], color="#06b6d4", font_size="0.85rem", flex="1",
+                     no_of_lines=1),
+             rx.cond(
+                 c["body"] != "",
+                 rx.link(
+                     rx.icon("external-link", size=13),
+                     href=c["body"], target="_blank",
+                     color="#06b6d4", _hover={"color": "#22d3ee"},
+                 ),
+             ),
              spacing="2", align="center",
              background="rgba(6,182,212,0.06)", border="1px solid #06b6d433",
-             border_radius="8px", padding="8px 12px",
+             border_radius="8px", padding="8px 12px", width="100%",
          )),
         # quiz
         rx.vstack(
@@ -642,10 +652,67 @@ def _formation_form_modal() -> rx.Component:
                             value=SkillMapState.new_contenu_type,
                             on_change=SkillMapState.set_new_contenu_type,
                         ),
-                        _input(SkillMapState.new_contenu_titre, SkillMapState.set_new_contenu_titre, "Titre du bloc…"),
+                        rx.cond(
+                            SkillMapState.new_contenu_type != "procedure",
+                            _input(SkillMapState.new_contenu_titre, SkillMapState.set_new_contenu_titre, "Titre du bloc…"),
+                        ),
                         spacing="2", width="100%",
                     ),
-                    _textarea(SkillMapState.new_contenu_body, SkillMapState.set_new_contenu_body, "Contenu, URL ou identifiant procédure…", rows="3"),
+                    # Procedure picker OU textarea selon le type
+                    rx.cond(
+                        SkillMapState.new_contenu_type == "procedure",
+                        rx.vstack(
+                            _input(SkillMapState.proc_search_query,
+                                   SkillMapState.set_proc_search_query,
+                                   "Rechercher par titre ou codification (IAC, RAD…)"),
+                            rx.cond(
+                                SkillMapState.filtered_procedures.length() > 0,
+                                rx.box(
+                                    rx.foreach(
+                                        SkillMapState.filtered_procedures,
+                                        lambda p: rx.hstack(
+                                            rx.badge(p["codification"], color_scheme="cyan",
+                                                     variant="soft", font_size="0.62rem",
+                                                     flex_shrink="0"),
+                                            rx.text(p["titre"], color=TEXT, font_size="0.78rem",
+                                                    flex="1", no_of_lines=1),
+                                            on_click=SkillMapState.select_procedure_for_content(p["id"]),
+                                            cursor="pointer",
+                                            padding="5px 8px",
+                                            border_radius="6px",
+                                            spacing="2", align="center", width="100%",
+                                            _hover={"background": "rgba(255,255,255,0.06)"},
+                                        ),
+                                    ),
+                                    max_height="180px", overflow_y="auto",
+                                    background="#0a0c17",
+                                    border=f"1px solid {BORDER}",
+                                    border_radius="8px", padding="4px",
+                                    width="100%",
+                                ),
+                            ),
+                            rx.cond(
+                                SkillMapState.new_contenu_titre != "",
+                                rx.hstack(
+                                    rx.icon("check-circle", size=13, color=GREEN),
+                                    rx.text(
+                                        SkillMapState.new_contenu_codif, " – ",
+                                        SkillMapState.new_contenu_titre,
+                                        color=GREEN, font_size="0.75rem", no_of_lines=1,
+                                    ),
+                                    spacing="2", align="center",
+                                    padding="5px 8px",
+                                    background="rgba(34,197,94,0.06)",
+                                    border=f"1px solid {GREEN}33",
+                                    border_radius="6px",
+                                ),
+                            ),
+                            spacing="2", width="100%",
+                        ),
+                        _textarea(SkillMapState.new_contenu_body,
+                                  SkillMapState.set_new_contenu_body,
+                                  "Contenu ou URL…", rows="3"),
+                    ),
                     rx.button(
                         rx.icon("plus", size=13), "Ajouter ce bloc",
                         on_click=SkillMapState.add_contenu,
