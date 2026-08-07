@@ -22,6 +22,7 @@ from techpilot.pages.formation import formation_page
 from techpilot.pages.bdc_procedures import bdc_procedures_page
 from techpilot.pages.migration import migration_page
 from techpilot.pages.redacteur import redacteur_page
+from techpilot.pages.skill_map import skill_map_page
 
 # Initialisation DB
 init_db()
@@ -65,3 +66,4 @@ app.add_page(formation_page,       route="/formation")
 app.add_page(bdc_procedures_page,  route="/bdc-procedures")
 app.add_page(migration_page,       route="/migration")
 app.add_page(redacteur_page,       route="/redacteur")
+app.add_page(skill_map_page,       route="/skill-map")

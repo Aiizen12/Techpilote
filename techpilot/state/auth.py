@@ -22,6 +22,7 @@ DEFAULT_PERMS = {
     "permissions_manage": False,
     "escalade_proc_edit": False,
     "doc_edit": False,
+    "formation_edit": False,
 }
 
 
@@ -82,6 +83,10 @@ class AuthState(rx.State):
     @rx.var
     def can_edit_doc(self) -> bool:
         return self.permissions.get("doc_edit", False)
+
+    @rx.var
+    def can_edit_formation(self) -> bool:
+        return self.is_manager or self.permissions.get("formation_edit", False)
 
     @rx.var
     def can_edit_technicians(self) -> bool:
