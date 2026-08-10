@@ -281,7 +281,7 @@ def _contenu_block(c: dict) -> rx.Component:
          )),
         # quiz
         rx.vstack(
-            rx.hstack(rx.icon("help-circle", size=13, color="#8b5cf6"),
+            rx.hstack(rx.icon("circle-help", size=13, color="#8b5cf6"),
                       rx.text(c["titre"], color="#8b5cf6", font_size="0.72rem", font_weight="700",
                               text_transform="uppercase", letter_spacing="0.06em"),
                       spacing="2", align="center"),
@@ -333,7 +333,7 @@ def _detail_panel() -> rx.Component:
             # Boutons progression
             rx.hstack(
                 rx.button(
-                    rx.icon("play-circle", size=14), "En cours",
+                    rx.icon("circle-play", size=14), "En cours",
                     on_click=SkillMapState.mark_progress(f["id"], "in_progress"),
                     background=rx.cond(statut == "in_progress",
                                        "rgba(245,158,11,0.2)", "rgba(245,158,11,0.08)"),
@@ -343,7 +343,7 @@ def _detail_panel() -> rx.Component:
                     _hover={"background": "rgba(245,158,11,0.2)"},
                 ),
                 rx.button(
-                    rx.icon("check-circle", size=14), "Terminé",
+                    rx.icon("circle-check", size=14), "Terminé",
                     on_click=SkillMapState.mark_progress(f["id"], "completed"),
                     background=rx.cond(statut == "completed",
                                        f"rgba({_rgb(GREEN)},0.2)", f"rgba({_rgb(GREEN)},0.08)"),
@@ -370,9 +370,9 @@ def _detail_panel() -> rx.Component:
 
             # Contenus
             rx.cond(
-                f["contenus"].length() > 0,
+                SkillMapState.selected_has_contenus,
                 rx.vstack(
-                    rx.foreach(f["contenus"], _contenu_block),
+                    rx.foreach(SkillMapState.selected_formation_contenus, _contenu_block),
                     spacing="3", width="100%",
                 ),
                 rx.text("Aucun contenu ajouté.", color=MUTED, font_size="0.83rem"),
@@ -696,7 +696,7 @@ def _formation_form_modal() -> rx.Component:
                             rx.cond(
                                 SkillMapState.new_contenu_titre != "",
                                 rx.hstack(
-                                    rx.icon("check-circle", size=13, color=GREEN),
+                                    rx.icon("circle-check", size=13, color=GREEN),
                                     rx.text(
                                         SkillMapState.new_contenu_codif, " – ",
                                         SkillMapState.new_contenu_titre,
