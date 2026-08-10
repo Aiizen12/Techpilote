@@ -16,6 +16,28 @@ BG      = "#0d0f1a"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+# rx.icon() requires a literal string — use rx.match for dynamic icon names
+def _dyn_icon(name, size: int = 16, color: str = "white") -> rx.Component:
+    kw = {"size": size, "color": color}
+    return rx.match(
+        name,
+        ("graduation-cap", rx.icon("graduation-cap", **kw)),
+        ("users",          rx.icon("users",          **kw)),
+        ("mail",           rx.icon("mail",            **kw)),
+        ("monitor",        rx.icon("monitor",         **kw)),
+        ("phone",          rx.icon("phone",           **kw)),
+        ("shield",         rx.icon("shield",          **kw)),
+        ("cpu",            rx.icon("cpu",             **kw)),
+        ("book-open",      rx.icon("book-open",       **kw)),
+        ("map",            rx.icon("map",             **kw)),
+        ("phone-call",     rx.icon("phone-call",      **kw)),
+        ("key-round",      rx.icon("key-round",       **kw)),
+        ("layers",         rx.icon("layers",          **kw)),
+        ("star",           rx.icon("star",            **kw)),
+        rx.icon("circle", **kw),
+    )
+
+
 def _niveau_badge(niveau: str) -> rx.Component:
     return rx.match(
         niveau,
@@ -84,7 +106,7 @@ def _theme_card(t: dict) -> rx.Component:
             # Icône + nom
             rx.hstack(
                 rx.box(
-                    rx.icon(t["icon"], size=20, color="white"),
+                    _dyn_icon(t["icon"], size=20, color="white"),
                     background=color,
                     border_radius="10px", padding="8px",
                     display="flex", align_items="center", justify_content="center",
@@ -394,7 +416,7 @@ def _theme_roadmap() -> rx.Component:
             # Header thème sélectionné
             rx.hstack(
                 rx.box(
-                    rx.icon(SkillMapState.selected_theme["icon"], size=18, color="white"),
+                    _dyn_icon(SkillMapState.selected_theme["icon"], size=18, color="white"),
                     background=SkillMapState.selected_theme["color"],
                     border_radius="10px", padding="8px",
                     display="flex", align_items="center", justify_content="center",
@@ -470,7 +492,7 @@ def _parcours_card(pc: dict) -> rx.Component:
     return rx.vstack(
         rx.hstack(
             rx.box(
-                rx.icon(pc["icon"], size=16, color="white"),
+                _dyn_icon(pc["icon"], size=16, color="white"),
                 background=color, border_radius="8px", padding="6px",
                 display="flex", align_items="center", justify_content="center",
             ),
