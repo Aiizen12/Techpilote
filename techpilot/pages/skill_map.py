@@ -100,14 +100,13 @@ def _select(value, on_change, options, placeholder="") -> rx.Component:
 
 def _theme_card(t: dict) -> rx.Component:
     is_selected = SkillMapState.selected_theme_id == t["id"]
-    color = t["color"]
     return rx.box(
         rx.vstack(
             # Icône + nom
             rx.hstack(
                 rx.box(
                     _dyn_icon(t["icon"], size=20, color="white"),
-                    background=color,
+                    background=t["color"],
                     border_radius="10px", padding="8px",
                     display="flex", align_items="center", justify_content="center",
                 ),
@@ -115,8 +114,7 @@ def _theme_card(t: dict) -> rx.Component:
                     rx.text(t["nom"], color=TEXT, font_size="0.88rem", font_weight="700",
                             line_height="1.2"),
                     rx.text(
-                        t["count"].to_string() + " formation" +
-                        rx.cond(t["count"] > 1, "s", ""),
+                        t["count"].to_string(), " ", t["formation_label"],
                         color=MUTED, font_size="0.72rem",
                     ),
                     spacing="0", align="start",
@@ -125,26 +123,17 @@ def _theme_card(t: dict) -> rx.Component:
             ),
             # Barre de progression
             rx.cond(
-                t["count"] > 0,
+                t["has_formations"],
                 rx.vstack(
                     rx.box(
                         rx.box(
-                            width=rx.cond(
-                                t["count"] > 0,
-                                (t["done"].to_string() + "/" + t["count"].to_string()),
-                                "0%",
-                            ),
                             height="100%",
-                            background=color,
+                            background=t["color"],
                             border_radius="3px",
                             transition="width 0.4s ease",
-                            style={"width": rx.cond(
-                                t["count"] > 0,
-                                f"calc({t['done']} / {t['count']} * 100%)",
-                                "0%",
-                            )},
+                            style={"width": t["progress_width"]},
                         ),
-                        background=f"rgba(255,255,255,0.07)",
+                        background="rgba(255,255,255,0.07)",
                         border_radius="3px",
                         height="4px",
                         width="100%",
@@ -161,15 +150,14 @@ def _theme_card(t: dict) -> rx.Component:
         ),
         on_click=SkillMapState.select_theme(t["id"]),
         cursor="pointer",
-        background=rx.cond(is_selected, f"rgba({_rgb(color)},0.12)", CARD_BG),
-        border=rx.cond(is_selected, f"1px solid {color}", f"1px solid {BORDER}"),
+        background=rx.cond(is_selected, t["bg_selected"], CARD_BG),
+        border=rx.cond(is_selected, t["border_selected"], f"1px solid {BORDER}"),
         border_radius="14px",
         padding="1rem",
         width="100%",
         transition="all 0.2s ease",
-        _hover={"border": f"1px solid {color}88",
-                "background": f"rgba({_rgb(color)},0.07)"},
-        box_shadow=rx.cond(is_selected, f"0 0 0 2px {color}33", "none"),
+        _hover={"border": t["border_hover"], "background": t["bg_hover"]},
+        box_shadow=rx.cond(is_selected, t["shadow_selected"], "none"),
     )
 
 
@@ -183,21 +171,16 @@ def _rgb(color: str) -> str:
 
 def _formation_node(f: dict) -> rx.Component:
     fid    = f["id"]
-    statut = SkillMapState.my_progress_map.get(fid, "not_started")
-    color  = SkillMapState.selected_theme["color"]
+    statut = SkillMapState.my_progress_map[fid]
     is_sel = SkillMapState.selected_formation_id == fid
 
     return rx.vstack(
-        # Ligne connecteur vers le haut (sauf premier)
         rx.box(
             width="2px", height="20px",
             background=f"linear-gradient(to bottom, {BORDER}, rgba(255,255,255,0.15))",
             margin_x="auto",
         ),
-
-        # Carte formation
         rx.hstack(
-            # Icône statut
             rx.box(
                 rx.match(
                     statut,
@@ -221,7 +204,6 @@ def _formation_node(f: dict) -> rx.Component:
                 display="flex", align_items="center", justify_content="center",
                 flex_shrink="0",
             ),
-            # Contenu
             rx.vstack(
                 rx.text(f["titre"], color=TEXT, font_size="0.84rem", font_weight="600",
                         line_height="1.3"),
@@ -229,7 +211,7 @@ def _formation_node(f: dict) -> rx.Component:
                     _niveau_badge(f["niveau"]),
                     rx.hstack(
                         rx.icon("clock", size=11, color=MUTED),
-                        rx.text(f["duree_min"].to_string() + " min", color=MUTED, font_size="0.7rem"),
+                        rx.text(f["duree_min"].to_string(), " min", color=MUTED, font_size="0.7rem"),
                         spacing="1", align="center",
                     ),
                     spacing="2", align="center",
@@ -239,14 +221,14 @@ def _formation_node(f: dict) -> rx.Component:
             spacing="3", align="center",
             on_click=SkillMapState.select_formation(fid),
             cursor="pointer",
-            background=rx.cond(is_sel, f"rgba({_rgb(color)},0.1)", "rgba(255,255,255,0.02)"),
-            border=rx.cond(is_sel, f"1px solid {color}88", f"1px solid {BORDER}"),
+            background=rx.cond(is_sel, SkillMapState.sel_bg_active, "rgba(255,255,255,0.02)"),
+            border=rx.cond(is_sel, SkillMapState.sel_border_active, f"1px solid {BORDER}"),
             border_radius="12px",
             padding="10px 14px",
             width="100%",
             transition="all 0.18s ease",
-            _hover={"background": f"rgba({_rgb(color)},0.07)",
-                    "border": f"1px solid {color}55"},
+            _hover={"background": SkillMapState.sel_bg_hover,
+                    "border": SkillMapState.sel_border_hover},
         ),
         spacing="0", width="100%", align="stretch",
     )
@@ -313,9 +295,8 @@ def _contenu_block(c: dict) -> rx.Component:
 
 
 def _detail_panel() -> rx.Component:
-    f     = SkillMapState.selected_formation
-    color = SkillMapState.selected_theme["color"]
-    statut = SkillMapState.my_progress_map.get(f["id"], "not_started")
+    f      = SkillMapState.selected_formation
+    statut = SkillMapState.my_progress_map[f["id"]]
 
     return rx.cond(
         SkillMapState.selected_formation_id != "",

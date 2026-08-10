@@ -10,6 +10,12 @@ NIVEAUX   = ["Débutant", "Intermédiaire", "Expert"]
 CONTENU_TYPES = ["texte", "lien", "procedure", "quiz"]
 
 
+def _rgb_str(color: str) -> str:
+    h = color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"{r},{g},{b}"
+
+
 class SkillMapState(rx.State):
     # ── Données ──────────────────────────────────────────────────────────────
     themes:      list[dict] = []
@@ -96,13 +102,53 @@ class SkillMapState(rx.State):
     def themes_with_counts(self) -> list[dict]:
         result = []
         for t in sorted(self.themes, key=lambda x: x.get("ordre", 0)):
-            count    = sum(1 for f in self.formations if f.get("theme_id") == t["id"])
-            done     = sum(1 for p in self.progress
-                          if p.get("statut") == "completed"
-                          and any(f.get("id") == p.get("formation_id") and f.get("theme_id") == t["id"]
-                                  for f in self.formations))
-            result.append({**t, "count": count, "done": done})
+            count = sum(1 for f in self.formations if f.get("theme_id") == t["id"])
+            done  = sum(1 for p in self.progress
+                        if p.get("statut") == "completed"
+                        and any(f.get("id") == p.get("formation_id") and f.get("theme_id") == t["id"]
+                                for f in self.formations))
+            pct   = round(done * 100 / count) if count else 0
+            color = t.get("color", "#6366f1")
+            rgb   = _rgb_str(color)
+            result.append({
+                **t,
+                "count":            count,
+                "done":             done,
+                "pct":              pct,
+                "has_formations":   count > 0,
+                "formation_label":  "formations" if count != 1 else "formation",
+                "progress_width":   f"{pct}%",
+                "bg_selected":      f"rgba({rgb},0.12)",
+                "bg_hover":         f"rgba({rgb},0.07)",
+                "border_selected":  f"1px solid {color}",
+                "border_hover":     f"1px solid {color}88",
+                "shadow_selected":  f"0 0 0 2px {color}33",
+            })
         return result
+
+    @rx.var
+    def sel_color(self) -> str:
+        return self.selected_theme.get("color", "#6366f1")
+
+    @rx.var
+    def sel_bg_active(self) -> str:
+        c = self.selected_theme.get("color", "#6366f1")
+        return f"rgba({_rgb_str(c)},0.1)"
+
+    @rx.var
+    def sel_bg_hover(self) -> str:
+        c = self.selected_theme.get("color", "#6366f1")
+        return f"rgba({_rgb_str(c)},0.07)"
+
+    @rx.var
+    def sel_border_active(self) -> str:
+        c = self.selected_theme.get("color", "#6366f1")
+        return f"1px solid {c}88"
+
+    @rx.var
+    def sel_border_hover(self) -> str:
+        c = self.selected_theme.get("color", "#6366f1")
+        return f"1px solid {c}55"
 
     @rx.var
     def my_progress_map(self) -> dict:
