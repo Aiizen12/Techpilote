@@ -170,9 +170,8 @@ def _rgb(color: str) -> str:
 # ── Nœud formation (dans la colonne roadmap) ──────────────────────────────────
 
 def _formation_node(f: dict) -> rx.Component:
-    fid    = f["id"]
-    statut = SkillMapState.my_progress_map[fid]
-    is_sel = SkillMapState.selected_formation_id == fid
+    statut = f["progress_status"]
+    is_sel = SkillMapState.selected_formation_id == f["id"]
 
     return rx.vstack(
         rx.box(
@@ -219,7 +218,7 @@ def _formation_node(f: dict) -> rx.Component:
                 spacing="1", align="start",
             ),
             spacing="3", align="center",
-            on_click=SkillMapState.select_formation(fid),
+            on_click=SkillMapState.select_formation(f["id"]),
             cursor="pointer",
             background=rx.cond(is_sel, SkillMapState.sel_bg_active, "rgba(255,255,255,0.02)"),
             border=rx.cond(is_sel, SkillMapState.sel_border_active, f"1px solid {BORDER}"),
@@ -296,7 +295,7 @@ def _contenu_block(c: dict) -> rx.Component:
 
 def _detail_panel() -> rx.Component:
     f      = SkillMapState.selected_formation
-    statut = SkillMapState.my_progress_map[f["id"]]
+    statut = SkillMapState.selected_formation_progress
 
     return rx.cond(
         SkillMapState.selected_formation_id != "",

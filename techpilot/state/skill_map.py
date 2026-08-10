@@ -86,10 +86,19 @@ class SkillMapState(rx.State):
     def theme_formations(self) -> list[dict]:
         if not self.selected_theme_id:
             return []
-        return sorted(
+        result = []
+        for f in sorted(
             [f for f in self.formations if f.get("theme_id") == self.selected_theme_id],
             key=lambda f: f.get("ordre", 0),
-        )
+        ):
+            fid    = f.get("id", "")
+            status = self.my_progress_map.get(fid, "not_started")
+            result.append({**f, "progress_status": status})
+        return result
+
+    @rx.var
+    def selected_formation_progress(self) -> str:
+        return self.my_progress_map.get(self.selected_formation_id, "not_started")
 
     @rx.var
     def selected_formation(self) -> dict:
