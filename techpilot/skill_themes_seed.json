@@ -1,0 +1,114 @@
+[
+    {
+        "id": "sth-am",
+        "nom": "App métiers",
+        "description": "Applications métiers (Ulteam, Lucie, Numen, Pixid…)",
+        "icon": "briefcase",
+        "color": "#f59e0b",
+        "ordre": 0
+    },
+    {
+        "id": "sth-ac",
+        "nom": "App collaboratives",
+        "description": "Applications collaboratives (GWS, Microsoft 365)",
+        "icon": "mail",
+        "color": "#3b82f6",
+        "ordre": 1
+    },
+    {
+        "id": "sth-pt",
+        "nom": "Poste de travail",
+        "description": "PC, Mac, Chromebook",
+        "icon": "laptop",
+        "color": "#6366f1",
+        "ordre": 2
+    },
+    {
+        "id": "sth-im",
+        "nom": "Imprimantes",
+        "description": "Copieurs, imprimantes, étiqueteuses Dymo, affranchisseuse",
+        "icon": "printer",
+        "color": "#8b5cf6",
+        "ordre": 3
+    },
+    {
+        "id": "sth-pe",
+        "nom": "Périphériques",
+        "description": "Écrans, souris, claviers, stations d'accueil, casques, douchettes",
+        "icon": "cpu",
+        "color": "#22c55e",
+        "ordre": 4
+    },
+    {
+        "id": "sth-sy",
+        "nom": "Systèmes",
+        "description": "Windows, MacOS, ChromeOS",
+        "icon": "monitor",
+        "color": "#0ea5e9",
+        "ordre": 5
+    },
+    {
+        "id": "sth-ci",
+        "nom": "Citrix",
+        "description": "Bureau Citrix et Applicatix",
+        "icon": "layers",
+        "color": "#14b8a6",
+        "ordre": 6
+    },
+    {
+        "id": "sth-ad",
+        "nom": "Accès Droits Comptes",
+        "description": "AD, Trustelem et ancien portail",
+        "icon": "users",
+        "color": "#ec4899",
+        "ordre": 7
+    },
+    {
+        "id": "sth-re",
+        "nom": "Réseau",
+        "description": "Réseau",
+        "icon": "network",
+        "color": "#f97316",
+        "ordre": 8
+    },
+    {
+        "id": "sth-in",
+        "nom": "Internet",
+        "description": "Dysfonctionnement internet",
+        "icon": "globe",
+        "color": "#64748b",
+        "ordre": 9
+    },
+    {
+        "id": "sth-se",
+        "nom": "Sécurité",
+        "description": "MFA/SSO, Spam, anti-virus, proxy…",
+        "icon": "shield",
+        "color": "#ef4444",
+        "ordre": 10
+    },
+    {
+        "id": "sth-ti",
+        "nom": "Téléphonie IP",
+        "description": "Téléphone IP, interphones IP, pieuvres IP",
+        "icon": "phone",
+        "color": "#a855f7",
+        "ordre": 11
+    },
+    {
+        "id": "sth-tm",
+        "nom": "Téléphonie mobile",
+        "description": "Smartphones Android et IOS",
+        "icon": "smartphone",
+        "color": "#06b6d4",
+        "ordre": 12
+    },
+    {
+        "id": "sth-ge",
+        "nom": "Généralités",
+        "description": "Métier du Desk : bonnes pratiques, arbres de décision, fiches app",
+        "icon": "book-open",
+        "color": "#78716c",
+        "ordre": 13
+    }
+]

@@ -34,6 +34,12 @@ def _dyn_icon(name, size: int = 16, color: str = "white") -> rx.Component:
         ("key-round",      rx.icon("key-round",       **kw)),
         ("layers",         rx.icon("layers",          **kw)),
         ("star",           rx.icon("star",            **kw)),
+        ("briefcase",      rx.icon("briefcase",       **kw)),
+        ("laptop",         rx.icon("laptop",          **kw)),
+        ("printer",        rx.icon("printer",         **kw)),
+        ("network",        rx.icon("network",         **kw)),
+        ("globe",          rx.icon("globe",           **kw)),
+        ("smartphone",     rx.icon("smartphone",      **kw)),
         rx.icon("circle", **kw),
     )
 

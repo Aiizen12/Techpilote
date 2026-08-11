@@ -5,7 +5,9 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 from techpilot.gabarits_data import GABARIT_CATEGORIES_DEFAULT
 
-_PROCEDURES_SEED_PATH = os.path.join(os.path.dirname(__file__), "..", "procedures_seed.json")
+_PROCEDURES_SEED_PATH       = os.path.join(os.path.dirname(__file__), "..", "procedures_seed.json")
+_SKILL_THEMES_SEED_PATH     = os.path.join(os.path.dirname(__file__), "..", "skill_themes_seed.json")
+_SKILL_FORMATIONS_SEED_PATH = os.path.join(os.path.dirname(__file__), "..", "skill_formations_seed.json")
 
 load_dotenv()
 
@@ -287,13 +289,20 @@ DEFAULT_DB = {
     "procedures_content": [],
     "formation_modules": [],
     "skill_themes": [
-        {"id": "sth-01", "nom": "Fondamentaux N1",     "icon": "graduation-cap", "color": "#6366f1", "description": "Les bases pour tout technicien N1 : outils, processus, posture", "ordre": 0},
-        {"id": "sth-02", "nom": "Active Directory",     "icon": "users",          "color": "#ec4899", "description": "Gestion des comptes, droits et accès dans l'AD", "ordre": 1},
-        {"id": "sth-03", "nom": "Google Workspace",     "icon": "mail",           "color": "#f59e0b", "description": "Gmail, Drive, Meet, Docs — l'environnement collaboratif", "ordre": 2},
-        {"id": "sth-04", "nom": "Citrix & Systèmes",   "icon": "monitor",        "color": "#06b6d4", "description": "Virtualisation, sessions Citrix, systèmes d'exploitation", "ordre": 3},
-        {"id": "sth-05", "nom": "Téléphonie",           "icon": "phone",          "color": "#8b5cf6", "description": "Téléphonie IP (Centile/MyIstra) et mobile (Bouygues)", "ordre": 4},
-        {"id": "sth-06", "nom": "Réseau & Sécurité",   "icon": "shield",         "color": "#ef4444", "description": "Diagnostics réseau, VPN, sécurité des postes", "ordre": 5},
-        {"id": "sth-07", "nom": "Matériel & Périphériques", "icon": "cpu",       "color": "#22c55e", "description": "Imprimantes, matériel, périphériques et pannes physiques", "ordre": 6},
+        {"id": "sth-am", "nom": "App métiers",          "icon": "briefcase",  "color": "#f59e0b", "description": "Applications métiers (Ulteam, Lucie, Numen, Pixid…)",                  "ordre": 0},
+        {"id": "sth-ac", "nom": "App collaboratives",   "icon": "mail",       "color": "#3b82f6", "description": "Applications collaboratives (GWS, Microsoft 365)",                      "ordre": 1},
+        {"id": "sth-pt", "nom": "Poste de travail",     "icon": "laptop",     "color": "#6366f1", "description": "PC, Mac, Chromebook",                                                   "ordre": 2},
+        {"id": "sth-im", "nom": "Imprimantes",          "icon": "printer",    "color": "#8b5cf6", "description": "Copieurs, imprimantes, étiqueteuses Dymo, affranchisseuse",             "ordre": 3},
+        {"id": "sth-pe", "nom": "Périphériques",        "icon": "cpu",        "color": "#22c55e", "description": "Écrans, souris, claviers, stations d'accueil, casques, douchettes",    "ordre": 4},
+        {"id": "sth-sy", "nom": "Systèmes",             "icon": "monitor",    "color": "#0ea5e9", "description": "Windows, MacOS, ChromeOS",                                              "ordre": 5},
+        {"id": "sth-ci", "nom": "Citrix",               "icon": "layers",     "color": "#14b8a6", "description": "Bureau Citrix et Applicatix",                                           "ordre": 6},
+        {"id": "sth-ad", "nom": "Accès Droits Comptes", "icon": "users",      "color": "#ec4899", "description": "AD, Trustelem et ancien portail",                                       "ordre": 7},
+        {"id": "sth-re", "nom": "Réseau",               "icon": "network",    "color": "#f97316", "description": "Réseau",                                                                 "ordre": 8},
+        {"id": "sth-in", "nom": "Internet",             "icon": "globe",      "color": "#64748b", "description": "Dysfonctionnement internet",                                             "ordre": 9},
+        {"id": "sth-se", "nom": "Sécurité",             "icon": "shield",     "color": "#ef4444", "description": "MFA/SSO, Spam, anti-virus, proxy…",                                    "ordre": 10},
+        {"id": "sth-ti", "nom": "Téléphonie IP",        "icon": "phone",      "color": "#a855f7", "description": "Téléphone IP, interphones IP, pieuvres IP",                            "ordre": 11},
+        {"id": "sth-tm", "nom": "Téléphonie mobile",    "icon": "smartphone", "color": "#06b6d4", "description": "Smartphones Android et IOS",                                            "ordre": 12},
+        {"id": "sth-ge", "nom": "Généralités",          "icon": "book-open",  "color": "#78716c", "description": "Métier du Desk : bonnes pratiques, arbres de décision, fiches app",   "ordre": 13},
     ],
     "skill_formations": [],
     "skill_parcours": [
@@ -448,6 +457,42 @@ def init_db():
             print(f"[DB] Procédures re-seedées : {len(seeded)} entrées (était {len(current)})")
     except Exception as e:
         print(f"[DB] Seed procedures ignoré : {e}")
+
+    # Seed/re-seed skill_themes si les IDs ont changé (migration ancien format sth-01→sth-am…)
+    try:
+        theme_seed_path = os.path.normpath(_SKILL_THEMES_SEED_PATH)
+        with open(theme_seed_path, encoding="utf-8-sig") as f:
+            new_themes = json.load(f)
+        current_themes = _cache.get("skill_themes") or []
+        current_ids = {t.get("id", "") for t in current_themes}
+        seed_ids    = {t.get("id", "") for t in new_themes}
+        if current_ids != seed_ids:
+            _cache["skill_themes"] = new_themes
+            if _collection is not None:
+                _collection.update_one(
+                    {"_id": "main"},
+                    {"$set": {"skill_themes": new_themes}},
+                )
+            print(f"[DB] Skill themes re-seedés : {len(new_themes)} thèmes")
+    except Exception as e:
+        print(f"[DB] Seed skill_themes ignoré : {e}")
+
+    # Seed/re-seed skill_formations si le nombre d'entrées a changé
+    try:
+        form_seed_path = os.path.normpath(_SKILL_FORMATIONS_SEED_PATH)
+        with open(form_seed_path, encoding="utf-8-sig") as f:
+            new_formations = json.load(f)
+        current_formations = _cache.get("skill_formations") or []
+        if len(new_formations) != len(current_formations):
+            _cache["skill_formations"] = new_formations
+            if _collection is not None:
+                _collection.update_one(
+                    {"_id": "main"},
+                    {"$set": {"skill_formations": new_formations}},
+                )
+            print(f"[DB] Skill formations re-seedées : {len(new_formations)} (était {len(current_formations)})")
+    except Exception as e:
+        print(f"[DB] Seed skill_formations ignoré : {e}")
 
     # Migre les catégories gabarits si elles ont changé
     saved_cats = _cache.get("gabarit_categories")
