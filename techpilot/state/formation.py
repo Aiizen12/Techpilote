@@ -136,7 +136,12 @@ class FormationState(rx.State):
         self.comp_formations = db.get("skill_formations") or []
         self.comp_progress = db.get("skill_progress") or []
         self.comp_techs = [
-            {"id": str(t.get("id") or ""), "nom": t.get("nom") or "", "color": t.get("color") or "#6366f1"}
+            {
+                "id": str(t.get("id") or ""),
+                "nom": t.get("nom") or "",
+                "color": t.get("color") or "#6366f1",
+                "initials": (t.get("nom") or "")[:2].upper(),
+            }
             for t in techs
         ]
 

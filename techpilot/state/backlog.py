@@ -27,7 +27,12 @@ class BacklogState(rx.State):
         db = load_db()
         techs = [t for t in (db.get("technicians") or []) if t.get("active", True)]
         self.technicians = [
-            {"id": str(t.get("id") or ""), "nom": t.get("nom") or "", "color": t.get("color") or "#6366f1"}
+            {
+                "id": str(t.get("id") or ""),
+                "nom": t.get("nom") or "",
+                "color": t.get("color") or "#6366f1",
+                "initials": (t.get("nom") or "")[:2].upper(),
+            }
             for t in techs
         ]
         tech_by_id = {t["id"]: t for t in self.technicians}
@@ -55,6 +60,7 @@ class BacklogState(rx.State):
                 "titulaire_id": tid if has_titulaire else "",
                 "titulaire_nom": t.get("nom") or "" if has_titulaire else "",
                 "titulaire_color": t.get("color") or "#6366f1" if has_titulaire else "#3a4058",
+                "titulaire_initials": t.get("initials") or "" if has_titulaire else "",
                 "has_titulaire": has_titulaire,
                 "ouverts": open_by_tech.get(tid, 0) if has_titulaire else 0,
                 "traites": resolved_by_tech.get(tid, 0) if has_titulaire else 0,
@@ -76,6 +82,7 @@ class BacklogState(rx.State):
                     renfort_techs.append({
                         "tech_nom": r["titulaire_nom"],
                         "tech_color": r["titulaire_color"],
+                        "tech_initials": r["titulaire_initials"],
                         "source": r["nom"],
                         "target": max_cat,
                     })

@@ -852,7 +852,7 @@ def team_comp_card(c: dict) -> rx.Component:
     return rx.box(
         rx.hstack(
             rx.box(
-                rx.text(c["nom"][:2].upper(), color="white", font_weight="700", font_size="0.85rem"),
+                rx.text(c["initials"], color="white", font_weight="700", font_size="0.85rem"),
                 background=c["color"],
                 border_radius="50%", width="38px", height="38px",
                 display="flex", align_items="center", justify_content="center",
@@ -863,7 +863,7 @@ def team_comp_card(c: dict) -> rx.Component:
                 rx.cond(
                     c["pending"] > 0,
                     rx.hstack(
-                        rx.icon("alert-circle", size=11, color=AMBER),
+                        rx.icon("circle-alert", size=11, color=AMBER),
                         rx.text(c["pending"].to_string() + " assignée(s) en attente",
                                 color=AMBER, font_size="0.7rem"),
                         spacing="1", align="center",
@@ -966,7 +966,7 @@ def _comp_radial_wheel() -> rx.Component:
         # Nœud central — le tech
         rx.vstack(
             rx.box(
-                rx.text(t["nom"][:2].upper(), color="white", font_weight="800", font_size="1.3rem"),
+                rx.text(t["initials"], color="white", font_weight="800", font_size="1.3rem"),
                 background=t["color"],
                 border_radius="50%", width="96px", height="96px",
                 display="flex", align_items="center", justify_content="center",
@@ -1008,10 +1008,10 @@ def comp_formation_row(f: dict) -> rx.Component:
             f["assigned"],
             rx.hstack(
                 rx.vstack(
-                    rx.text("Assigné par " + f["assigned_by"], color=PRIMARY, font_size="0.68rem", font_weight="600"),
+                    rx.text("Assigné par ", f["assigned_by"], color=PRIMARY, font_size="0.68rem", font_weight="600"),
                     rx.cond(
                         f["due_date"] != "",
-                        rx.text("Échéance " + f["due_date"], color=MUTED, font_size="0.66rem"),
+                        rx.text("Échéance ", f["due_date"], color=MUTED, font_size="0.66rem"),
                     ),
                     spacing="0", align="end",
                 ),

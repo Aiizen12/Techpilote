@@ -36,7 +36,7 @@ def _kpi(icon: str, label: str, value, color: str) -> rx.Component:
 def _renfort_banner(r: dict) -> rx.Component:
     return rx.hstack(
         rx.box(
-            rx.text(r["tech_nom"][:2].upper(), color="white", font_weight="700", font_size="0.72rem"),
+            rx.text(r["tech_initials"], color="white", font_weight="700", font_size="0.72rem"),
             background=r["tech_color"], border_radius="50%",
             width="26px", height="26px",
             display="flex", align_items="center", justify_content="center",
@@ -71,7 +71,7 @@ def category_card(c: dict) -> rx.Component:
                     c["has_titulaire"],
                     rx.hstack(
                         rx.box(
-                            rx.text(c["titulaire_nom"][:2].upper(), color="white",
+                            rx.text(c["titulaire_initials"], color="white",
                                     font_weight="700", font_size="0.72rem"),
                             background=c["titulaire_color"], border_radius="50%",
                             width="28px", height="28px",
@@ -113,7 +113,7 @@ def category_card(c: dict) -> rx.Component:
             rx.cond(
                 c["is_soldee"],
                 rx.hstack(
-                    rx.icon("check-circle-2", size=12, color=GREEN),
+                    rx.icon("circle-check", size=12, color=GREEN),
                     rx.text("Catégorie soldée", color=GREEN, font_size="0.72rem", font_weight="600"),
                     spacing="1", align="center",
                 ),
@@ -122,7 +122,7 @@ def category_card(c: dict) -> rx.Component:
                 c["has_renforts"],
                 rx.hstack(
                     rx.icon("users", size=12, color=PRIMARY),
-                    rx.text("Renfort : " + c["renforts_label"], color=PRIMARY, font_size="0.72rem", font_weight="600"),
+                    rx.text("Renfort : ", c["renforts_label"], color=PRIMARY, font_size="0.72rem", font_weight="600"),
                     spacing="1", align="center",
                 ),
             ),
