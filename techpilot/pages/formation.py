@@ -861,7 +861,7 @@ def team_comp_card(c: dict) -> rx.Component:
             rx.vstack(
                 rx.text(c["nom"], color=TEXT, font_weight="600", font_size="0.9rem"),
                 rx.cond(
-                    c["pending"] > 0,
+                    c["has_pending"],
                     rx.hstack(
                         rx.icon("circle-alert", size=11, color=AMBER),
                         rx.text(c["pending"].to_string() + " assignée(s) en attente",

@@ -402,7 +402,7 @@ class FormationState(rx.State):
             done = sum(1 for e in entries if e.get("statut") == "completed")
             pending = sum(1 for e in entries if e.get("assigned") and e.get("statut") != "completed")
             pct = round(done * 100 / total_formations) if total_formations else 0
-            result.append({**t, "pct": pct, "pending": pending})
+            result.append({**t, "pct": pct, "pending": pending, "has_pending": pending > 0})
         return result
 
     @rx.var
