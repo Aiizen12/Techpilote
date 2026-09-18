@@ -1,3 +1,4 @@
+import math
 import uuid
 from datetime import datetime
 
@@ -10,6 +11,16 @@ from techpilot.db.activity import log_activity
 
 FORMATION_CATEGORIES = ["Réseau", "Active Directory", "Freshservice", "Téléphonie", "Sécurité", "Processus N1", "Autre"]
 ONBOARDING_CATS = ["Accès", "Outils", "Processus", "Formation", "Autre"]
+
+# Layout du cercle de compétences (vue individuelle)
+RADIAL_SIZE   = 520   # px, conteneur carré
+RADIAL_RADIUS = 190   # px, rayon des nœuds satellites
+NODE_SIZE     = 84    # px, diamètre du nœud (ring + icône)
+LABEL_WIDTH   = 104   # px, largeur de la carte nœud (ring + libellé), pour centrer le texte
+
+
+def _ring_style(pct: int, color: str) -> str:
+    return f"conic-gradient({color} {pct}%, rgba(255,255,255,0.08) {pct}% 100%)"
 
 
 class FormationState(rx.State):
@@ -52,6 +63,21 @@ class FormationState(rx.State):
     checklist_tech_nom: str = ""
     checklist_tech_color: str = ""
     checklist_steps_done: list[str] = []
+
+    # ── Compétences (lié au Skill Map) ──────────────────────────────────────────
+    comp_view: str = "equipe"   # "equipe" | "individuel"
+    comp_themes: list[dict] = []
+    comp_formations: list[dict] = []
+    comp_progress: list[dict] = []   # toutes les entrées skill_progress, tous techs
+    comp_techs: list[dict] = []      # techs actifs [{id, nom, color}]
+
+    comp_selected_tech_id: str = ""
+    comp_selected_theme_id: str = ""
+
+    show_assign_form: bool = False
+    assign_formation_id: str = ""
+    assign_formation_titre: str = ""
+    assign_due_date: str = ""
 
     # ── Chargement ────────────────────────────────────────────────────────────
     async def load(self):
@@ -102,6 +128,15 @@ class FormationState(rx.State):
                 date_debut=str(progress_map.get(str(t.get("id")), {}).get("date_debut") or ""),
                 assigned=str(t.get("id")) in progress_map,
             )
+            for t in techs
+        ]
+
+        # ── Compétences (Skill Map) ──────────────────────────────────────────
+        self.comp_themes = db.get("skill_themes") or []
+        self.comp_formations = db.get("skill_formations") or []
+        self.comp_progress = db.get("skill_progress") or []
+        self.comp_techs = [
+            {"id": str(t.get("id") or ""), "nom": t.get("nom") or "", "color": t.get("color") or "#6366f1"}
             for t in techs
         ]
 
@@ -347,6 +382,205 @@ class FormationState(rx.State):
 
     def close_checklist(self):
         self.show_checklist = False
+
+    # ── Compétences : vars calculées ─────────────────────────────────────────
+
+    @rx.var
+    def team_comp_cards(self) -> list[dict]:
+        total_formations = len(self.comp_formations)
+        by_tech: dict = {}
+        for p in self.comp_progress:
+            by_tech.setdefault(str(p.get("tech_id")), []).append(p)
+        result = []
+        for t in self.comp_techs:
+            entries = by_tech.get(t["id"], [])
+            done = sum(1 for e in entries if e.get("statut") == "completed")
+            pending = sum(1 for e in entries if e.get("assigned") and e.get("statut") != "completed")
+            pct = round(done * 100 / total_formations) if total_formations else 0
+            result.append({**t, "pct": pct, "pending": pending})
+        return result
+
+    @rx.var
+    def comp_selected_tech(self) -> dict:
+        for t in self.comp_techs:
+            if t["id"] == self.comp_selected_tech_id:
+                return t
+        return {}
+
+    @rx.var
+    def comp_selected_tech_pct(self) -> int:
+        for c in self.team_comp_cards:
+            if c["id"] == self.comp_selected_tech_id:
+                return c["pct"]
+        return 0
+
+    @rx.var
+    def comp_theme_nodes(self) -> list[dict]:
+        themes = sorted(self.comp_themes, key=lambda t: t.get("ordre", 0))
+        n = len(themes)
+        if n == 0:
+            return []
+        tid = self.comp_selected_tech_id
+        prog_map = {
+            (str(p.get("tech_id")), p.get("formation_id")): p
+            for p in self.comp_progress
+        }
+        result = []
+        for i, t in enumerate(themes):
+            theme_id = t.get("id")
+            theme_forms = [f for f in self.comp_formations if f.get("theme_id") == theme_id]
+            total = len(theme_forms)
+            done = sum(
+                1 for f in theme_forms
+                if prog_map.get((tid, f.get("id")), {}).get("statut") == "completed"
+            )
+            pct = round(done * 100 / total) if total else 0
+            angle = math.radians(-90 + i * (360 / n))
+            x = RADIAL_SIZE / 2 + RADIAL_RADIUS * math.cos(angle) - LABEL_WIDTH / 2
+            y = RADIAL_SIZE / 2 + RADIAL_RADIUS * math.sin(angle) - NODE_SIZE / 2
+            color = t.get("color") or "#6366f1"
+            result.append({
+                "id": theme_id,
+                "nom": t.get("nom") or "",
+                "icon": t.get("icon") or "book-open",
+                "color": color,
+                "pct": pct,
+                "done": done,
+                "total": total,
+                "left": f"{x:.1f}px",
+                "top": f"{y:.1f}px",
+                "ring_bg": _ring_style(pct, color),
+                "icon_border": f"2px solid {color}",
+            })
+        return result
+
+    @rx.var
+    def comp_selected_theme(self) -> dict:
+        for node in self.comp_theme_nodes:
+            if node["id"] == self.comp_selected_theme_id:
+                return node
+        return {}
+
+    @rx.var
+    def comp_theme_formations(self) -> list[dict]:
+        if not self.comp_selected_theme_id or not self.comp_selected_tech_id:
+            return []
+        tid = self.comp_selected_tech_id
+        result = []
+        theme_forms = sorted(
+            [f for f in self.comp_formations if f.get("theme_id") == self.comp_selected_theme_id],
+            key=lambda f: f.get("ordre", 0),
+        )
+        for f in theme_forms:
+            entry = next(
+                (p for p in self.comp_progress
+                 if str(p.get("tech_id")) == tid and p.get("formation_id") == f.get("id")),
+                {},
+            )
+            result.append({
+                "id": f.get("id"),
+                "titre": f.get("titre") or "",
+                "niveau": f.get("niveau") or "Débutant",
+                "duree_min": int(f.get("duree_min") or 0),
+                "statut": entry.get("statut", "not_started"),
+                "assigned": bool(entry.get("assigned")),
+                "assigned_by": entry.get("assigned_by") or "",
+                "due_date": entry.get("due_date") or "",
+            })
+        return result
+
+    # ── Compétences : navigation ─────────────────────────────────────────────
+
+    def select_comp_tech(self, tech_id: str):
+        self.comp_selected_tech_id = tech_id
+        self.comp_selected_theme_id = ""
+        self.comp_view = "individuel"
+
+    def back_to_comp_team(self):
+        self.comp_view = "equipe"
+        self.comp_selected_tech_id = ""
+        self.comp_selected_theme_id = ""
+
+    def select_comp_theme(self, theme_id: str):
+        self.comp_selected_theme_id = "" if self.comp_selected_theme_id == theme_id else theme_id
+
+    def close_comp_theme(self):
+        self.comp_selected_theme_id = ""
+
+    # ── Compétences : assignation ────────────────────────────────────────────
+
+    def open_assign_form(self, formation_id: str):
+        if not self.comp_selected_tech_id:
+            return
+        f = next((f for f in self.comp_formations if f.get("id") == formation_id), {})
+        self.assign_formation_id = formation_id
+        self.assign_formation_titre = f.get("titre") or ""
+        self.assign_due_date = ""
+        self.show_assign_form = True
+
+    def close_assign_form(self):
+        self.show_assign_form = False
+
+    def set_assign_due_date(self, v: str):
+        self.assign_due_date = v
+
+    async def save_assignment(self):
+        auth = await self.get_state(AuthState)
+        if not auth.can_edit_formation:
+            yield rx.toast.error("Droits insuffisants.")
+            return
+        tech_id = self.comp_selected_tech_id
+        if not tech_id or not self.assign_formation_id:
+            return
+        db = load_db()
+        prog = db.setdefault("skill_progress", [])
+        now = datetime.now().strftime("%d/%m/%Y")
+        existing = next(
+            (p for p in prog
+             if str(p.get("tech_id")) == str(tech_id) and p.get("formation_id") == self.assign_formation_id),
+            None,
+        )
+        if existing:
+            existing["assigned"] = True
+            existing["assigned_by"] = auth.user_nom
+            existing["assigned_at"] = now
+            existing["due_date"] = self.assign_due_date
+        else:
+            prog.append({
+                "id": uuid.uuid4().hex[:8],
+                "tech_id": tech_id,
+                "formation_id": self.assign_formation_id,
+                "statut": "not_started",
+                "date_start": "",
+                "date_completion": "",
+                "score_quiz": 0,
+                "assigned": True,
+                "assigned_by": auth.user_nom,
+                "assigned_at": now,
+                "due_date": self.assign_due_date,
+            })
+        save_db(db)
+        log_activity(auth.user_nom, "CREATE", "skill_map", f"Formation assignée: {self.assign_formation_titre}")
+        self.show_assign_form = False
+        yield rx.toast.success("Formation assignée.")
+        await self.load()
+
+    async def unassign_formation(self, formation_id: str):
+        auth = await self.get_state(AuthState)
+        if not auth.can_edit_formation:
+            yield rx.toast.error("Droits insuffisants.")
+            return
+        tech_id = self.comp_selected_tech_id
+        db = load_db()
+        for p in db.get("skill_progress") or []:
+            if str(p.get("tech_id")) == str(tech_id) and p.get("formation_id") == formation_id:
+                p["assigned"] = False
+                p["assigned_by"] = ""
+                p["due_date"] = ""
+                break
+        save_db(db)
+        yield rx.toast.info("Assignation retirée.")
+        await self.load()
 
     async def toggle_step_done(self, step_id: str):
         db = load_db()

@@ -1,6 +1,10 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
-from techpilot.state.formation import FormationState, FORMATION_CATEGORIES, ONBOARDING_CATS
+from techpilot.components.icons import dyn_icon
+from techpilot.state.formation import (
+    FormationState, FORMATION_CATEGORIES, ONBOARDING_CATS,
+    RADIAL_SIZE, NODE_SIZE, LABEL_WIDTH,
+)
 from techpilot.state.models import FormationModule, OnboardingStep, OnboardingTechProgress
 from techpilot.state.auth import AuthState
 
@@ -824,6 +828,331 @@ def onboarding_tab() -> rx.Component:
     )
 
 
+def _statut_icon(statut: str, size: int = 15) -> rx.Component:
+    return rx.match(
+        statut,
+        ("completed",   rx.icon("circle-check", size=size, color=GREEN)),
+        ("in_progress", rx.icon("circle-dot",   size=size, color=AMBER)),
+        rx.icon("circle", size=size, color=MUTED),
+    )
+
+
+def _niveau_badge2(niveau: str) -> rx.Component:
+    return rx.match(
+        niveau,
+        ("Débutant",      rx.badge("Débutant",      color_scheme="green", variant="soft", font_size="0.62rem")),
+        ("Intermédiaire", rx.badge("Intermédiaire", color_scheme="amber", variant="soft", font_size="0.62rem")),
+        ("Expert",        rx.badge("Expert",        color_scheme="red",   variant="soft", font_size="0.62rem")),
+        rx.badge(niveau, color_scheme="gray", variant="soft", font_size="0.62rem"),
+    )
+
+
+# ── Carte tech — vue équipe compétences ───────────────────────────────────────
+def team_comp_card(c: dict) -> rx.Component:
+    return rx.box(
+        rx.hstack(
+            rx.box(
+                rx.text(c["nom"][:2].upper(), color="white", font_weight="700", font_size="0.85rem"),
+                background=c["color"],
+                border_radius="50%", width="38px", height="38px",
+                display="flex", align_items="center", justify_content="center",
+                flex_shrink="0",
+            ),
+            rx.vstack(
+                rx.text(c["nom"], color=TEXT, font_weight="600", font_size="0.9rem"),
+                rx.cond(
+                    c["pending"] > 0,
+                    rx.hstack(
+                        rx.icon("alert-circle", size=11, color=AMBER),
+                        rx.text(c["pending"].to_string() + " assignée(s) en attente",
+                                color=AMBER, font_size="0.7rem"),
+                        spacing="1", align="center",
+                    ),
+                    rx.text("Aucune assignation en attente", color=MUTED, font_size="0.7rem"),
+                ),
+                spacing="0", align="start",
+            ),
+            rx.spacer(),
+            rx.text(c["pct"].to_string() + "%", color=TEXT, font_weight="700", font_size="1rem"),
+            spacing="3", align="center", width="100%",
+        ),
+        rx.box(
+            rx.box(
+                background=c["color"],
+                width=c["pct"].to_string() + "%",
+                height="4px", border_radius="full", transition="width 0.3s",
+            ),
+            background="rgba(255,255,255,0.06)", border_radius="full",
+            width="100%", overflow="hidden", margin_top="0.7rem",
+        ),
+        on_click=FormationState.select_comp_tech(c["id"]),
+        cursor="pointer",
+        background=CARD_BG, border=f"1px solid {BORDER}",
+        border_radius="14px", padding="1.1rem",
+        _hover={"border_color": c["color"]},
+        transition="border-color 0.2s",
+    )
+
+
+def comp_team_view() -> rx.Component:
+    return rx.vstack(
+        rx.hstack(
+            rx.icon("users", size=15, color=PRIMARY),
+            rx.text("Couverture des compétences par technicien", color=TEXT,
+                    font_weight="600", font_size="0.875rem"),
+            spacing="2", align="center",
+        ),
+        rx.cond(
+            FormationState.team_comp_cards.length() > 0,
+            rx.grid(
+                rx.foreach(FormationState.team_comp_cards, team_comp_card),
+                columns="3", spacing="4", width="100%",
+            ),
+            rx.box(
+                rx.vstack(
+                    rx.icon("map", size=28, color=MUTED),
+                    rx.text("Aucun thème dans le Skill Map pour l'instant.", color=MUTED, font_size="0.85rem"),
+                    spacing="2", align="center",
+                ),
+                padding="2rem", text_align="center", width="100%",
+            ),
+        ),
+        spacing="4", width="100%",
+    )
+
+
+# ── Nœud thème (roue radiale) ─────────────────────────────────────────────────
+def comp_theme_node(node: dict) -> rx.Component:
+    inner = NODE_SIZE - 12
+    icon_box = NODE_SIZE - 26
+    return rx.vstack(
+        rx.box(
+            rx.box(
+                rx.box(
+                    dyn_icon(node["icon"], size=20, color="white"),
+                    background=CARD_BG,
+                    border=node["icon_border"],
+                    border_radius="50%",
+                    width=f"{icon_box}px", height=f"{icon_box}px",
+                    display="flex", align_items="center", justify_content="center",
+                ),
+                background="#080b14",
+                border_radius="50%",
+                width=f"{inner}px", height=f"{inner}px",
+                display="flex", align_items="center", justify_content="center",
+            ),
+            background=node["ring_bg"],
+            border_radius="50%",
+            width=f"{NODE_SIZE}px", height=f"{NODE_SIZE}px",
+            display="flex", align_items="center", justify_content="center",
+        ),
+        rx.text(node["nom"], color=TEXT, font_size="0.7rem", font_weight="600",
+                text_align="center", no_of_lines=2, line_height="1.2"),
+        rx.text(node["pct"].to_string() + "%", color=MUTED, font_size="0.65rem", font_weight="700"),
+        spacing="1", align="center",
+        position="absolute",
+        left=node["left"], top=node["top"],
+        width=f"{LABEL_WIDTH}px",
+        cursor="pointer",
+        on_click=FormationState.select_comp_theme(node["id"]),
+        _hover={"opacity": "0.85"},
+        transition="opacity 0.15s",
+    )
+
+
+def _comp_radial_wheel() -> rx.Component:
+    t = FormationState.comp_selected_tech
+    return rx.box(
+        # Nœud central — le tech
+        rx.vstack(
+            rx.box(
+                rx.text(t["nom"][:2].upper(), color="white", font_weight="800", font_size="1.3rem"),
+                background=t["color"],
+                border_radius="50%", width="96px", height="96px",
+                display="flex", align_items="center", justify_content="center",
+                border=f"3px solid {BORDER}",
+            ),
+            rx.text(t["nom"], color=TEXT, font_weight="700", font_size="0.95rem"),
+            rx.text(FormationState.comp_selected_tech_pct.to_string() + "% global",
+                    color=MUTED, font_size="0.75rem"),
+            spacing="1", align="center",
+            position="absolute", top="50%", left="50%",
+            transform="translate(-50%, -50%)",
+        ),
+        rx.foreach(FormationState.comp_theme_nodes, comp_theme_node),
+        position="relative",
+        width=f"{RADIAL_SIZE}px", height=f"{RADIAL_SIZE}px",
+        margin="0 auto",
+    )
+
+
+# ── Panneau formations d'un thème ─────────────────────────────────────────────
+def comp_formation_row(f: dict) -> rx.Component:
+    return rx.hstack(
+        _statut_icon(f["statut"]),
+        rx.vstack(
+            rx.text(f["titre"], color=TEXT, font_size="0.85rem", font_weight="600"),
+            rx.hstack(
+                _niveau_badge2(f["niveau"]),
+                rx.hstack(
+                    rx.icon("clock", size=11, color=MUTED),
+                    rx.text(f["duree_min"].to_string() + " min", color=MUTED, font_size="0.7rem"),
+                    spacing="1", align="center",
+                ),
+                spacing="2", align="center",
+            ),
+            spacing="1", align="start",
+        ),
+        rx.spacer(),
+        rx.cond(
+            f["assigned"],
+            rx.hstack(
+                rx.vstack(
+                    rx.text("Assigné par " + f["assigned_by"], color=PRIMARY, font_size="0.68rem", font_weight="600"),
+                    rx.cond(
+                        f["due_date"] != "",
+                        rx.text("Échéance " + f["due_date"], color=MUTED, font_size="0.66rem"),
+                    ),
+                    spacing="0", align="end",
+                ),
+                rx.cond(
+                    AuthState.can_edit_formation,
+                    rx.icon_button(
+                        rx.icon("x", size=12),
+                        on_click=FormationState.unassign_formation(f["id"]),
+                        background="transparent", color=MUTED,
+                        border=f"1px solid {BORDER}", border_radius="6px",
+                        size="1", cursor="pointer",
+                        _hover={"color": RED, "border_color": RED},
+                    ),
+                ),
+                spacing="2", align="center",
+            ),
+            rx.cond(
+                AuthState.can_edit_formation,
+                rx.button(
+                    rx.icon("send", size=12), "Assigner",
+                    on_click=FormationState.open_assign_form(f["id"]),
+                    background="rgba(99,102,241,0.1)", color=PRIMARY,
+                    border=f"1px solid rgba(99,102,241,0.3)", border_radius="6px",
+                    font_size="0.72rem", padding="4px 10px", cursor="pointer",
+                    spacing="1",
+                ),
+            ),
+        ),
+        spacing="3", align="center", width="100%",
+        padding="0.65rem 0",
+        border_bottom=f"1px solid {BORDER}33",
+    )
+
+
+def comp_theme_dialog() -> rx.Component:
+    t = FormationState.comp_selected_theme
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.hstack(
+                rx.hstack(
+                    dyn_icon(t["icon"], size=16, color="white"),
+                    rx.text(t["nom"], color=TEXT, font_weight="700", font_size="1rem"),
+                    spacing="2", align="center",
+                ),
+                rx.spacer(),
+                rx.icon_button(
+                    rx.icon("x", size=15),
+                    on_click=FormationState.close_comp_theme,
+                    background="rgba(255,255,255,0.06)", color=MUTED,
+                    border_radius="7px", size="2", cursor="pointer",
+                ),
+                width="100%", align="center", margin_bottom="0.75rem",
+            ),
+            rx.cond(
+                FormationState.comp_theme_formations.length() > 0,
+                rx.box(
+                    rx.foreach(FormationState.comp_theme_formations, comp_formation_row),
+                    max_height="55vh", overflow_y="auto",
+                ),
+                rx.text("Aucune formation dans ce thème.", color=MUTED, font_size="0.85rem"),
+            ),
+            background="#111524", border=f"1px solid {BORDER}",
+            border_radius="16px", padding="1.5rem", max_width="560px", width="95vw",
+        ),
+        open=FormationState.comp_selected_theme_id != "",
+    )
+
+
+def assign_form_dialog() -> rx.Component:
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.text("Assigner une formation", color=TEXT, font_weight="700", font_size="1rem"),
+                    rx.spacer(),
+                    rx.icon_button(
+                        rx.icon("x", size=15),
+                        on_click=FormationState.close_assign_form,
+                        background="rgba(255,255,255,0.06)", color=MUTED,
+                        border_radius="7px", size="2", cursor="pointer",
+                    ),
+                    width="100%", align="center",
+                ),
+                rx.text(FormationState.assign_formation_titre, color=PRIMARY, font_size="0.9rem", font_weight="600"),
+                rx.vstack(
+                    rx.text("Échéance (optionnelle)", color=MUTED, font_size="0.75rem"),
+                    rx.input(
+                        type="date",
+                        value=FormationState.assign_due_date,
+                        on_change=FormationState.set_assign_due_date,
+                        background="#0d1021", color=TEXT, border=f"1px solid {BORDER}",
+                        border_radius="8px", width="100%",
+                    ),
+                    spacing="1", width="100%", align="start",
+                ),
+                rx.hstack(
+                    rx.button("Annuler", on_click=FormationState.close_assign_form,
+                              background="transparent", color=MUTED,
+                              border=f"1px solid {BORDER}", border_radius="8px", cursor="pointer"),
+                    rx.button("Assigner", on_click=FormationState.save_assignment,
+                              background=f"linear-gradient(135deg, {PRIMARY}, #8b5cf6)",
+                              color="white", border_radius="8px", cursor="pointer", font_weight="600"),
+                    spacing="3", justify="end", width="100%",
+                ),
+                spacing="4", width="100%",
+            ),
+            background="#111524", border=f"1px solid {BORDER}",
+            border_radius="16px", padding="1.5rem", max_width="420px", width="95vw",
+        ),
+        open=FormationState.show_assign_form,
+    )
+
+
+def comp_individual_view() -> rx.Component:
+    return rx.vstack(
+        rx.hstack(
+            rx.button(
+                rx.icon("arrow-left", size=14), "Retour à l'équipe",
+                on_click=FormationState.back_to_comp_team,
+                background="transparent", color=MUTED,
+                border=f"1px solid {BORDER}", border_radius="8px",
+                font_size="0.8rem", padding="6px 14px", cursor="pointer", spacing="2",
+                _hover={"color": TEXT, "border_color": PRIMARY},
+            ),
+            width="100%",
+        ),
+        _comp_radial_wheel(),
+        comp_theme_dialog(),
+        assign_form_dialog(),
+        spacing="4", width="100%", align="center",
+    )
+
+
+def competences_tab() -> rx.Component:
+    return rx.cond(
+        FormationState.comp_view == "equipe",
+        comp_team_view(),
+        comp_individual_view(),
+    )
+
+
 # ── Page principale ───────────────────────────────────────────────────────────
 def formation_content() -> rx.Component:
     return rx.vstack(
@@ -860,13 +1189,29 @@ def formation_content() -> rx.Component:
                 border_radius="8px", font_size="0.875rem",
                 padding="8px 18px", cursor="pointer", spacing="2",
             ),
+            rx.button(
+                rx.icon("compass", size=15), "Compétences",
+                on_click=FormationState.set_tab("competences"),
+                background=rx.cond(
+                    FormationState.tab == "competences",
+                    f"linear-gradient(135deg, {AMBER}, #ea580c)", "transparent",
+                ),
+                color=rx.cond(FormationState.tab == "competences", "white", MUTED),
+                border=rx.cond(
+                    FormationState.tab == "competences",
+                    "none", f"1px solid {BORDER}",
+                ),
+                border_radius="8px", font_size="0.875rem",
+                padding="8px 18px", cursor="pointer", spacing="2",
+            ),
             spacing="3", margin_bottom="0.5rem",
         ),
 
         # Contenu
-        rx.cond(
-            FormationState.tab == "modules",
-            modules_tab(),
+        rx.match(
+            FormationState.tab,
+            ("modules", modules_tab()),
+            ("competences", competences_tab()),
             onboarding_tab(),
         ),
 

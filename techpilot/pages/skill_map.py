@@ -1,5 +1,6 @@
 import reflex as rx
 from techpilot.components.layout import page_layout
+from techpilot.components.icons import dyn_icon as _dyn_icon
 from techpilot.state.auth import AuthState
 from techpilot.state.skill_map import SkillMapState, NIVEAUX, CONTENU_TYPES
 
@@ -15,33 +16,6 @@ BG      = "#0d0f1a"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-# rx.icon() requires a literal string — use rx.match for dynamic icon names
-def _dyn_icon(name, size: int = 16, color: str = "white") -> rx.Component:
-    kw = {"size": size, "color": color}
-    return rx.match(
-        name,
-        ("graduation-cap", rx.icon("graduation-cap", **kw)),
-        ("users",          rx.icon("users",          **kw)),
-        ("mail",           rx.icon("mail",            **kw)),
-        ("monitor",        rx.icon("monitor",         **kw)),
-        ("phone",          rx.icon("phone",           **kw)),
-        ("shield",         rx.icon("shield",          **kw)),
-        ("cpu",            rx.icon("cpu",             **kw)),
-        ("book-open",      rx.icon("book-open",       **kw)),
-        ("map",            rx.icon("map",             **kw)),
-        ("phone-call",     rx.icon("phone-call",      **kw)),
-        ("key-round",      rx.icon("key-round",       **kw)),
-        ("layers",         rx.icon("layers",          **kw)),
-        ("star",           rx.icon("star",            **kw)),
-        ("briefcase",      rx.icon("briefcase",       **kw)),
-        ("laptop",         rx.icon("laptop",          **kw)),
-        ("printer",        rx.icon("printer",         **kw)),
-        ("network",        rx.icon("network",         **kw)),
-        ("globe",          rx.icon("globe",           **kw)),
-        ("smartphone",     rx.icon("smartphone",      **kw)),
-        rx.icon("circle", **kw),
-    )
 
 
 def _niveau_badge(niveau: str) -> rx.Component:
@@ -334,6 +308,25 @@ def _detail_panel() -> rx.Component:
                     _hover={"color": TEXT, "background": "rgba(255,255,255,0.05)"},
                 ),
                 width="100%", align="start", spacing="3",
+            ),
+
+            # Badge assignation manager
+            rx.cond(
+                SkillMapState.selected_formation_is_assigned,
+                rx.hstack(
+                    rx.icon("user-check", size=13, color=PRIMARY),
+                    rx.text(
+                        "Assigné par ", SkillMapState.selected_formation_my_assignment["assigned_by"],
+                        rx.cond(
+                            SkillMapState.selected_formation_my_assignment["due_date"] != "",
+                            rx.fragment(" · échéance ", SkillMapState.selected_formation_my_assignment["due_date"]),
+                        ),
+                        color=PRIMARY, font_size="0.78rem", font_weight="600",
+                    ),
+                    spacing="2", align="center",
+                    background="rgba(99,102,241,0.08)", border=f"1px solid {PRIMARY}33",
+                    border_radius="8px", padding="6px 12px", width="fit-content",
+                ),
             ),
 
             # Boutons progression

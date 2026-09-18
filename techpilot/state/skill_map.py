@@ -101,6 +101,17 @@ class SkillMapState(rx.State):
         return self.my_progress_map.get(self.selected_formation_id, "not_started")
 
     @rx.var
+    def selected_formation_my_assignment(self) -> dict:
+        for p in self.progress:
+            if p.get("formation_id") == self.selected_formation_id and p.get("assigned"):
+                return p
+        return {}
+
+    @rx.var
+    def selected_formation_is_assigned(self) -> bool:
+        return bool(self.selected_formation_my_assignment)
+
+    @rx.var
     def selected_formation_contenus(self) -> list[dict]:
         return self.selected_formation.get("contenus", [])
 
