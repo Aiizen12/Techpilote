@@ -151,6 +151,12 @@ class BacklogState(rx.State):
         if not self.technicians:
             yield rx.toast.error("Aucun technicien actif.")
             return
+        if len(self.technicians) < len(BACKLOG_CATEGORIES):
+            yield rx.toast.warning(
+                f"Seulement {len(self.technicians)} technicien(s) actif(s) pour "
+                f"{len(BACKLOG_CATEGORIES)} catégories — certains vont cumuler plusieurs catégories. "
+                "Vérifie les techniciens actifs sur la page Techniciens."
+            )
 
         db = load_db()
         tickets = [tk for tk in (db.get("tickets") or []) if not tk.get("is_demo")]

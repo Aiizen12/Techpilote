@@ -34,6 +34,9 @@ class TicketsState(rx.State):
     count_resolus: int = 0
     show_form: bool = False
     technicians: list[dict] = []
+    filter_search: str = ""
+    filter_tech_id: str = ""
+    filter_impact: str = ""
     form: dict = {
         "titre": "", "ticket_pere": "", "description": "",
         "impact": "normale", "perimetre": "", "technicien_id": "",
@@ -171,6 +174,16 @@ class TicketsState(rx.State):
             filtered = [x for x in raw if x.get("etat") == "resolu"]
         else:
             filtered = raw
+        if self.filter_tech_id:
+            filtered = [x for x in filtered if str(x.get("technicien_id") or "") == self.filter_tech_id]
+        if self.filter_impact:
+            filtered = [x for x in filtered if (x.get("impact") or "") == self.filter_impact]
+        if self.filter_search.strip():
+            q = self.filter_search.strip().lower()
+            filtered = [
+                x for x in filtered
+                if q in (x.get("titre") or "").lower() or q in (x.get("perimetre") or "").lower()
+            ]
         self.tickets = [
             TicketItem(
                 id=str(x.get("id") or ""),
@@ -202,6 +215,28 @@ class TicketsState(rx.State):
     def set_tab(self, val: str):
         self.tab = val
         self.load()
+
+    def set_filter_search(self, val: str):
+        self.filter_search = val
+        self.load()
+
+    def set_filter_tech(self, val: str):
+        self.filter_tech_id = "" if val == "_all" else val
+        self.load()
+
+    def set_filter_impact(self, val: str):
+        self.filter_impact = "" if self.filter_impact == val else val
+        self.load()
+
+    def clear_filters(self):
+        self.filter_search = ""
+        self.filter_tech_id = ""
+        self.filter_impact = ""
+        self.load()
+
+    @rx.var
+    def has_active_filters(self) -> bool:
+        return bool(self.filter_search or self.filter_tech_id or self.filter_impact)
 
     def open_form(self):
         self.form = {
@@ -539,6 +574,69 @@ def _impact_color(impact) -> rx.Var:
     return rx.cond(impact == "critique", "#f87171",
            rx.cond(impact == "haute",    "#fcd34d",
            rx.cond(impact == "normale",  "#93c5fd", "#6ee7b7")))
+
+
+def _filter_impact_chip(val: str, label: str, color: str) -> rx.Component:
+    is_active = TicketsState.filter_impact == val
+    return rx.box(
+        rx.text(label, font_size="0.75rem", font_weight="600",
+                color=rx.cond(is_active, color, MUTED)),
+        padding="5px 12px",
+        border_radius="20px",
+        background=rx.cond(is_active, f"{color}22", "transparent"),
+        border=rx.cond(is_active, f"1px solid {color}", f"1px solid {BORDER}"),
+        cursor="pointer",
+        transition="all 0.15s",
+        on_click=TicketsState.set_filter_impact(val),
+        _hover={"border_color": color},
+    )
+
+
+def filters_bar() -> rx.Component:
+    return rx.vstack(
+        rx.hstack(
+            rx.input(
+                placeholder="Rechercher un titre, une catégorie/périmètre…",
+                value=TicketsState.filter_search,
+                on_change=TicketsState.set_filter_search,
+                background=CARD_BG, color=TEXT, border=f"1px solid {BORDER}",
+                border_radius="8px", width="320px", font_size="0.85rem",
+                _focus={"border_color": RED},
+            ),
+            rx.select.root(
+                rx.select.trigger(placeholder="Tous les techniciens", width="220px"),
+                rx.select.content(
+                    rx.select.item("Tous les techniciens", value="_all"),
+                    rx.foreach(
+                        TicketsState.technicians,
+                        lambda t: rx.select.item(t["nom"], value=t["id"]),
+                    ),
+                ),
+                value=rx.cond(TicketsState.filter_tech_id != "", TicketsState.filter_tech_id, "_all"),
+                on_change=TicketsState.set_filter_tech,
+            ),
+            rx.cond(
+                TicketsState.has_active_filters,
+                rx.button(
+                    rx.icon("x", size=13), "Réinitialiser",
+                    on_click=TicketsState.clear_filters,
+                    background="transparent", color=MUTED,
+                    border=f"1px solid {BORDER}", border_radius="8px",
+                    font_size="0.78rem", padding="6px 12px", cursor="pointer", spacing="1",
+                    _hover={"color": RED, "border_color": RED},
+                ),
+            ),
+            spacing="3", align="center", wrap="wrap",
+        ),
+        rx.hstack(
+            _filter_impact_chip("critique", "Critique", "#f87171"),
+            _filter_impact_chip("haute",    "Haute",    "#fcd34d"),
+            _filter_impact_chip("normale",  "Modéré",   "#93c5fd"),
+            _filter_impact_chip("basse",    "Faible",   "#6ee7b7"),
+            spacing="2", align="center", wrap="wrap",
+        ),
+        spacing="3", width="100%",
+    )
 
 
 def _tab_btn(label: str, val: str, active_val) -> rx.Component:
@@ -1374,11 +1472,25 @@ def tickets_content() -> rx.Component:
             padding="4px",
         ),
 
+        # ── Filtres ───────────────────────────────────────────────────────────
+        filters_bar(),
+
         # ── Liste incidents ───────────────────────────────────────────────────
-        rx.vstack(
-            rx.foreach(TicketsState.tickets, incident_row),
-            spacing="2",
-            width="100%",
+        rx.cond(
+            TicketsState.tickets.length() > 0,
+            rx.vstack(
+                rx.foreach(TicketsState.tickets, incident_row),
+                spacing="2",
+                width="100%",
+            ),
+            rx.box(
+                rx.vstack(
+                    rx.icon("search-x", size=28, color=MUTED),
+                    rx.text("Aucun incident ne correspond aux filtres.", color=MUTED, font_size="0.85rem"),
+                    spacing="2", align="center",
+                ),
+                padding="2.5rem", text_align="center", width="100%",
+            ),
         ),
 
         # ── Dialog création ───────────────────────────────────────────────────
