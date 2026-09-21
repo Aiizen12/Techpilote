@@ -1,4 +1,6 @@
 import random
+import uuid
+from datetime import datetime
 
 import reflex as rx
 
@@ -15,19 +17,25 @@ BACKLOG_CATEGORIES = [
     "Sécurité & accès",
 ]
 
+DEMO_IMPACTS = ["basse", "normale", "normale", "haute", "critique"]
+DEMO_TITLES = [
+    "Ne démarre plus", "Lenteur anormale", "Erreur de connexion", "Écran bleu",
+    "Périphérique non reconnu", "Mise à jour bloquée", "Accès refusé",
+    "Synchronisation en échec", "Message d'erreur récurrent", "Panne intermittente",
+]
+
 
 class BacklogState(rx.State):
     technicians: list[dict] = []
     categories: list[dict] = []
     renfort_techs: list[dict] = []
-
     demo_mode: bool = False
 
     show_assign_form: bool = False
     assign_categorie: str = ""
     assign_tech_id: str = ""
 
-    # ── Calcul partagé (données réelles ET démo) ─────────────────────────────
+    # ── Calcul partagé ────────────────────────────────────────────────────────
 
     @staticmethod
     def _derive(rows: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -60,7 +68,7 @@ class BacklogState(rx.State):
 
         return rows, renfort_techs
 
-    # ── Chargement données réelles ────────────────────────────────────────────
+    # ── Chargement (données réelles, tickets de démo inclus) ─────────────────
 
     def load(self):
         db = load_db()
@@ -74,17 +82,20 @@ class BacklogState(rx.State):
             }
             for t in techs
         ]
-
-        if self.demo_mode:
-            return
-
         tech_by_id = {t["id"]: t for t in self.technicians}
         tickets = db.get("tickets") or []
         titulaires = db.get("backlog_titulaires") or {}
 
+        has_demo_tickets = any(tk.get("is_demo") for tk in tickets)
+        self.demo_mode = has_demo_tickets
+
         open_by_tech: dict = {}
         resolved_by_tech: dict = {}
         for tk in tickets:
+            # Pendant une démo, la vue backlog ne compte que les tickets factices
+            # (les vrais tickets restent visibles dans Tickets/Dashboard sans être mélangés ici).
+            if has_demo_tickets and not tk.get("is_demo"):
+                continue
             tid = str(tk.get("technicien_id") or "")
             if not tid:
                 continue
@@ -130,49 +141,99 @@ class BacklogState(rx.State):
     def demo_is_cleared(self) -> bool:
         return self.demo_mode and bool(self.categories) and all(r["ouverts"] == 0 for r in self.categories)
 
-    # ── Mode démonstration ────────────────────────────────────────────────────
+    # ── Mode démonstration (vrais tickets, marqués is_demo) ──────────────────
 
-    def demo_new_day(self):
-        if not self.technicians:
+    async def demo_new_day(self):
+        auth = await self.get_state(AuthState)
+        if not auth.is_manager:
+            yield rx.toast.error("Droits insuffisants.")
             return
+        if not self.technicians:
+            yield rx.toast.error("Aucun technicien actif.")
+            return
+
+        db = load_db()
+        tickets = [tk for tk in (db.get("tickets") or []) if not tk.get("is_demo")]
+
         pool = list(self.technicians)
         random.shuffle(pool)
-        rows = []
+        titulaires = {}
+        now_iso = datetime.utcnow().isoformat()
         for i, cat in enumerate(BACKLOG_CATEGORIES):
             t = pool[i % len(pool)]
-            rows.append({
-                "nom": cat,
-                "titulaire_id": t["id"],
-                "titulaire_nom": t["nom"],
-                "titulaire_color": t["color"],
-                "titulaire_initials": t["initials"],
-                "has_titulaire": True,
-                "ouverts": random.randint(15, 60),
-                "traites": 0,
-            })
-        self.categories, self.renfort_techs = self._derive(rows)
-        self.demo_mode = True
+            titulaires[cat] = t["id"]
+            for _ in range(random.randint(8, 25)):
+                tickets.append({
+                    "id": str(uuid.uuid4()),
+                    "titre": f"🎭 DÉMO — {random.choice(DEMO_TITLES)}",
+                    "ticket_pere": "",
+                    "description": f"Ticket de démonstration ({cat}).",
+                    "impact": random.choice(DEMO_IMPACTS),
+                    "perimetre": cat,
+                    "technicien_id": t["id"],
+                    "technicien_nom": t["nom"],
+                    "etat": "en_cours",
+                    "notes": "",
+                    "date_creation": now_iso,
+                    "date_modification": now_iso,
+                    "date_resolution": None,
+                    "escalade_perimetre": "", "escalade_typologie": "",
+                    "escalade_interlocuteur": "", "escalade_n2": "", "escalade_wp_n2": "",
+                    "is_demo": True,
+                })
 
-    def demo_advance(self):
+        db["tickets"] = tickets
+        db["backlog_titulaires"] = titulaires
+        save_db(db)
+        log_activity(auth.user_nom, "CREATE", "backlog", "Démo backlog générée (tickets factices)")
+        yield rx.toast.success("Nouvelle journée de démo générée.")
+        self.load()
+
+    async def demo_advance(self):
+        auth = await self.get_state(AuthState)
+        if not auth.is_manager:
+            yield rx.toast.error("Droits insuffisants.")
+            return
         if not self.demo_mode:
             return
+
         renfort_count: dict = {}
         for r in self.renfort_techs:
             renfort_count[r["target"]] = renfort_count.get(r["target"], 0) + 1
+        cat_by_tech = {r["titulaire_id"]: r["nom"] for r in self.categories if r["has_titulaire"]}
 
-        rows = [dict(r) for r in self.categories]
-        for r in rows:
-            if r["ouverts"] <= 0:
-                continue
-            boost = 1 + renfort_count.get(r["nom"], 0)
-            dec = min(r["ouverts"], random.randint(3, 8) * boost)
-            r["ouverts"] -= dec
-            r["traites"] += dec
+        db = load_db()
+        tickets = db.get("tickets") or []
+        now_iso = datetime.utcnow().isoformat()
 
-        self.categories, self.renfort_techs = self._derive(rows)
+        open_demo_by_tech: dict = {}
+        for tk in tickets:
+            if tk.get("is_demo") and tk.get("etat") == "en_cours":
+                open_demo_by_tech.setdefault(str(tk.get("technicien_id") or ""), []).append(tk)
 
-    def demo_stop(self):
-        self.demo_mode = False
+        for tid, tks in open_demo_by_tech.items():
+            cat = cat_by_tech.get(tid, "")
+            boost = 1 + renfort_count.get(cat, 0)
+            n_resolve = min(len(tks), random.randint(3, 8) * boost)
+            for tk in random.sample(tks, n_resolve):
+                tk["etat"] = "resolu"
+                tk["date_resolution"] = now_iso
+                tk["date_modification"] = now_iso
+
+        save_db(db)
+        self.load()
+
+    async def demo_cleanup(self):
+        auth = await self.get_state(AuthState)
+        if not auth.is_manager:
+            yield rx.toast.error("Droits insuffisants.")
+            return
+        db = load_db()
+        db["tickets"] = [tk for tk in (db.get("tickets") or []) if not tk.get("is_demo")]
+        db.pop("backlog_titulaires", None)
+        save_db(db)
+        log_activity(auth.user_nom, "DELETE", "backlog", "Tickets de démo supprimés")
+        yield rx.toast.info("Tickets de démo supprimés.")
         self.load()
 
     # ── Assignation titulaire (données réelles) ──────────────────────────────

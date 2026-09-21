@@ -212,8 +212,8 @@ def demo_bar() -> rx.Component:
             BacklogState.demo_mode,
             rx.hstack(
                 rx.icon("flask-conical", size=13, color="#a78bfa"),
-                rx.text("Mode démonstration — données simulées", color="#a78bfa",
-                        font_size="0.72rem", font_weight="600"),
+                rx.text("Mode démonstration — tickets factices réels (visibles dans Tickets/Dashboard)",
+                        color="#a78bfa", font_size="0.72rem", font_weight="600"),
                 spacing="2", align="center",
                 background="rgba(139,92,246,0.1)", border="1px solid rgba(139,92,246,0.3)",
                 border_radius="7px", padding="4px 10px", width="fit-content",
@@ -243,8 +243,8 @@ def demo_bar() -> rx.Component:
                             _hover={"background": "rgba(99,102,241,0.2)"},
                         ),
                         rx.button(
-                            rx.icon("x", size=13), "Quitter la démo",
-                            on_click=BacklogState.demo_stop,
+                            rx.icon("trash-2", size=13), "Supprimer les tickets de démo",
+                            on_click=BacklogState.demo_cleanup,
                             background="transparent", color=MUTED,
                             border=f"1px solid {BORDER}", border_radius="7px",
                             font_size="0.78rem", padding="6px 12px", cursor="pointer", spacing="2",
