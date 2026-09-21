@@ -255,61 +255,68 @@ def sidebar_content(mobile: bool = False) -> rx.Component:
 
         rx.divider(border_color=BORDER),
 
-        # Navigation
-        nav_group(
-            section_label("NAVIGATION", mobile=mobile),
-            nav_item("Dashboard",   "layout-dashboard", "/dashboard",  mobile=mobile),
-            nav_item("Planning",    "calendar-days",    "/planning",   mobile=mobile),
-            nav_item("Escalade N1", "git-branch",       "/escalade",   mobile=mobile),
-            nav_item("Tickets",     "ticket",           "/tickets",    mobile=mobile),
-            nav_item("Répartition backlog", "shuffle",  "/backlog",    mobile=mobile),
-            nav_item("Documents",   "folder",           "/documents",  mobile=mobile),
-            nav_item("Outils",      "wrench",           "/outils",     mobile=mobile),
-            nav_item("Mode opératoire", "book-open",    "/modop",      mobile=mobile),
-            mobile=mobile,
-        ),
-        rx.divider(border_color=BORDER, margin_y="0"),
-
-        # Équipe
-        nav_group(
-            section_label("ÉQUIPE", mobile=mobile),
-            nav_item("Techniciens", "users",            "/techniciens", mobile=mobile),
-            nav_item("Actualités",  "newspaper",        "/actualites",  mobile=mobile),
-            nav_item("Quêtes",      "trophy",           "/quetes",      mobile=mobile),
-            nav_item("Feedbacks",   "message-circle",   "/feedbacks",   mobile=mobile),
-            nav_item("Formation",   "graduation-cap",   "/formation",   mobile=mobile),
-            mobile=mobile,
-        ),
-
-        rx.divider(border_color=BORDER, margin_y="0"),
-
-        # Tableaux de bord
-        nav_group(
-            section_label("TABLEAUX DE BORD", mobile=mobile),
-            nav_item("Suivi procédures", "bar-chart-2", "/bdc-procedures", mobile=mobile),
-            mobile=mobile,
-        ),
-
-        # Admin
-        rx.cond(
-            AuthState.is_manager,
-            rx.vstack(
-                rx.divider(border_color=BORDER, margin_y="0"),
-                nav_group(
-                    section_label("ADMIN", mobile=mobile),
-                    nav_item("Permissions",          "shield",      "/permissions",  mobile=mobile),
-                    nav_item("Audit",                "file-text",   "/audit",        mobile=mobile),
-                    nav_item("Import Excel",         "file-up",     "/import-excel", mobile=mobile),
-                    nav_item("Migration Loop→Drive", "git-branch",  "/migration",    mobile=mobile),
-                    nav_item("Rédacteur Procédures", "notebook-pen", "/redacteur",   mobile=mobile),
-                    nav_item("Skill Map",            "map",         "/skill-map",   mobile=mobile),
-                    mobile=mobile,
-                ),
-                spacing="0", width="100%",
+        # Zone défilable : toutes les sections de navigation
+        rx.vstack(
+            # Navigation
+            nav_group(
+                section_label("NAVIGATION", mobile=mobile),
+                nav_item("Dashboard",   "layout-dashboard", "/dashboard",  mobile=mobile),
+                nav_item("Planning",    "calendar-days",    "/planning",   mobile=mobile),
+                nav_item("Escalade N1", "git-branch",       "/escalade",   mobile=mobile),
+                nav_item("Tickets",     "ticket",           "/tickets",    mobile=mobile),
+                nav_item("Répartition backlog", "shuffle",  "/backlog",    mobile=mobile),
+                nav_item("Documents",   "folder",           "/documents",  mobile=mobile),
+                nav_item("Outils",      "wrench",           "/outils",     mobile=mobile),
+                nav_item("Mode opératoire", "book-open",    "/modop",      mobile=mobile),
+                mobile=mobile,
             ),
+            rx.divider(border_color=BORDER, margin_y="0"),
+
+            # Équipe
+            nav_group(
+                section_label("ÉQUIPE", mobile=mobile),
+                nav_item("Techniciens", "users",            "/techniciens", mobile=mobile),
+                nav_item("Actualités",  "newspaper",        "/actualites",  mobile=mobile),
+                nav_item("Quêtes",      "trophy",           "/quetes",      mobile=mobile),
+                nav_item("Feedbacks",   "message-circle",   "/feedbacks",   mobile=mobile),
+                nav_item("Formation",   "graduation-cap",   "/formation",   mobile=mobile),
+                mobile=mobile,
+            ),
+
+            rx.divider(border_color=BORDER, margin_y="0"),
+
+            # Tableaux de bord
+            nav_group(
+                section_label("TABLEAUX DE BORD", mobile=mobile),
+                nav_item("Suivi procédures", "bar-chart-2", "/bdc-procedures", mobile=mobile),
+                mobile=mobile,
+            ),
+
+            # Admin
+            rx.cond(
+                AuthState.is_manager,
+                rx.vstack(
+                    rx.divider(border_color=BORDER, margin_y="0"),
+                    nav_group(
+                        section_label("ADMIN", mobile=mobile),
+                        nav_item("Permissions",          "shield",      "/permissions",  mobile=mobile),
+                        nav_item("Audit",                "file-text",   "/audit",        mobile=mobile),
+                        nav_item("Import Excel",         "file-up",     "/import-excel", mobile=mobile),
+                        nav_item("Migration Loop→Drive", "git-branch",  "/migration",    mobile=mobile),
+                        nav_item("Rédacteur Procédures", "notebook-pen", "/redacteur",   mobile=mobile),
+                        nav_item("Skill Map",            "map",         "/skill-map",   mobile=mobile),
+                        mobile=mobile,
+                    ),
+                    spacing="0", width="100%",
+                ),
+            ),
+
+            spacing="0", width="100%",
+            flex="1", min_height="0",
+            overflow_y="auto",
+            padding_bottom="0.5rem",
         ),
 
-        rx.spacer(),
         rx.divider(border_color=BORDER),
 
         # User section
@@ -366,7 +373,7 @@ def sidebar() -> rx.Component:
         sidebar_content(mobile=False),
         id="tp-sidebar",
         width=rx.cond(LayoutState.collapsed, SIDEBAR_COLLAPSED, SIDEBAR_FULL),
-        min_height="100vh",
+        height="100vh",
         background=SIDEBAR_BG,
         border_right=f"1px solid {BORDER}",
         position="fixed",
