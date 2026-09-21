@@ -85,7 +85,7 @@ def category_card(c: dict) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.cond(
-                    AuthState.is_manager,
+                    AuthState.is_manager & ~BacklogState.demo_mode,
                     rx.icon_button(
                         rx.icon("pencil", size=12),
                         on_click=BacklogState.open_assign(c["nom"]),
@@ -206,6 +206,59 @@ def assign_form_dialog() -> rx.Component:
     )
 
 
+def demo_bar() -> rx.Component:
+    return rx.hstack(
+        rx.cond(
+            BacklogState.demo_mode,
+            rx.hstack(
+                rx.icon("flask-conical", size=13, color="#a78bfa"),
+                rx.text("Mode démonstration — données simulées", color="#a78bfa",
+                        font_size="0.72rem", font_weight="600"),
+                spacing="2", align="center",
+                background="rgba(139,92,246,0.1)", border="1px solid rgba(139,92,246,0.3)",
+                border_radius="7px", padding="4px 10px", width="fit-content",
+            ),
+        ),
+        rx.spacer(),
+        rx.cond(
+            AuthState.is_manager,
+            rx.hstack(
+                rx.button(
+                    rx.icon("dice-5", size=13), "Nouvelle journée (démo)",
+                    on_click=BacklogState.demo_new_day,
+                    background="rgba(139,92,246,0.1)", color="#a78bfa",
+                    border="1px solid rgba(139,92,246,0.3)", border_radius="7px",
+                    font_size="0.78rem", padding="6px 12px", cursor="pointer", spacing="2",
+                    _hover={"background": "rgba(139,92,246,0.2)"},
+                ),
+                rx.cond(
+                    BacklogState.demo_mode,
+                    rx.fragment(
+                        rx.button(
+                            rx.icon("fast-forward", size=13), "Faire avancer",
+                            on_click=BacklogState.demo_advance,
+                            background="rgba(99,102,241,0.1)", color=PRIMARY,
+                            border=f"1px solid rgba(99,102,241,0.3)", border_radius="7px",
+                            font_size="0.78rem", padding="6px 12px", cursor="pointer", spacing="2",
+                            _hover={"background": "rgba(99,102,241,0.2)"},
+                        ),
+                        rx.button(
+                            rx.icon("x", size=13), "Quitter la démo",
+                            on_click=BacklogState.demo_stop,
+                            background="transparent", color=MUTED,
+                            border=f"1px solid {BORDER}", border_radius="7px",
+                            font_size="0.78rem", padding="6px 12px", cursor="pointer", spacing="2",
+                            _hover={"color": RED, "border_color": RED},
+                        ),
+                    ),
+                ),
+                spacing="2", align="center",
+            ),
+        ),
+        spacing="3", align="center", width="100%",
+    )
+
+
 def backlog_content() -> rx.Component:
     return rx.vstack(
         rx.vstack(
@@ -215,6 +268,20 @@ def backlog_content() -> rx.Component:
                 color=MUTED, font_size="0.85rem", line_height="1.5", max_width="720px",
             ),
             spacing="1", align="start", width="100%",
+        ),
+
+        demo_bar(),
+
+        rx.cond(
+            BacklogState.demo_is_cleared,
+            rx.hstack(
+                rx.icon("party-popper", size=14, color=GREEN),
+                rx.text("Backlog entièrement soldé — belle démonstration !", color=GREEN,
+                        font_size="0.8rem", font_weight="600"),
+                spacing="2", align="center",
+                background="rgba(34,197,94,0.08)", border=f"1px solid {GREEN}33",
+                border_radius="8px", padding="0.5rem 0.9rem", width="fit-content",
+            ),
         ),
 
         rx.hstack(

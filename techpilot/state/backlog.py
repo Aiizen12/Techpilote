@@ -1,3 +1,5 @@
+import random
+
 import reflex as rx
 
 from techpilot.db.database import load_db, save_db
@@ -19,9 +21,46 @@ class BacklogState(rx.State):
     categories: list[dict] = []
     renfort_techs: list[dict] = []
 
+    demo_mode: bool = False
+
     show_assign_form: bool = False
     assign_categorie: str = ""
     assign_tech_id: str = ""
+
+    # ── Calcul partagé (données réelles ET démo) ─────────────────────────────
+
+    @staticmethod
+    def _derive(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+        max_ouverts = max((r["ouverts"] for r in rows), default=0)
+        max_cat = ""
+        for r in rows:
+            r["is_max"] = max_ouverts > 0 and r["ouverts"] == max_ouverts
+            r["is_soldee"] = r["has_titulaire"] and r["ouverts"] == 0
+            if r["is_max"] and not max_cat:
+                max_cat = r["nom"]
+
+        renfort_map: dict = {}
+        renfort_techs = []
+        if max_cat:
+            for r in rows:
+                if r["is_soldee"] and r["nom"] != max_cat:
+                    renfort_techs.append({
+                        "tech_nom": r["titulaire_nom"],
+                        "tech_color": r["titulaire_color"],
+                        "tech_initials": r["titulaire_initials"],
+                        "source": r["nom"],
+                        "target": max_cat,
+                    })
+                    renfort_map.setdefault(max_cat, []).append(r["titulaire_nom"])
+
+        for r in rows:
+            noms = renfort_map.get(r["nom"], [])
+            r["renforts_label"] = ", ".join(noms)
+            r["has_renforts"] = len(noms) > 0
+
+        return rows, renfort_techs
+
+    # ── Chargement données réelles ────────────────────────────────────────────
 
     def load(self):
         db = load_db()
@@ -35,6 +74,10 @@ class BacklogState(rx.State):
             }
             for t in techs
         ]
+
+        if self.demo_mode:
+            return
+
         tech_by_id = {t["id"]: t for t in self.technicians}
         tickets = db.get("tickets") or []
         titulaires = db.get("backlog_titulaires") or {}
@@ -66,35 +109,7 @@ class BacklogState(rx.State):
                 "traites": resolved_by_tech.get(tid, 0) if has_titulaire else 0,
             })
 
-        max_ouverts = max((r["ouverts"] for r in rows), default=0)
-        max_cat = ""
-        for r in rows:
-            r["is_max"] = max_ouverts > 0 and r["ouverts"] == max_ouverts
-            r["is_soldee"] = r["has_titulaire"] and r["ouverts"] == 0
-            if r["is_max"] and not max_cat:
-                max_cat = r["nom"]
-
-        renfort_map: dict = {}
-        renfort_techs = []
-        if max_cat:
-            for r in rows:
-                if r["is_soldee"] and r["nom"] != max_cat:
-                    renfort_techs.append({
-                        "tech_nom": r["titulaire_nom"],
-                        "tech_color": r["titulaire_color"],
-                        "tech_initials": r["titulaire_initials"],
-                        "source": r["nom"],
-                        "target": max_cat,
-                    })
-                    renfort_map.setdefault(max_cat, []).append(r["titulaire_nom"])
-
-        for r in rows:
-            noms = renfort_map.get(r["nom"], [])
-            r["renforts_label"] = ", ".join(noms)
-            r["has_renforts"] = len(noms) > 0
-
-        self.categories = rows
-        self.renfort_techs = renfort_techs
+        self.categories, self.renfort_techs = self._derive(rows)
 
     @rx.var
     def total_ouverts(self) -> int:
@@ -111,7 +126,56 @@ class BacklogState(rx.State):
                 return r["nom"]
         return ""
 
-    # ── Assignation titulaire ────────────────────────────────────────────────
+    @rx.var
+    def demo_is_cleared(self) -> bool:
+        return self.demo_mode and bool(self.categories) and all(r["ouverts"] == 0 for r in self.categories)
+
+    # ── Mode démonstration ────────────────────────────────────────────────────
+
+    def demo_new_day(self):
+        if not self.technicians:
+            return
+        pool = list(self.technicians)
+        random.shuffle(pool)
+        rows = []
+        for i, cat in enumerate(BACKLOG_CATEGORIES):
+            t = pool[i % len(pool)]
+            rows.append({
+                "nom": cat,
+                "titulaire_id": t["id"],
+                "titulaire_nom": t["nom"],
+                "titulaire_color": t["color"],
+                "titulaire_initials": t["initials"],
+                "has_titulaire": True,
+                "ouverts": random.randint(15, 60),
+                "traites": 0,
+            })
+        self.categories, self.renfort_techs = self._derive(rows)
+        self.demo_mode = True
+
+    def demo_advance(self):
+        if not self.demo_mode:
+            return
+        renfort_count: dict = {}
+        for r in self.renfort_techs:
+            renfort_count[r["target"]] = renfort_count.get(r["target"], 0) + 1
+
+        rows = [dict(r) for r in self.categories]
+        for r in rows:
+            if r["ouverts"] <= 0:
+                continue
+            boost = 1 + renfort_count.get(r["nom"], 0)
+            dec = min(r["ouverts"], random.randint(3, 8) * boost)
+            r["ouverts"] -= dec
+            r["traites"] += dec
+
+        self.categories, self.renfort_techs = self._derive(rows)
+
+    def demo_stop(self):
+        self.demo_mode = False
+        self.load()
+
+    # ── Assignation titulaire (données réelles) ──────────────────────────────
 
     def open_assign(self, categorie: str):
         self.assign_categorie = categorie
